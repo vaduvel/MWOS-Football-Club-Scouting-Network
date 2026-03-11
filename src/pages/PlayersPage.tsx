@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   BarChart3,
+  ChevronDown,
+  ChevronUp,
   GitCompareArrows,
   Minus,
   Search,
+  SlidersHorizontal,
   Star,
   TrendingDown,
   TrendingUp,
@@ -120,6 +123,8 @@ export default function PlayersPage() {
   const [comparisonLeft, setComparisonLeft] = useState('');
   const [comparisonRight, setComparisonRight] = useState('');
   const [updatingWatchlistKey, setUpdatingWatchlistKey] = useState<string | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showMobileComparison, setShowMobileComparison] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -255,7 +260,7 @@ export default function PlayersPage() {
                   <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/65">
                     MWOS Player Intelligence
                   </p>
-                  <h1 className="mt-2 mwos-display text-4xl uppercase leading-none tracking-[0.08em] text-white md:text-5xl">
+                  <h1 className="mt-2 mwos-display text-3xl uppercase leading-none tracking-[0.08em] text-white md:text-5xl">
                     Player Hub
                   </h1>
                   <p className="mt-3 max-w-3xl text-sm font-semibold text-white/78">
@@ -276,7 +281,18 @@ export default function PlayersPage() {
                     />
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+                  <div className="sm:hidden">
+                    <button
+                      onClick={() => setShowMobileFilters((current) => !current)}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-4 py-3 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm"
+                    >
+                      <SlidersHorizontal size={16} />
+                      Filters
+                      {showMobileFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
+                  </div>
+
+                  <div className={`${showMobileFilters ? 'grid' : 'hidden'} gap-3 sm:grid md:grid-cols-[1fr_auto_auto]`}>
                     <select
                       value={potentialFilter}
                       onChange={(event) => setPotentialFilter(event.target.value)}
@@ -360,7 +376,7 @@ export default function PlayersPage() {
               <div className="flex items-center justify-between gap-4 border-b border-[var(--color-mid)]/12 pb-4">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Highlights</p>
-                  <h2 className="mt-2 text-2xl font-black text-[var(--color-dark)]">Players Reported Well</h2>
+                  <h2 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">Players Reported Well</h2>
                 </div>
                 <div className="rounded-2xl bg-[var(--color-primary)]/8 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">
                   Board-ready shortlist
@@ -437,11 +453,22 @@ export default function PlayersPage() {
                 </div>
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Comparison</p>
-                  <h2 className="mt-1 text-2xl font-black text-[var(--color-dark)]">Player Comparison</h2>
+                  <h2 className="mt-1 text-xl font-black text-[var(--color-dark)] md:text-2xl">Player Comparison</h2>
                 </div>
               </div>
 
-              <div className="mt-5 space-y-4">
+              <div className="mt-5 xl:hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowMobileComparison((current) => !current)}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-[var(--color-mid)]/18 bg-[var(--color-light)]/55 px-4 py-3 text-sm font-black text-[var(--color-primary)]"
+                >
+                  {showMobileComparison ? 'Hide comparison' : 'Open comparison'}
+                  {showMobileComparison ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+              </div>
+
+              <div className={`${showMobileComparison ? 'block' : 'hidden'} mt-5 space-y-4 xl:block`}>
                 <select
                   value={comparisonLeft}
                   onChange={(event) => setComparisonLeft(event.target.value)}
@@ -469,10 +496,10 @@ export default function PlayersPage() {
 
               {leftPlayer && rightPlayer ? (
                 <div className="mt-5 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-[var(--color-primary)]/14 bg-[var(--color-primary)]/5 p-4">
-                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Left</p>
-                      <h3 className="mt-2 text-lg font-black text-[var(--color-dark)]">{leftPlayer.name}</h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-[var(--color-primary)]/14 bg-[var(--color-primary)]/5 p-4">
+                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Left</p>
+                    <h3 className="mt-2 text-lg font-black text-[var(--color-dark)]">{leftPlayer.name}</h3>
                       <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">{leftPlayer.clubLabel}</p>
                     </div>
                     <div className="rounded-2xl border border-[var(--color-accent)]/14 bg-[var(--color-accent)]/5 p-4">
@@ -492,7 +519,7 @@ export default function PlayersPage() {
                     </div>
                   ))}
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/50 p-4">
                       <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Verdict</p>
                       <p className="mt-2 text-sm font-semibold text-[var(--color-dark)]">{leftPlayer.latestVerdict}</p>
@@ -516,7 +543,7 @@ export default function PlayersPage() {
               <div className="flex items-center justify-between gap-4 border-b border-[var(--color-mid)]/12 pb-4">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Database</p>
-                  <h2 className="mt-1 text-2xl font-black text-[var(--color-dark)]">Tracked Players</h2>
+                  <h2 className="mt-1 text-xl font-black text-[var(--color-dark)] md:text-2xl">Tracked Players</h2>
                 </div>
                 <div className="rounded-2xl bg-[var(--color-light)] px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
                   {filteredEntries.length} shown
@@ -561,7 +588,7 @@ export default function PlayersPage() {
                             </p>
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-3">
+                          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center">
                             <div className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 px-4 py-3 text-center">
                               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Avg score</p>
                               <p className="mt-1 text-2xl font-black text-[var(--color-dark)]">{entry.averageScore.toFixed(1)}</p>
@@ -573,7 +600,7 @@ export default function PlayersPage() {
                             <button
                               onClick={() => void handleWatchlistToggle(entry)}
                               disabled={updatingWatchlistKey === entry.playerKey}
-                              className={`rounded-2xl px-4 py-3 text-sm font-black transition-all ${
+                              className={`col-span-2 rounded-2xl px-4 py-3 text-sm font-black transition-all sm:col-span-1 ${
                                 entry.isWatchlisted
                                   ? 'bg-[#d5aa4d] text-[#3b2d06] shadow-[0_14px_30px_rgba(213,170,77,0.22)]'
                                   : 'border border-[var(--color-mid)]/20 bg-white text-[var(--color-primary)] hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5'
@@ -620,10 +647,10 @@ export default function PlayersPage() {
                           </div>
                         </div>
 
-                        <div className="mt-4 flex flex-wrap gap-3">
+                        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                           <button
                             onClick={() => navigate(`/report/${entry.latestReportId}`)}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(49,39,131,0.2)] transition-opacity hover:opacity-90"
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(49,39,131,0.2)] transition-opacity hover:opacity-90"
                           >
                             Open latest report
                             <ArrowRight size={16} />
@@ -638,7 +665,7 @@ export default function PlayersPage() {
                                 }
                               }
                             }}
-                            className="inline-flex items-center gap-2 rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-2.5 text-sm font-black text-[var(--color-primary)] transition-all hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5"
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-2.5 text-sm font-black text-[var(--color-primary)] transition-all hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5"
                           >
                             Compare in panel
                             <BarChart3 size={16} />
@@ -665,7 +692,7 @@ export default function PlayersPage() {
                 <div className="flex items-center justify-between gap-3 border-b border-[var(--color-mid)]/12 pb-4">
                   <div>
                     <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Shortlist</p>
-                    <h2 className="mt-1 text-2xl font-black text-[var(--color-dark)]">Watchlist</h2>
+                    <h2 className="mt-1 text-xl font-black text-[var(--color-dark)] md:text-2xl">Watchlist</h2>
                   </div>
                   <div className="rounded-2xl bg-[#d5aa4d]/18 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-[#7c5b11]">
                     {overview?.watchlistCount || 0} saved
@@ -717,7 +744,7 @@ export default function PlayersPage() {
                   </div>
                   <div>
                     <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Trend Notes</p>
-                    <h2 className="mt-1 text-2xl font-black text-[var(--color-dark)]">Development Signal</h2>
+                    <h2 className="mt-1 text-xl font-black text-[var(--color-dark)] md:text-2xl">Development Signal</h2>
                   </div>
                 </div>
 
