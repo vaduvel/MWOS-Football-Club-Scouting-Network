@@ -84,10 +84,36 @@ const FORMATIONS: Record<string, { id: string, x: number, y: number }[]> = {
   'Custom': []
 };
 
+const SLOT_LABELS: Record<string, string> = {
+  gk: 'GK',
+  rb: 'RB',
+  rcb: 'RCB',
+  cb: 'CB',
+  lcb: 'LCB',
+  lb: 'LB',
+  rwb: 'RWB',
+  lwb: 'LWB',
+  cdm: 'DM',
+  rcdm: 'RDM',
+  lcdm: 'LDM',
+  rcm: 'RCM',
+  lcm: 'LCM',
+  rm: 'RM',
+  lm: 'LM',
+  cam: 'CAM',
+  rw: 'RW',
+  lw: 'LW',
+  st: 'ST',
+  rst: 'RST',
+  lst: 'LST',
+};
+
 export default function FormationsTab() {
   const { currentReport, updatePlayer, updateReportField, undo, redo, historyIndex, history } = useReportStore();
   const [activeSide, setActiveSide] = useState<'home' | 'away'>('home');
   const [isLocked, setIsLocked] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const pitchRef = useRef<HTMLDivElement>(null);
   
   // Drag state
@@ -101,8 +127,53 @@ export default function FormationsTab() {
   const players = currentReport.players.filter(p => p.team_side === activeSide);
   const formationKey = activeSide === 'home' ? currentReport.formation_home : currentReport.formation_away;
   const currentFormation = FORMATIONS[formationKey] || FORMATIONS['4-3-3'];
+  const selectedSlot = currentFormation.find((slot) => slot.id === selectedSlotId) || null;
+
+  useEffect(() => {
+    const syncCompactMode = () => {
+      setIsCompact(window.innerWidth < 768);
+    };
+
+    syncCompactMode();
+    window.addEventListener('resize', syncCompactMode);
+    return () => window.removeEventListener('resize', syncCompactMode);
+  }, []);
+
+  useEffect(() => {
+    setSelectedSlotId(null);
+  }, [activeSide, formationKey, isCompact]);
+
+  const getSlotOccupant = (slot: { id: string; x: number; y: number }) =>
+    players.find((player) => Math.abs(player.position_x - slot.x) < 2 && Math.abs(player.position_y - slot.y) < 2);
+
+  const getPlayerSlotLabel = (player: Player) => {
+    const slot = currentFormation.find(
+      (formationSlot) =>
+        Math.abs(player.position_x - formationSlot.x) < 2 &&
+        Math.abs(player.position_y - formationSlot.y) < 2,
+    );
+
+    return slot ? SLOT_LABELS[slot.id] || slot.id.toUpperCase() : 'Free';
+  };
+
+  const assignPlayerToSlot = (playerId: string | number, slot: { id: string; x: number; y: number }) => {
+    const selectedPlayer = players.find((player) => player.id === playerId);
+    if (!selectedPlayer) return;
+
+    const occupant = getSlotOccupant(slot);
+    if (occupant && occupant.id !== playerId) {
+      updatePlayer(occupant.id, {
+        position_x: selectedPlayer.position_x,
+        position_y: selectedPlayer.position_y,
+      });
+    }
+
+    updatePlayer(playerId, { position_x: slot.x, position_y: slot.y });
+    setSelectedSlotId(null);
+  };
 
   const handlePointerDown = (e: React.PointerEvent, player: Player) => {
+    if (isCompact) return;
     e.preventDefault();
     e.stopPropagation();
     
@@ -123,6 +194,7 @@ export default function FormationsTab() {
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    if (isCompact) return;
     if (draggingId === null || !pitchRef.current) return;
     
     const rect = pitchRef.current.getBoundingClientRect();
@@ -157,6 +229,7 @@ export default function FormationsTab() {
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    if (isCompact) return;
     if (draggingId !== null && tempPos) {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       
@@ -198,6 +271,7 @@ export default function FormationsTab() {
 
   const applyFormation = (preset: string) => {
     updateReportField(activeSide === 'home' ? 'formation_home' : 'formation_away', preset);
+    setSelectedSlotId(null);
     
     if (preset !== 'Custom') {
       const slots = FORMATIONS[preset];
@@ -287,7 +361,7 @@ export default function FormationsTab() {
 
           <div 
             ref={pitchRef}
-            className="relative w-full max-w-[500px] aspect-[2/3] bg-[#4CAF50] rounded-lg border-4 border-white shadow-inner overflow-hidden select-none touch-none"
+            className={`relative w-full ${isCompact ? 'max-w-[360px]' : 'max-w-[500px]'} aspect-[2/3] bg-[#4CAF50] rounded-lg border-4 border-white shadow-inner overflow-hidden select-none ${isCompact ? '' : 'touch-none'}`}
             style={{
               backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10%, rgba(255,255,255,0.1) 10%, rgba(255,255,255,0.1) 20%)'
             }}
@@ -316,69 +390,158 @@ export default function FormationsTab() {
             {formationKey !== 'Custom' && currentFormation.map(slot => (
               <div 
                 key={slot.id}
-                className={`absolute w-10 h-10 -ml-5 -mt-5 rounded-full border-2 border-dashed transition-colors ${
-                  hoveredSlot?.id === slot.id ? 'border-white bg-white/30' : 'border-white/30'
+                className={`absolute ${isCompact ? 'w-14 h-14 -ml-7 -mt-7' : 'w-10 h-10 -ml-5 -mt-5'} rounded-full border-2 border-dashed transition-colors ${
+                  (hoveredSlot?.id === slot.id || selectedSlotId === slot.id) ? 'border-white bg-white/30' : 'border-white/30'
                 }`}
                 style={{ left: `${slot.x}%`, top: `${slot.y}%` }}
               />
             ))}
 
-            {/* Players */}
-            {players.map(player => {
-              const isDragging = draggingId === player.id;
-              const initials = player.name ? player.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?';
-              
-              const posX = isDragging && tempPos ? tempPos.x : player.position_x;
-              const posY = isDragging && tempPos ? tempPos.y : player.position_y;
-
-              return (
-                <div
-                  key={player.id}
-                  onPointerDown={(e) => handlePointerDown(e, player)}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  onPointerCancel={handlePointerUp}
-                  className={`absolute w-10 h-10 -ml-5 -mt-5 rounded-full flex flex-col items-center justify-center cursor-grab active:cursor-grabbing transition-transform ${
-                    isDragging ? 'scale-125 z-50 shadow-2xl' : 'scale-100 z-10 shadow-md hover:scale-110'
-                  }`}
-                  style={{
-                    left: `${posX}%`,
-                    top: `${posY}%`,
-                    backgroundColor: activeSide === 'home' ? 'var(--color-primary)' : 'var(--color-accent)',
-                    color: 'white',
-                    border: '2px solid white'
-                  }}
-                  title={player.name}
-                >
-                  <span className="text-xs font-black leading-none">{player.shirt_number || '-'}</span>
-                  <span className="text-[8px] font-bold leading-none opacity-80">{initials}</span>
+            {isCompact ? (
+              formationKey === 'Custom' ? (
+                <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-white/88 px-4 py-3 text-center text-xs font-bold text-[var(--color-dark)] shadow-lg">
+                  Choose a preset formation on mobile, then tap a slot to assign players.
                 </div>
-              );
-            })}
+              ) : (
+                currentFormation.map((slot) => {
+                  const occupant = getSlotOccupant(slot);
+                  const initials = occupant?.name
+                    ? occupant.name
+                        .split(' ')
+                        .map((name) => name[0])
+                        .join('')
+                        .substring(0, 2)
+                        .toUpperCase()
+                    : SLOT_LABELS[slot.id] || slot.id.toUpperCase();
+
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => setSelectedSlotId(slot.id)}
+                      className={`absolute z-10 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-2 text-white shadow-lg transition-transform ${
+                        selectedSlotId === slot.id ? 'scale-110 border-white' : 'border-white/90'
+                      }`}
+                      style={{
+                        left: `${slot.x}%`,
+                        top: `${slot.y}%`,
+                        backgroundColor: occupant
+                          ? activeSide === 'home'
+                            ? 'var(--color-primary)'
+                            : 'var(--color-accent)'
+                          : 'rgba(15, 23, 42, 0.38)',
+                      }}
+                    >
+                      <span className="text-[10px] font-black leading-none">{occupant?.shirt_number || SLOT_LABELS[slot.id] || '?'}</span>
+                      <span className="mt-1 text-[9px] font-bold leading-none uppercase">{initials}</span>
+                    </button>
+                  );
+                })
+              )
+            ) : (
+              players.map(player => {
+                const isDragging = draggingId === player.id;
+                const initials = player.name ? player.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?';
+                
+                const posX = isDragging && tempPos ? tempPos.x : player.position_x;
+                const posY = isDragging && tempPos ? tempPos.y : player.position_y;
+
+                return (
+                  <div
+                    key={player.id}
+                    onPointerDown={(e) => handlePointerDown(e, player)}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                    className={`absolute w-10 h-10 -ml-5 -mt-5 rounded-full flex flex-col items-center justify-center cursor-grab active:cursor-grabbing transition-transform ${
+                      isDragging ? 'scale-125 z-50 shadow-2xl' : 'scale-100 z-10 shadow-md hover:scale-110'
+                    }`}
+                    style={{
+                      left: `${posX}%`,
+                      top: `${posY}%`,
+                      backgroundColor: activeSide === 'home' ? 'var(--color-primary)' : 'var(--color-accent)',
+                      color: 'white',
+                      border: '2px solid white'
+                    }}
+                    title={player.name}
+                  >
+                    <span className="text-xs font-black leading-none">{player.shirt_number || '-'}</span>
+                    <span className="text-[8px] font-bold leading-none opacity-80">{initials}</span>
+                  </div>
+                );
+              })
+            )}
           </div>
-          <p className="text-xs text-[var(--color-mid)] mt-4 font-semibold text-center">
-            Drag and drop players. Hold <kbd className="bg-gray-100 px-1 rounded">Shift</kbd> for free movement.
+          <p className="mt-4 text-center text-xs font-semibold text-[var(--color-mid)]">
+            {isCompact
+              ? formationKey === 'Custom'
+                ? 'Mobile mode works with preset shapes. Pick a formation to place players by tapping slots.'
+                : 'Tap a position on the pitch, then tap a player below to assign them there.'
+              : (
+                <>
+                  Drag and drop players. Hold <kbd className="rounded bg-gray-100 px-1">Shift</kbd> for free movement.
+                </>
+              )}
           </p>
         </div>
 
         {/* Player List Sidebar */}
-        <div className="w-full lg:w-64 bg-white p-6 rounded-2xl shadow-sm border border-[var(--color-mid)]/20 flex flex-col h-[600px]">
-          <h3 className="text-sm font-black text-[var(--color-dark)] uppercase tracking-wider mb-4 border-b border-[var(--color-mid)]/20 pb-2">Squad List</h3>
+        <div className={`w-full ${isCompact ? '' : 'lg:w-64'} bg-white p-6 rounded-2xl shadow-sm border border-[var(--color-mid)]/20 flex flex-col ${isCompact ? '' : 'h-[600px]'}`}>
+          <div className="mb-4 border-b border-[var(--color-mid)]/20 pb-3">
+            <h3 className="text-sm font-black uppercase tracking-wider text-[var(--color-dark)]">
+              {isCompact ? 'Tap-to-Assign Squad List' : 'Squad List'}
+            </h3>
+            {isCompact ? (
+              <p className="mt-2 text-xs font-semibold text-[var(--color-mid)]">
+                {formationKey === 'Custom'
+                  ? 'Pick a preset formation first to enable touch assignment.'
+                  : selectedSlot
+                    ? `Assign a player to ${SLOT_LABELS[selectedSlot.id] || selectedSlot.id.toUpperCase()}.`
+                    : 'Choose a pitch slot above, then tap a player.'}
+              </p>
+            ) : null}
+          </div>
           <div className="flex-1 overflow-y-auto space-y-2 pr-2">
             {players.map(player => (
-              <div key={player.id} className="flex items-center justify-between p-2 rounded-lg bg-[var(--color-light)] hover:bg-[var(--color-mid)]/10 transition-colors text-sm">
+              <button
+                key={player.id}
+                type="button"
+                onClick={() => {
+                  if (isCompact && selectedSlot) {
+                    assignPlayerToSlot(player.id, selectedSlot);
+                  }
+                }}
+                disabled={isCompact && (!selectedSlot || formationKey === 'Custom')}
+                className={`flex w-full items-center justify-between rounded-lg bg-[var(--color-light)] p-3 text-left text-sm transition-colors ${
+                  isCompact && selectedSlot && formationKey !== 'Custom'
+                    ? 'hover:bg-[var(--color-mid)]/15'
+                    : 'cursor-default'
+                }`}
+              >
                 <div className="flex items-center">
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white mr-2 ${activeSide === 'home' ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-accent)]'}`}>
+                  <span className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-black text-white ${activeSide === 'home' ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-accent)]'}`}>
                     {player.shirt_number || '-'}
                   </span>
-                  <span className="font-bold text-[var(--color-dark)] truncate max-w-[120px]">{player.name || 'Unnamed'}</span>
+                  <div className="min-w-0">
+                    <span className="block truncate font-bold text-[var(--color-dark)]">{player.name || 'Unnamed'}</span>
+                    <span className="block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-mid)]">
+                      {getPlayerSlotLabel(player)}
+                    </span>
+                  </div>
                 </div>
-                {player.rating && (
-                  <span className="text-xs font-black text-[var(--color-primary)] bg-white px-1.5 py-0.5 rounded shadow-sm">
-                    {player.rating}
-                  </span>
-                )}
-              </div>
+                <div className="ml-3 flex items-center gap-2">
+                  {player.rating && (
+                    <span className="rounded bg-white px-1.5 py-0.5 text-xs font-black text-[var(--color-primary)] shadow-sm">
+                      {player.rating}
+                    </span>
+                  )}
+                  {isCompact && selectedSlot && formationKey !== 'Custom' ? (
+                    <span className="rounded-full bg-[var(--color-primary)]/10 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[var(--color-primary)]">
+                      Assign
+                    </span>
+                  ) : null}
+                </div>
+              </button>
             ))}
             {players.length === 0 && (
               <p className="text-xs text-[var(--color-mid)] text-center mt-4">No players added to {activeSide} team yet.</p>
