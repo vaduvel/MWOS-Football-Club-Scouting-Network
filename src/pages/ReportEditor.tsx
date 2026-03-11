@@ -13,12 +13,12 @@ import { fetchReport, saveReport } from '../lib/data';
 import { createId } from '../lib/ids';
 
 const TABS = [
-  { id: 'match', label: 'Match Report', icon: FileText },
-  { id: 'teams', label: 'Team Sheets', icon: Users },
-  { id: 'formations', label: 'Formations', icon: LayoutDashboard },
-  { id: 'reviews', label: 'Player Reviews', icon: UserCheck },
-  { id: 'comments', label: 'Comments', icon: MessageSquare },
-  { id: 'export', label: 'Export PDF', icon: Download },
+  { id: 'match', label: 'Match Report', mobileLabel: 'Match', icon: FileText },
+  { id: 'teams', label: 'Team Sheets', mobileLabel: 'Team', icon: Users },
+  { id: 'formations', label: 'Formations', mobileLabel: 'Shape', icon: LayoutDashboard },
+  { id: 'reviews', label: 'Player Reviews', mobileLabel: 'Reviews', icon: UserCheck },
+  { id: 'comments', label: 'Comments', mobileLabel: 'Notes', icon: MessageSquare },
+  { id: 'export', label: 'Export PDF', mobileLabel: 'PDF', icon: Download },
 ];
 
 function hasMeaningfulDraftContent(report: ReturnType<typeof useReportStore.getState>['currentReport']) {
@@ -193,30 +193,35 @@ export default function ReportEditor() {
   return (
     <div className="min-h-screen bg-[var(--color-light)] flex flex-col">
       <header className="mwos-ribbon-surface sticky top-0 z-50 shadow-sm">
-        <div className="flex items-center gap-4 border-b border-white/10 px-4 py-3 md:px-6">
+        <div className="hidden items-center gap-4 border-b border-white/10 px-4 py-3 md:flex md:px-6">
           <img
             src="/branding/mwos-fc-300-2.png"
             alt="MWOS logo"
             className="h-11 w-11 rounded-full border border-white/20 bg-white/10 p-0.5"
           />
         </div>
-        <div className="flex flex-col gap-4 px-4 py-4 text-white md:flex-row md:items-center md:justify-between md:px-6">
-          <div className="flex items-center space-x-4">
-            <button onClick={() => navigate('/')} className="rounded-full p-2 transition-colors hover:bg-white/10">
-              <ArrowLeft size={24} className="text-white" />
+        <div className="flex flex-col gap-3 px-4 py-3 text-white md:flex-row md:items-center md:justify-between md:px-6 md:py-4">
+          <div className="flex items-start gap-3 md:items-center md:space-x-4">
+            <button onClick={() => navigate('/')} className="rounded-full p-1.5 transition-colors hover:bg-white/10 md:p-2">
+              <ArrowLeft size={22} className="text-white md:h-6 md:w-6" />
             </button>
+            <img
+              src="/branding/mwos-fc-300-2.png"
+              alt="MWOS logo"
+              className="h-9 w-9 rounded-full border border-white/20 bg-white/10 p-0.5 md:hidden"
+            />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/68">MWOS Match Report</p>
-              <h1 className="text-xl font-black text-white">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/68 md:tracking-[0.28em]">MWOS Match Report</p>
+              <h1 className="text-2xl font-black leading-none text-white md:text-xl md:leading-normal">
                 {currentReport.home_team && currentReport.away_team 
                   ? `${currentReport.home_team} vs ${currentReport.away_team}` 
                   : 'New Report'}
                 </h1>
-              <p className="text-xs font-semibold uppercase tracking-wider text-white/70">
+              <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-white/74 md:text-xs md:tracking-wider">
                 {currentReport.competition || 'Draft'}
               </p>
               {isAdmin && (currentReport.owner_name || currentReport.owner_email) && (
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-white/88">
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-white/88 md:text-xs md:tracking-wider">
                   Owner: {currentReport.owner_name || currentReport.owner_email}
                 </p>
               )}
@@ -242,10 +247,10 @@ export default function ReportEditor() {
             <button 
               onClick={handleSave} 
               disabled={saving || !hasUnsavedChanges || (!persistedReportId && !canCreateInitialDraft)}
-              className="flex items-center justify-center space-x-2 rounded-xl bg-white px-6 py-2 font-bold text-[var(--color-primary)] shadow-md transition-all hover:bg-white/92 disabled:opacity-50"
+              className="flex min-w-[168px] items-center justify-center space-x-2 rounded-2xl bg-white px-5 py-3 font-bold text-[var(--color-primary)] shadow-md transition-all hover:bg-white/92 disabled:opacity-50 md:min-w-0 md:rounded-xl md:px-6 md:py-2"
             >
               <Save size={18} />
-              <span>{saving ? 'Saving...' : 'Save Report'}</span>
+              <span className="text-lg md:text-base">{saving ? 'Saving...' : 'Save Report'}</span>
             </button>
           </div>
         </div>
@@ -262,14 +267,17 @@ export default function ReportEditor() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 md:flex-none flex min-w-[88px] flex-col items-center justify-center p-3 transition-colors md:flex-row md:justify-start md:px-6 md:py-4 border-b-2 md:border-b-0 md:border-l-4 ${
+                className={`flex min-w-[74px] flex-1 flex-col items-center justify-center p-2.5 transition-colors md:min-w-0 md:flex-none md:flex-row md:justify-start md:px-6 md:py-4 border-b-2 md:border-b-0 md:border-l-4 ${
                   isActive 
                     ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5 text-[var(--color-accent)]' 
                     : 'border-transparent text-[var(--color-mid)] hover:bg-[var(--color-light)] hover:text-[var(--color-dark)]'
                 }`}
               >
-                <Icon size={20} className="mb-1 md:mb-0 md:mr-3" />
-                <span className="text-[10px] md:text-sm font-bold uppercase tracking-wider">{tab.label}</span>
+                <Icon size={18} className="mb-1 md:mb-0 md:mr-3 md:h-5 md:w-5" />
+                <span className="text-[9px] md:text-sm font-bold uppercase tracking-[0.08em] md:tracking-wider">
+                  <span className="md:hidden">{tab.mobileLabel}</span>
+                  <span className="hidden md:inline">{tab.label}</span>
+                </span>
               </button>
             );
           })}

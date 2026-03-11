@@ -269,34 +269,34 @@ export default function PlayersPage() {
         onLogout={() => void logout()}
       />
 
-      <main className="flex-1 overflow-auto p-4 pb-28 md:p-6">
-        <div className="mx-auto max-w-7xl space-y-6">
+      <main className="flex-1 overflow-auto p-3 pb-24 md:p-6">
+        <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface relative overflow-hidden px-5 py-5 text-white md:px-6">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div className="mwos-ribbon-surface relative overflow-hidden px-4 py-4 text-white md:px-6 md:py-5">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
                 <div className="max-w-2xl">
                   <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/65">
                     MWOS Player Intelligence
                   </p>
-                  <h1 className="mt-2 mwos-display text-3xl uppercase leading-none tracking-[0.08em] text-white md:text-4xl">
+                  <h1 className="mt-1 mwos-display text-[2.35rem] uppercase leading-none tracking-[0.05em] text-white md:mt-2 md:text-4xl md:tracking-[0.08em]">
                     Player Hub
                   </h1>
-                  <p className="mt-2 max-w-2xl text-sm font-semibold text-white/78">
-                    Track players, compare reports and manage academy follow-up from one scouting workspace.
+                  <p className="mt-2 max-w-xl text-[13px] font-semibold leading-5 text-white/76 md:text-sm">
+                    Track players, compare reports and manage follow-up.
                   </p>
                 </div>
 
-                <div className="grid w-full gap-3 sm:grid-cols-2 xl:w-auto">
+                <div className="grid w-full grid-cols-2 gap-2 xl:w-auto xl:min-w-[320px]">
                   <button
                     onClick={() => handleCreateReport('teams')}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm transition-all hover:bg-white/16"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm transition-all hover:bg-white/16"
                   >
                     <Plus size={16} />
                     Add Player
                   </button>
                   <button
                     onClick={() => handleCreateReport('match')}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)] transition-opacity hover:opacity-92"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-3 py-2.5 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)] transition-opacity hover:opacity-92"
                   >
                     <Plus size={16} />
                     New Report
@@ -304,8 +304,8 @@ export default function PlayersPage() {
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-                <div className="flex items-center rounded-2xl border border-white/12 bg-white/10 px-4 py-3 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
+              <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="flex items-center rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
                   <Search className="mr-3 text-white/68" size={18} />
                   <input
                     type="text"
@@ -319,7 +319,7 @@ export default function PlayersPage() {
                 <div className="sm:hidden">
                   <button
                     onClick={() => setShowMobileFilters((current) => !current)}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-4 py-3 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm"
                   >
                     <SlidersHorizontal size={16} />
                     Filters
@@ -328,11 +328,11 @@ export default function PlayersPage() {
                 </div>
               </div>
 
-              <div className={`${showMobileFilters ? 'grid' : 'hidden'} mt-3 gap-3 sm:grid md:grid-cols-[1fr_auto_auto]`}>
+              <div className={`${showMobileFilters ? 'grid' : 'hidden'} mt-2 gap-2 sm:grid md:grid-cols-[1fr_auto_auto]`}>
                 <select
                   value={potentialFilter}
                   onChange={(event) => setPotentialFilter(event.target.value)}
-                  className="rounded-2xl border border-white/12 bg-white/10 px-4 py-3 text-sm font-semibold text-white outline-none backdrop-blur-sm"
+                  className="rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
                 >
                   <option value="all" className="text-slate-900">
                     All potential levels
@@ -368,7 +368,7 @@ export default function PlayersPage() {
                     setPotentialFilter('all');
                     setWatchlistOnly(false);
                   }}
-                  className="rounded-2xl border border-white/12 bg-transparent px-4 py-3 text-sm font-black text-white/86 transition-colors hover:bg-white/10"
+                  className="rounded-2xl border border-white/12 bg-transparent px-4 py-2.5 text-sm font-black text-white/86 transition-colors hover:bg-white/10"
                 >
                   Reset
                 </button>
@@ -376,26 +376,26 @@ export default function PlayersPage() {
             </div>
           </section>
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[24px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] p-5 shadow-[0_12px_28px_rgba(49,39,131,0.06)]">
+          <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <div className="rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.06)]">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Tracked Players</p>
-              <p className="mt-3 text-4xl font-black text-[var(--color-dark)]">{overview?.totalTrackedPlayers || 0}</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">Distinct player profiles already assembled from scouting reports.</p>
+              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.totalTrackedPlayers || 0}</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Player profiles tracked.</p>
             </div>
-            <div className="rounded-[24px] border border-[#d5aa4d]/20 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))] p-5 shadow-[0_12px_28px_rgba(213,170,77,0.05)]">
+            <div className="rounded-[22px] border border-[#d5aa4d]/20 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(213,170,77,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Shortlisted</p>
-              <p className="mt-3 text-4xl font-black text-[var(--color-dark)]">{overview?.watchlistCount || 0}</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">Players worth a callback, trial or deeper follow-up report.</p>
+              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.watchlistCount || 0}</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Ready for follow-up.</p>
             </div>
-            <div className="rounded-[24px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] p-5 shadow-[0_12px_28px_rgba(190,23,23,0.05)]">
+            <div className="rounded-[22px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(190,23,23,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Pending Review</p>
-              <p className="mt-3 text-4xl font-black text-[var(--color-dark)]">{overview?.pendingReviewCount || 0}</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">Fresh or follow-up players that still need another look.</p>
+              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.pendingReviewCount || 0}</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Need another look.</p>
             </div>
-            <div className="rounded-[24px] border border-emerald-200 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,1))] p-5 shadow-[0_12px_28px_rgba(16,185,129,0.05)]">
+            <div className="rounded-[22px] border border-emerald-200 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(16,185,129,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Reports This Week</p>
-              <p className="mt-3 text-4xl font-black text-[var(--color-dark)]">{overview?.reportsThisWeek || 0}</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">Scouting activity captured in the last seven days.</p>
+              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.reportsThisWeek || 0}</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Recent scouting activity.</p>
             </div>
           </section>
 

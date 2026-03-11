@@ -25,7 +25,7 @@ export default function AppSidebar({
     'w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all';
 
   const mobileNavClass =
-    'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-black uppercase tracking-[0.14em] transition-all';
+    'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-[20px] px-1.5 py-2 text-[9px] font-black uppercase tracking-[0.12em] transition-all';
 
   return (
     <>
@@ -106,15 +106,15 @@ export default function AppSidebar({
         </div>
       </aside>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[rgba(21,18,83,0.92)] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 text-white shadow-[0_-18px_44px_rgba(12,16,53,0.34)] backdrop-blur-xl md:hidden">
-        <div className="mx-auto flex max-w-lg items-center gap-2 rounded-[28px] border border-white/10 bg-white/5 p-2">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[rgba(21,18,83,0.94)] px-2 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] pt-2 text-white shadow-[0_-14px_32px_rgba(12,16,53,0.28)] backdrop-blur-xl md:hidden">
+        <div className="mx-auto flex max-w-lg items-center gap-1.5 rounded-[24px] border border-white/10 bg-white/5 p-1.5">
           <button
             onClick={onNavigateReports}
             className={`${mobileNavClass} ${
               current === 'reports' ? 'bg-white text-[var(--color-primary)] shadow-sm' : 'text-white/72'
             }`}
           >
-            <FileText size={18} />
+            <FileText size={16} />
             <span>Reports</span>
           </button>
 
@@ -124,7 +124,7 @@ export default function AppSidebar({
               current === 'players' ? 'bg-white text-[var(--color-primary)] shadow-sm' : 'text-white/72'
             }`}
           >
-            <Star size={18} />
+            <Star size={16} />
             <span>Players</span>
           </button>
 
@@ -134,16 +134,16 @@ export default function AppSidebar({
               current === 'settings' ? 'bg-white text-[var(--color-primary)] shadow-sm' : 'text-white/72'
             }`}
           >
-            <Settings size={18} />
-            <span>Settings</span>
+            <Settings size={16} />
+            <span>Prefs</span>
           </button>
 
           <button
             onClick={onLogout}
             className={`${mobileNavClass} text-white/72`}
           >
-            <LogOut size={18} />
-            <span>Exit</span>
+            <LogOut size={16} />
+            <span>Account</span>
           </button>
         </div>
       </nav>
