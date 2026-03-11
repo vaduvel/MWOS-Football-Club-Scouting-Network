@@ -190,7 +190,7 @@ export default function ReportEditor() {
             className="h-11 w-11 rounded-full border border-white/20 bg-white/10 p-0.5"
           />
         </div>
-        <div className="flex items-center justify-between px-4 py-4 text-white md:px-6">
+        <div className="flex flex-col gap-4 px-4 py-4 text-white md:flex-row md:items-center md:justify-between md:px-6">
           <div className="flex items-center space-x-4">
             <button onClick={() => navigate('/')} className="rounded-full p-2 transition-colors hover:bg-white/10">
               <ArrowLeft size={24} className="text-white" />
@@ -213,7 +213,7 @@ export default function ReportEditor() {
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-between gap-3 md:justify-end md:space-x-4">
             {hasUnsavedChanges ? (
               <span className="hidden items-center text-xs font-semibold text-white/72 md:inline-flex">
                 <span className="w-2 h-2 rounded-full bg-yellow-500 mr-2 animate-pulse"></span>
@@ -232,7 +232,7 @@ export default function ReportEditor() {
             <button 
               onClick={handleSave} 
               disabled={saving || !hasUnsavedChanges || (!persistedReportId && !canCreateInitialDraft)}
-              className="flex items-center space-x-2 rounded-xl bg-white px-6 py-2 font-bold text-[var(--color-primary)] shadow-md transition-all hover:bg-white/92 disabled:opacity-50"
+              className="flex items-center justify-center space-x-2 rounded-xl bg-white px-6 py-2 font-bold text-[var(--color-primary)] shadow-md transition-all hover:bg-white/92 disabled:opacity-50"
             >
               <Save size={18} />
               <span>{saving ? 'Saving...' : 'Save Report'}</span>
@@ -244,7 +244,7 @@ export default function ReportEditor() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Tabs Sidebar (Desktop) / Bottom Nav (Mobile) */}
-        <nav className="bg-white border-r border-[var(--color-mid)]/20 w-full md:w-64 flex-shrink-0 flex md:flex-col overflow-x-auto md:overflow-y-auto order-2 md:order-1 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] md:shadow-none">
+        <nav className="fixed inset-x-0 bottom-0 z-40 flex w-full flex-shrink-0 overflow-x-auto border-t border-[var(--color-mid)]/20 bg-white shadow-[0_-10px_30px_rgba(15,23,42,0.12)] md:static md:w-64 md:flex-col md:overflow-y-auto md:border-t-0 md:border-r md:shadow-none">
           {TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -252,7 +252,7 @@ export default function ReportEditor() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 md:flex-none flex flex-col md:flex-row items-center md:justify-start p-4 md:px-6 md:py-4 transition-colors border-b-2 md:border-b-0 md:border-l-4 ${
+                className={`flex-1 md:flex-none flex min-w-[88px] flex-col items-center justify-center p-3 transition-colors md:flex-row md:justify-start md:px-6 md:py-4 border-b-2 md:border-b-0 md:border-l-4 ${
                   isActive 
                     ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5 text-[var(--color-accent)]' 
                     : 'border-transparent text-[var(--color-mid)] hover:bg-[var(--color-light)] hover:text-[var(--color-dark)]'
@@ -266,7 +266,7 @@ export default function ReportEditor() {
         </nav>
 
         {/* Tab Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 order-1 md:order-2">
+        <main className="order-1 flex-1 overflow-y-auto p-4 pb-28 md:order-2 md:p-8">
           <div className="max-w-5xl mx-auto">
             {activeTab === 'match' && <MatchReportTab />}
             {activeTab === 'teams' && <TeamSheetsTab />}

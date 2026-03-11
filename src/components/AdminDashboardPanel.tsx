@@ -152,7 +152,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 AI Improvement Suggestions
               </p>
-              <h3 className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+              <h3 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">
                 Gemini review of admin data
               </h3>
             </div>
@@ -244,7 +244,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Admin Assistant
               </p>
-              <h3 className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+              <h3 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">
                 Ask the dashboard agent
               </h3>
             </div>
@@ -253,7 +253,7 @@ export default function AdminDashboardPanel({
             </div>
           </div>
 
-          <div className="mt-4 h-[340px] space-y-3 overflow-auto rounded-[20px] border border-[var(--color-mid)]/14 bg-white/85 p-4">
+          <div className="mt-4 h-[260px] space-y-3 overflow-auto rounded-[20px] border border-[var(--color-mid)]/14 bg-white/85 p-4 md:h-[340px]">
             {chatMessages.map((message, index) => (
               <div
                 key={`${message.role}-${index}`}
@@ -281,7 +281,7 @@ export default function AdminDashboardPanel({
             </div>
           )}
 
-          <form onSubmit={(event) => void handleSubmit(event)} className="mt-4 flex gap-3">
+          <form onSubmit={(event) => void handleSubmit(event)} className="mt-4 flex flex-col gap-3 sm:flex-row">
             <input
               value={draftMessage}
               onChange={(event) => setDraftMessage(event.target.value)}
@@ -291,7 +291,7 @@ export default function AdminDashboardPanel({
             <button
               type="submit"
               disabled={chatLoading || !draftMessage.trim()}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white transition-all hover:-translate-y-0.5 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white transition-all hover:-translate-y-0.5 disabled:opacity-50 sm:self-auto"
             >
               <Send size={16} />
               Send
@@ -307,7 +307,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Players Reported Well
               </p>
-              <h3 className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+              <h3 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">
                 Highest-rated monitored players
               </h3>
             </div>
@@ -361,7 +361,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Recent Reports
               </p>
-              <h3 className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+              <h3 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">
                 Latest saved scouting reports
               </h3>
             </div>

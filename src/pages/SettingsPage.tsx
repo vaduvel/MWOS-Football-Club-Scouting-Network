@@ -78,7 +78,7 @@ export default function SettingsPage() {
         onLogout={() => void logout()}
       />
 
-      <main className="flex-1 overflow-auto p-4 md:p-6">
+      <main className="flex-1 overflow-auto p-4 pb-28 md:p-6">
         <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
             <div className="mwos-ribbon-surface relative overflow-hidden px-5 py-5 text-white md:px-6">
