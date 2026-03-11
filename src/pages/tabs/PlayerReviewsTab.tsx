@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useReportStore, PlayerReview } from '../../store/report';
 import { Plus, Trash2, ChevronDown, ChevronUp, UserCheck } from 'lucide-react';
 import { createId } from '../../lib/ids';
@@ -6,8 +6,19 @@ import { createId } from '../../lib/ids';
 export default function PlayerReviewsTab() {
   const { currentReport, addReview, updateReview, removeReview } = useReportStore();
   const [expandedId, setExpandedId] = useState<string | number | null>(null);
+  const [isCompact, setIsCompact] = useState(false);
 
   if (!currentReport) return null;
+
+  useEffect(() => {
+    const syncCompactMode = () => {
+      setIsCompact(window.innerWidth < 768);
+    };
+
+    syncCompactMode();
+    window.addEventListener('resize', syncCompactMode);
+    return () => window.removeEventListener('resize', syncCompactMode);
+  }, []);
 
   const handleAddReview = () => {
     const newReview: PlayerReview = {
@@ -33,12 +44,12 @@ export default function PlayerReviewsTab() {
     <div className="rounded-xl bg-[var(--color-light)] p-2.5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-dark)]">{label}</span>
-      <div className="flex flex-wrap gap-1">
+      <div className="flex gap-1.5">
         {[1, 2, 3, 4, 5].map(val => (
           <button
             key={val}
             onClick={() => updateReview(review.id, { [field]: val })}
-            className={`flex h-7 w-7 items-center justify-center rounded text-xs font-black transition-colors ${
+            className={`flex ${isCompact ? 'h-9 w-9' : 'h-10 w-10'} items-center justify-center rounded text-xs font-black transition-colors ${
               (review[field] as number) >= val 
                 ? 'bg-[var(--color-primary)] text-white' 
                 : 'bg-white text-[var(--color-mid)] border border-[var(--color-mid)]/30'
@@ -53,13 +64,13 @@ export default function PlayerReviewsTab() {
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col gap-4 rounded-2xl border border-[var(--color-mid)]/20 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between md:p-6">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-6">
+      <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-mid)]/20 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between md:gap-4 md:p-6">
         <div>
-          <h2 className="text-xl font-black uppercase tracking-tighter text-[var(--color-dark)] md:text-2xl">Player Reviews</h2>
-          <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">Compact review cards for matchday scouting.</p>
+          <h2 className="text-lg font-black uppercase tracking-tighter text-[var(--color-dark)] md:text-2xl">Player Reviews</h2>
+          <p className="mt-1 text-xs font-semibold text-[var(--color-mid)] md:text-sm">Score players, verdicts and next-step recommendations.</p>
         </div>
-        <button onClick={handleAddReview} className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-[var(--color-primary)] px-5 py-3 font-bold text-white shadow-md transition-all hover:bg-opacity-90 md:w-auto md:rounded-xl md:px-6">
+        <button onClick={handleAddReview} className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-90 md:w-auto md:rounded-xl md:px-6">
           <Plus size={20} />
           <span>Add Review</span>
         </button>
@@ -108,7 +119,7 @@ export default function PlayerReviewsTab() {
 
               {/* Expanded Content */}
               {isExpanded && (
-                <div className="space-y-5 border-t border-[var(--color-mid)]/20 bg-[var(--color-light)]/30 p-4 md:space-y-8 md:p-6">
+                <div className="space-y-4 border-t border-[var(--color-mid)]/20 bg-[var(--color-light)]/30 p-4 md:space-y-8 md:p-6">
                   
                   {/* Player Selection */}
                   <div>
@@ -139,8 +150,8 @@ export default function PlayerReviewsTab() {
                       <textarea 
                         value={review.overview} 
                         onChange={e => updateReview(review.id, { overview: e.target.value })}
-                        rows={3} 
-                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-y bg-white" 
+                        rows={isCompact ? 4 : 3} 
+                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white" 
                         placeholder="General summary of performance..." 
                       />
                     </div>
@@ -149,8 +160,8 @@ export default function PlayerReviewsTab() {
                       <textarea 
                         value={review.strengths} 
                         onChange={e => updateReview(review.id, { strengths: e.target.value })}
-                        rows={4} 
-                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-y bg-white" 
+                        rows={isCompact ? 3 : 4} 
+                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white" 
                         placeholder="- Good vision&#10;- Strong in the air" 
                       />
                     </div>
@@ -159,8 +170,8 @@ export default function PlayerReviewsTab() {
                       <textarea 
                         value={review.areas_to_improve} 
                         onChange={e => updateReview(review.id, { areas_to_improve: e.target.value })}
-                        rows={4} 
-                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-y bg-white" 
+                        rows={isCompact ? 3 : 4} 
+                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white" 
                         placeholder="- Weak foot crossing&#10;- Tracking back" 
                       />
                     </div>
@@ -228,7 +239,7 @@ export default function PlayerReviewsTab() {
           <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/20 bg-white py-10 text-center">
             <UserCheck size={48} className="mx-auto mb-4 text-[var(--color-mid)] opacity-50" />
             <p className="text-lg font-bold text-[var(--color-dark)]">No player reviews yet</p>
-            <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">Tap “Add Review” to start analyzing players.</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">Add the first review to start rating players.</p>
           </div>
         )}
       </div>

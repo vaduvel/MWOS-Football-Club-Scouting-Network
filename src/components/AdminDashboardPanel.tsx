@@ -121,29 +121,30 @@ export default function AdminDashboardPanel({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
         {statCards.map((card) => {
           const Icon = card.icon;
 
           return (
             <div
               key={card.label}
-              className={`rounded-[24px] border p-5 shadow-[0_14px_36px_rgba(49,39,131,0.06)] ${card.surface}`}
+              className={`rounded-[20px] border p-3 shadow-[0_14px_36px_rgba(49,39,131,0.06)] md:rounded-[24px] md:p-5 ${card.surface}`}
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)] md:text-[11px] md:tracking-[0.26em]">
                     {card.label}
                   </p>
-                  <p className={`mt-3 text-4xl font-black leading-none ${card.valueColor}`}>
+                  <p className={`mt-2 text-3xl font-black leading-none md:mt-3 md:text-4xl ${card.valueColor}`}>
                     {card.value}
                   </p>
                 </div>
-                <div className={`rounded-2xl p-3 ${card.iconSurface}`}>
-                  <Icon size={22} />
+                <div className={`rounded-xl p-2 md:rounded-2xl md:p-3 ${card.iconSurface}`}>
+                  <Icon size={18} className="md:hidden" />
+                  <Icon size={22} className="hidden md:block" />
                 </div>
               </div>
-              <p className="mt-4 text-xs font-semibold text-[var(--color-dark)]/65">{card.hint}</p>
+              <p className="mt-2 text-[10px] font-semibold text-[var(--color-dark)]/65 md:mt-4 md:text-xs">{card.hint}</p>
             </div>
           );
         })}
@@ -156,7 +157,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 AI Improvement Suggestions
               </p>
-              <h3 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Gemini review of admin data
               </h3>
             </div>
@@ -258,7 +259,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Admin Assistant
               </p>
-              <h3 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Ask the dashboard agent
               </h3>
             </div>
@@ -333,7 +334,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Players Reported Well
               </p>
-              <h3 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Highest-rated monitored players
               </h3>
             </div>
@@ -342,34 +343,34 @@ export default function AdminDashboardPanel({
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
             {overview.topPlayers.length > 0 ? (
               overview.topPlayers.map((player) => (
                 <button
                   key={player.player_id}
                   type="button"
                   onClick={() => onOpenReport(player.report_id)}
-                  className="rounded-[22px] border border-[#d5aa4d]/20 bg-[linear-gradient(135deg,rgba(213,170,77,0.14),rgba(255,255,255,0.96))] p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(124,91,17,0.10)]"
+                  className="rounded-[20px] border border-[#d5aa4d]/20 bg-[linear-gradient(135deg,rgba(213,170,77,0.14),rgba(255,255,255,0.96))] p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(124,91,17,0.10)] md:rounded-[22px] md:p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-lg font-black text-[var(--color-dark)]">
+                      <p className="text-base font-black text-[var(--color-dark)] md:text-lg">
                         #{player.shirt_number || '-'} {player.name}
                       </p>
-                      <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-[#7c5b11]">
+                      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7c5b11] md:text-xs">
                         {player.potential_level} • {player.team_side} side
                       </p>
                     </div>
-                    <div className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#7c5b11] shadow-sm">
+                    <div className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-[#7c5b11] shadow-sm">
                       {player.average_score}/5
                     </div>
                   </div>
-                  <p className="mt-4 text-sm font-semibold leading-6 text-[var(--color-dark)]/82">
+                  <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-dark)]/82 md:mt-4 md:text-sm md:leading-6">
                     {player.verdict}
                   </p>
-                  <div className="mt-4 flex items-center justify-between text-xs font-semibold text-[var(--color-dark)]/62">
-                    <span>{player.fixture}</span>
-                    <span>{formatDisplayDate(player.report_date)}</span>
+                  <div className="mt-2 flex items-center justify-between text-[10px] font-semibold text-[var(--color-dark)]/62 md:mt-4 md:text-xs">
+                    <span className="truncate pr-2">{player.fixture}</span>
+                    <span className="shrink-0">{formatDisplayDate(player.report_date)}</span>
                   </div>
                 </button>
               ))
@@ -387,7 +388,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Recent Reports
               </p>
-              <h3 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Latest saved scouting reports
               </h3>
             </div>
@@ -442,7 +443,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Users
               </p>
-              <h3 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Scouts and admins
               </h3>
             </div>
@@ -451,42 +452,38 @@ export default function AdminDashboardPanel({
             </div>
           </div>
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-2">
             {overview.users.length > 0 ? (
               overview.users.slice(0, 8).map((dashboardUser) => (
                 <div
                   key={dashboardUser.id}
-                  className="rounded-[20px] border border-[var(--color-mid)]/14 bg-[var(--color-light)]/40 px-4 py-4"
+                  className="flex items-center gap-3 rounded-[18px] border border-[var(--color-mid)]/14 bg-[var(--color-light)]/40 px-3 py-3 md:rounded-[20px] md:px-4 md:py-4"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="truncate text-base font-black text-[var(--color-dark)]">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-black text-[var(--color-dark)]">
                         {dashboardUser.name}
                       </p>
-                      <p className="mt-1 truncate text-xs font-semibold text-[var(--color-mid)]">
-                        {dashboardUser.email}
-                      </p>
-                      <p className="mt-1 truncate text-xs font-semibold text-[var(--color-mid)]">
-                        {dashboardUser.organization || 'No organization'}
-                      </p>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${
+                          dashboardUser.role.toLowerCase() === 'admin'
+                            ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                            : 'bg-[var(--color-mid)]/12 text-[var(--color-dark)]'
+                        }`}
+                      >
+                        {dashboardUser.role}
+                      </span>
                     </div>
-                    <span
-                      className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${
-                        dashboardUser.role.toLowerCase() === 'admin'
-                          ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-                          : 'bg-[var(--color-mid)]/12 text-[var(--color-dark)]'
-                      }`}
-                    >
-                      {dashboardUser.role}
-                    </span>
+                    <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--color-mid)] md:text-xs">
+                      {dashboardUser.email}
+                    </p>
+                    <p className="hidden truncate text-[10px] font-semibold text-[var(--color-mid)] md:block">
+                      {dashboardUser.organization || 'No organization'}
+                    </p>
                   </div>
-                  <div className="mt-4 flex flex-col gap-1 text-xs font-semibold text-[var(--color-mid)] sm:flex-row sm:items-center sm:justify-between">
-                    <span>{dashboardUser.reportCount} reports</span>
-                    <span>
-                      {dashboardUser.lastReportDate
-                        ? `Last report ${formatDisplayDate(dashboardUser.lastReportDate)}`
-                        : 'No reports yet'}
-                    </span>
+                  <div className="shrink-0 text-right">
+                    <p className="text-xs font-black text-[var(--color-dark)]">{dashboardUser.reportCount}</p>
+                    <p className="text-[10px] font-semibold text-[var(--color-mid)]">reports</p>
                   </div>
                 </div>
               ))
@@ -504,7 +501,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Short Notes
               </p>
-              <h3 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Fast context from saved reports
               </h3>
             </div>

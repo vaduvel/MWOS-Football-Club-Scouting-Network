@@ -11,6 +11,13 @@ export default function ExportTab() {
 
   if (!currentReport) return null;
 
+  const exportStats = [
+    { label: 'Players', value: currentReport.players.length },
+    { label: 'Reviews', value: currentReport.reviews.length },
+    { label: 'Formations', value: currentReport.players.length > 0 ? 2 : 0 },
+    { label: 'Notes', value: currentReport.general_notes.trim() ? 'Ready' : 'Empty' },
+  ];
+
   const generatePDF = async () => {
     setIsExporting(true);
     setExportSuccess(false);
@@ -224,56 +231,90 @@ export default function ExportTab() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto">
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-[var(--color-mid)]/20 text-center">
-        <div className="w-20 h-20 bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded-full flex items-center justify-center mx-auto mb-6">
-          <FileText size={40} />
-        </div>
-        
-        <h2 className="text-3xl font-black text-[var(--color-dark)] uppercase tracking-tighter mb-2">Export Report</h2>
-        <p className="text-[var(--color-mid)] font-semibold mb-8">
-          Generate a professional PDF document containing all match details, team sheets, formations, and player reviews.
-        </p>
-
-        <div className="bg-[var(--color-light)] p-6 rounded-xl border border-[var(--color-mid)]/20 text-left mb-8">
-          <h3 className="font-bold text-[var(--color-dark)] mb-4 uppercase tracking-wider text-sm">Included in Export:</h3>
-          <ul className="space-y-3">
-            <li className="flex items-center text-sm font-semibold text-[var(--color-dark)]">
-              <CheckCircle size={16} className="text-[var(--color-primary)] mr-3" /> Match Details & Notes
-            </li>
-            <li className="flex items-center text-sm font-semibold text-[var(--color-dark)]">
-              <CheckCircle size={16} className="text-[var(--color-primary)] mr-3" /> Home & Away Team Sheets
-            </li>
-            <li className="flex items-center text-sm font-semibold text-[var(--color-dark)]">
-              <CheckCircle size={16} className="text-[var(--color-primary)] mr-3" /> Tactical Formations (Pitch View)
-            </li>
-            <li className="flex items-center text-sm font-semibold text-[var(--color-dark)]">
-              <CheckCircle size={16} className="text-[var(--color-primary)] mr-3" /> Detailed Player Reviews ({currentReport.reviews.length})
-            </li>
-          </ul>
+    <div className="mx-auto max-w-2xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-8">
+      <div className="overflow-hidden rounded-2xl border border-[var(--color-mid)]/20 bg-white shadow-sm">
+        <div className="flex items-center gap-3 border-b border-[var(--color-mid)]/14 p-4 md:p-6">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+            <FileText size={22} />
+          </div>
+          <div>
+            <h2 className="text-xl font-black uppercase tracking-tight text-[var(--color-dark)] md:text-3xl">Export Report</h2>
+            <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">
+              Build a clean PDF for coaches, scouts or academy leadership.
+            </p>
+          </div>
         </div>
 
+        <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-4 md:gap-4 md:p-6">
+          {exportStats.map((item, index) => (
+            <div
+              key={item.label}
+              className={`rounded-2xl border px-3 py-3 ${
+                index === 0
+                  ? 'border-[var(--color-primary)]/14 bg-[var(--color-primary)]/6'
+                  : index === 1
+                    ? 'border-[var(--color-accent)]/12 bg-[var(--color-accent)]/5'
+                    : 'border-[var(--color-mid)]/14 bg-[var(--color-light)]/55'
+              }`}
+            >
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">{item.label}</p>
+              <p className="mt-2 text-2xl font-black leading-none text-[var(--color-dark)]">{item.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-[var(--color-mid)]/14 p-4 md:p-6">
+          <div className="rounded-2xl border border-[var(--color-mid)]/20 bg-[var(--color-light)]/60 p-4 text-left md:p-6">
+            <h3 className="mb-4 text-sm font-black uppercase tracking-[0.16em] text-[var(--color-dark)]">Included in PDF</h3>
+            <ul className="space-y-3">
+              <li className="flex items-center text-sm font-semibold text-[var(--color-dark)]">
+                <CheckCircle size={16} className="mr-3 text-[var(--color-primary)]" /> Match details and notes
+              </li>
+              <li className="flex items-center text-sm font-semibold text-[var(--color-dark)]">
+                <CheckCircle size={16} className="mr-3 text-[var(--color-primary)]" /> Team sheets and ratings
+              </li>
+              <li className="flex items-center text-sm font-semibold text-[var(--color-dark)]">
+                <CheckCircle size={16} className="mr-3 text-[var(--color-primary)]" /> Tactical formations
+              </li>
+              <li className="flex items-center text-sm font-semibold text-[var(--color-dark)]">
+                <CheckCircle size={16} className="mr-3 text-[var(--color-primary)]" /> Player reviews ({currentReport.reviews.length})
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="hidden md:block">
         <button 
           onClick={generatePDF}
           disabled={isExporting}
-          className="w-full bg-[var(--color-primary)] text-white py-4 rounded-xl font-black uppercase tracking-wider flex items-center justify-center space-x-3 hover:bg-opacity-90 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-xl bg-[var(--color-primary)] py-4 text-white shadow-lg transition-all hover:bg-opacity-90 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isExporting ? (
-            <span>Generating PDF...</span>
-          ) : (
-            <>
-              <Download size={24} />
-              <span>Download PDF Report</span>
-            </>
-          )}
+          <span className="inline-flex items-center justify-center gap-3 font-black uppercase tracking-wider">
+            <Download size={20} />
+            {isExporting ? 'Generating PDF…' : 'Download PDF Report'}
+          </span>
         </button>
+      </div>
 
-        {exportSuccess && (
-          <div className="mt-4 p-4 bg-green-50 text-green-700 rounded-xl font-bold text-sm flex items-center justify-center">
-            <CheckCircle size={18} className="mr-2" />
-            PDF generated successfully! Check your downloads.
-          </div>
-        )}
+      {exportSuccess && (
+        <div className="flex items-center justify-center rounded-xl bg-green-50 p-4 text-sm font-bold text-green-700">
+          <CheckCircle size={18} className="mr-2" />
+          PDF generated successfully. Check your downloads.
+        </div>
+      )}
+
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-30 px-4 md:hidden">
+        <button 
+          onClick={generatePDF}
+          disabled={isExporting}
+          className="w-full rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[0_16px_40px_rgba(49,39,131,0.18)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span className="inline-flex items-center justify-center gap-2">
+            <Download size={18} />
+            {isExporting ? 'Generating PDF…' : 'Download PDF'}
+          </span>
+        </button>
       </div>
     </div>
   );

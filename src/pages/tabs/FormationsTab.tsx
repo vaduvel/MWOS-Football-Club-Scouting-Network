@@ -285,51 +285,58 @@ export default function FormationsTab() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-6">
       <div className="flex p-1 bg-[var(--color-mid)]/20 rounded-xl w-full max-w-md mx-auto">
         <button
           onClick={() => setActiveSide('home')}
-          className={`flex-1 py-3 px-4 rounded-lg font-bold uppercase tracking-wider text-sm transition-all ${
-            activeSide === 'home' 
-              ? 'bg-white text-[var(--color-primary)] shadow-sm' 
+          className={`flex-1 min-w-0 py-2.5 px-3 rounded-lg font-bold uppercase tracking-wider text-sm transition-all ${
+            activeSide === 'home'
+              ? 'bg-white text-[var(--color-primary)] shadow-sm'
               : 'text-[var(--color-dark)]/60 hover:text-[var(--color-dark)]'
           }`}
         >
-          {currentReport.home_team || 'Home'} Formation
+          <span className="block truncate">{currentReport.home_team || 'Home'}</span>
+          <span className="hidden sm:inline text-[10px] font-semibold tracking-widest opacity-60">Formation</span>
         </button>
         <button
           onClick={() => setActiveSide('away')}
-          className={`flex-1 py-3 px-4 rounded-lg font-bold uppercase tracking-wider text-sm transition-all ${
-            activeSide === 'away' 
-              ? 'bg-white text-[var(--color-accent)] shadow-sm' 
+          className={`flex-1 min-w-0 py-2.5 px-3 rounded-lg font-bold uppercase tracking-wider text-sm transition-all ${
+            activeSide === 'away'
+              ? 'bg-white text-[var(--color-accent)] shadow-sm'
               : 'text-[var(--color-dark)]/60 hover:text-[var(--color-dark)]'
           }`}
         >
-          {currentReport.away_team || 'Away'} Formation
+          <span className="block truncate">{currentReport.away_team || 'Away'}</span>
+          <span className="hidden sm:inline text-[10px] font-semibold tracking-widest opacity-60">Formation</span>
         </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:gap-8">
         
         {/* Pitch Area */}
-        <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-[var(--color-mid)]/20 flex flex-col items-center">
-          <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <h2 className="text-xl font-black text-[var(--color-dark)] uppercase tracking-tighter">Tactical Board</h2>
+        <div className="flex flex-1 flex-col items-center rounded-2xl border border-[var(--color-mid)]/20 bg-white p-4 shadow-sm md:p-6">
+          <div className="mb-4 flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:mb-6 md:gap-4">
+            <div>
+              <h2 className="text-lg font-black uppercase tracking-tighter text-[var(--color-dark)] md:text-xl">Formation View</h2>
+              {isCompact ? (
+                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Tap a slot, then assign a player.</p>
+              ) : null}
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex bg-[var(--color-light)] rounded-md mr-2">
-                <button 
+                <button
                   onClick={undo}
                   disabled={historyIndex < 0}
-                  className="p-1.5 text-[var(--color-dark)] hover:bg-[var(--color-mid)]/20 rounded-l-md disabled:opacity-30 transition-colors"
+                  className="p-2.5 text-[var(--color-dark)] hover:bg-[var(--color-mid)]/20 rounded-l-md disabled:opacity-30 transition-colors"
                   title="Undo"
                 >
                   <Undo2 size={16} />
                 </button>
                 <div className="w-px bg-[var(--color-mid)]/20"></div>
-                <button 
+                <button
                   onClick={redo}
                   disabled={historyIndex >= history.length - 2}
-                  className="p-1.5 text-[var(--color-dark)] hover:bg-[var(--color-mid)]/20 rounded-r-md disabled:opacity-30 transition-colors"
+                  className="p-2.5 text-[var(--color-dark)] hover:bg-[var(--color-mid)]/20 rounded-r-md disabled:opacity-30 transition-colors"
                   title="Redo"
                 >
                   <Redo2 size={16} />
@@ -339,7 +346,7 @@ export default function FormationsTab() {
               <select 
                 value={formationKey} 
                 onChange={(e) => applyFormation(e.target.value)}
-                className="px-3 py-1.5 bg-[var(--color-light)] text-[var(--color-dark)] text-xs font-bold rounded-md outline-none border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)]"
+                className="rounded-md border border-[var(--color-mid)]/30 bg-[var(--color-light)] px-3 py-1.5 text-xs font-bold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)]"
               >
                 {Object.keys(FORMATIONS).map(f => (
                   <option key={f} value={f}>{f}</option>
@@ -361,7 +368,7 @@ export default function FormationsTab() {
 
           <div 
             ref={pitchRef}
-            className={`relative w-full ${isCompact ? 'max-w-[360px]' : 'max-w-[500px]'} aspect-[2/3] bg-[#4CAF50] rounded-lg border-4 border-white shadow-inner overflow-hidden select-none ${isCompact ? '' : 'touch-none'}`}
+            className={`relative w-full ${isCompact ? 'max-w-[320px]' : 'max-w-[500px]'} aspect-[2/3] bg-[#4CAF50] rounded-lg border-4 border-white shadow-inner overflow-hidden select-none ${isCompact ? '' : 'touch-none'}`}
             style={{
               backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10%, rgba(255,255,255,0.1) 10%, rgba(255,255,255,0.1) 20%)'
             }}
@@ -472,11 +479,11 @@ export default function FormationsTab() {
               })
             )}
           </div>
-          <p className="mt-4 text-center text-xs font-semibold text-[var(--color-mid)]">
+          <p className="mt-3 text-center text-[11px] font-semibold text-[var(--color-mid)] md:mt-4 md:text-xs">
             {isCompact
               ? formationKey === 'Custom'
-                ? 'Mobile mode works with preset shapes. Pick a formation to place players by tapping slots.'
-                : 'Tap a position on the pitch, then tap a player below to assign them there.'
+                ? 'Pick a preset shape to enable touch placement.'
+                : 'Tap a pitch slot, then choose a player.'
               : (
                 <>
                   Drag and drop players. Hold <kbd className="rounded bg-gray-100 px-1">Shift</kbd> for free movement.
@@ -485,69 +492,125 @@ export default function FormationsTab() {
           </p>
         </div>
 
-        {/* Player List Sidebar */}
-        <div className={`w-full ${isCompact ? '' : 'lg:w-64'} bg-white p-6 rounded-2xl shadow-sm border border-[var(--color-mid)]/20 flex flex-col ${isCompact ? '' : 'h-[600px]'}`}>
-          <div className="mb-4 border-b border-[var(--color-mid)]/20 pb-3">
-            <h3 className="text-sm font-black uppercase tracking-wider text-[var(--color-dark)]">
-              {isCompact ? 'Tap-to-Assign Squad List' : 'Squad List'}
-            </h3>
-            {isCompact ? (
-              <p className="mt-2 text-xs font-semibold text-[var(--color-mid)]">
-                {formationKey === 'Custom'
-                  ? 'Pick a preset formation first to enable touch assignment.'
-                  : selectedSlot
-                    ? `Assign a player to ${SLOT_LABELS[selectedSlot.id] || selectedSlot.id.toUpperCase()}.`
-                    : 'Choose a pitch slot above, then tap a player.'}
+        {isCompact ? (
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-[var(--color-mid)]/20 bg-white p-4 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Selected Position</p>
+              <p className="mt-2 text-lg font-black text-[var(--color-dark)]">
+                {selectedSlot ? SLOT_LABELS[selectedSlot.id] || selectedSlot.id.toUpperCase() : 'Pick a slot on the pitch'}
               </p>
-            ) : null}
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-            {players.map(player => (
-              <button
-                key={player.id}
-                type="button"
-                onClick={() => {
-                  if (isCompact && selectedSlot) {
-                    assignPlayerToSlot(player.id, selectedSlot);
-                  }
-                }}
-                disabled={isCompact && (!selectedSlot || formationKey === 'Custom')}
-                className={`flex w-full items-center justify-between rounded-lg bg-[var(--color-light)] p-3 text-left text-sm transition-colors ${
-                  isCompact && selectedSlot && formationKey !== 'Custom'
-                    ? 'hover:bg-[var(--color-mid)]/15'
-                    : 'cursor-default'
-                }`}
-              >
-                <div className="flex items-center">
-                  <span className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-black text-white ${activeSide === 'home' ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-accent)]'}`}>
-                    {player.shirt_number || '-'}
-                  </span>
-                  <div className="min-w-0">
-                    <span className="block truncate font-bold text-[var(--color-dark)]">{player.name || 'Unnamed'}</span>
-                    <span className="block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-mid)]">
-                      {getPlayerSlotLabel(player)}
-                    </span>
-                  </div>
+              <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">
+                {formationKey === 'Custom'
+                  ? 'Choose a preset shape first.'
+                  : selectedSlot
+                    ? 'Tap a player below to place them here.'
+                    : 'This keeps touch placement stable on the phone.'}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[var(--color-mid)]/20 bg-white p-3 shadow-sm">
+              <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[var(--color-dark)]">Available Players</h3>
+                  <p className="mt-1 text-[11px] font-semibold text-[var(--color-mid)]">{players.length} in this team</p>
                 </div>
-                <div className="ml-3 flex items-center gap-2">
+                {selectedSlot ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSlotId(null)}
+                    className="rounded-xl bg-[var(--color-light)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--color-dark)]"
+                  >
+                    Clear
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="max-h-[42vh] space-y-2 overflow-y-auto pr-1">
+                {players.map(player => (
+                  <button
+                    key={player.id}
+                    type="button"
+                    onClick={() => {
+                      if (selectedSlot && formationKey !== 'Custom') {
+                        assignPlayerToSlot(player.id, selectedSlot);
+                      }
+                    }}
+                    disabled={!selectedSlot || formationKey === 'Custom'}
+                    className={`flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left text-sm transition-colors ${
+                      selectedSlot && formationKey !== 'Custom'
+                        ? 'border-[var(--color-primary)]/14 bg-[var(--color-primary)]/5 active:bg-[var(--color-primary)]/10'
+                        : 'border-[var(--color-mid)]/14 bg-[var(--color-light)]/45'
+                    }`}
+                  >
+                    <div className="flex min-w-0 items-center">
+                      <span className={`mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-black text-white ${activeSide === 'home' ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-accent)]'}`}>
+                        {player.shirt_number || '-'}
+                      </span>
+                      <div className="min-w-0">
+                        <span className="block truncate font-bold text-[var(--color-dark)]">{player.name || 'Unnamed'}</span>
+                        <span className="block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-mid)]">
+                          {getPlayerSlotLabel(player)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="ml-3 flex items-center gap-2">
+                      {player.rating ? (
+                        <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-[var(--color-primary)] shadow-sm">
+                          {player.rating}
+                        </span>
+                      ) : null}
+                      {selectedSlot && formationKey !== 'Custom' ? (
+                        <span className="rounded-full bg-[var(--color-primary)] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
+                          Assign
+                        </span>
+                      ) : null}
+                    </div>
+                  </button>
+                ))}
+                {players.length === 0 ? (
+                  <p className="px-2 py-4 text-center text-xs font-semibold text-[var(--color-mid)]">
+                    No players added to {activeSide} yet.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex h-[600px] w-full flex-col rounded-2xl border border-[var(--color-mid)]/20 bg-white p-4 shadow-sm md:p-6 lg:w-64">
+            <div className="mb-4 border-b border-[var(--color-mid)]/20 pb-3">
+              <h3 className="text-sm font-black uppercase tracking-wider text-[var(--color-dark)]">Squad List</h3>
+            </div>
+            <div className="flex-1 space-y-2 overflow-y-auto pr-2">
+              {players.map(player => (
+                <button
+                  key={player.id}
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-lg bg-[var(--color-light)] p-3 text-left text-sm transition-colors"
+                >
+                  <div className="flex items-center">
+                    <span className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-black text-white ${activeSide === 'home' ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-accent)]'}`}>
+                      {player.shirt_number || '-'}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="block truncate font-bold text-[var(--color-dark)]">{player.name || 'Unnamed'}</span>
+                      <span className="block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-mid)]">
+                        {getPlayerSlotLabel(player)}
+                      </span>
+                    </div>
+                  </div>
                   {player.rating && (
                     <span className="rounded bg-white px-1.5 py-0.5 text-xs font-black text-[var(--color-primary)] shadow-sm">
                       {player.rating}
                     </span>
                   )}
-                  {isCompact && selectedSlot && formationKey !== 'Custom' ? (
-                    <span className="rounded-full bg-[var(--color-primary)]/10 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[var(--color-primary)]">
-                      Assign
-                    </span>
-                  ) : null}
-                </div>
-              </button>
-            ))}
-            {players.length === 0 && (
-              <p className="text-xs text-[var(--color-mid)] text-center mt-4">No players added to {activeSide} team yet.</p>
-            )}
+                </button>
+              ))}
+              {players.length === 0 && (
+                <p className="mt-4 text-center text-xs text-[var(--color-mid)]">No players added to {activeSide} team yet.</p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </div>

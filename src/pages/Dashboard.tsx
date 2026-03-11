@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, FileText, Plus, Search, Trash2 } from 'lucide-react';
+import { Calendar, ChevronRight, FileText, Plus, Search, Trash2 } from 'lucide-react';
 import AdminDashboardPanel from '../components/AdminDashboardPanel';
 import AppSidebar from '../components/AppSidebar';
 import {
@@ -118,6 +118,12 @@ export default function Dashboard() {
   const [chatError, setChatError] = useState('');
   const navigate = useNavigate();
   const isAdmin = (user?.role || '').trim().toLowerCase() === 'admin';
+  const reportsThisWeek = reports.filter((report) => {
+    const rawDate = report.date || '';
+    const parsedDate = rawDate ? new Date(rawDate) : null;
+    if (!parsedDate || Number.isNaN(parsedDate.getTime())) return false;
+    return Date.now() - parsedDate.getTime() <= 7 * 24 * 60 * 60 * 1000;
+  }).length;
 
   useEffect(() => {
     if (!token) {
@@ -284,30 +290,30 @@ export default function Dashboard() {
       <main className="flex-1 overflow-auto p-4 pb-28 md:p-6">
         <div className="mx-auto w-full max-w-[1560px] space-y-5">
           <div className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface relative overflow-hidden px-5 py-5 text-white md:px-6">
-              <div className="flex flex-col gap-5 border-b border-white/10 pb-5 xl:flex-row xl:items-start xl:justify-between">
-                <div className="flex items-center gap-4">
+            <div className="mwos-ribbon-surface relative overflow-hidden px-4 py-4 text-white md:px-6 md:py-5">
+              <div className="flex flex-col gap-3 border-b border-white/10 pb-4 xl:flex-row xl:items-start xl:justify-between xl:gap-5 xl:pb-5">
+                <div className="flex items-center gap-3">
                   <img
                     src="/branding/mwos-fc-300-2.png"
                     alt="MWOS logo"
-                    className="h-12 w-12 rounded-full border border-white/20 bg-white/10 p-0.5"
+                    className="h-9 w-9 rounded-full border border-white/20 bg-white/10 p-0.5 md:h-12 md:w-12"
                   />
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/68">
+                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/68 md:text-[11px] md:tracking-[0.32em]">
                       MWOS Football Club
                     </p>
-                    <h2 className="mt-2 mwos-display text-4xl uppercase leading-none tracking-[0.08em] text-white md:text-5xl">
+                    <h2 className="mt-1 mwos-display text-[2rem] uppercase leading-none tracking-[0.05em] text-white md:mt-2 md:text-4xl xl:text-5xl">
                       {isAdmin ? 'Admin Dashboard' : 'Dashboard'}
                     </h2>
                   </div>
                 </div>
 
-                <div className="flex w-full flex-col gap-3 xl:max-w-[680px] xl:items-end">
-                  <div className="flex w-full items-center rounded-2xl border border-white/12 bg-white/10 px-4 py-3 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
+                <div className="flex w-full flex-col gap-2.5 xl:max-w-[680px] xl:items-end">
+                  <div className="flex w-full items-center rounded-2xl border border-white/12 bg-white/10 px-3.5 py-3 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
                     <Search className="mr-3 text-white/68" size={18} />
                     <input
                       type="text"
-                      placeholder={isAdmin ? 'Search reports, competitions, creators...' : 'Search reports and competitions...'}
+                      placeholder={isAdmin ? 'Search reports, competitions, creators…' : 'Search tracked reports and notes…'}
                       className="w-full bg-transparent text-sm font-semibold text-white placeholder:text-white/60 outline-none"
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
@@ -325,13 +331,37 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <p className="mt-5 max-w-3xl text-sm font-semibold text-white/76">
+              <p className="mt-4 hidden max-w-3xl text-sm font-semibold text-white/76 md:block">
                 {isAdmin
                   ? 'Track club-wide reports, user activity, strong player mentions and AI-guided improvement ideas from one admin workspace.'
                   : 'Review match reports, scout outputs and club-wide activity from one branded workspace.'}
               </p>
             </div>
           </div>
+
+          {!isAdmin ? (
+            <div className="grid grid-cols-3 gap-2 md:hidden">
+              {[
+                { label: 'Reports', value: reports.length },
+                { label: 'This Week', value: reportsThisWeek },
+                { label: 'Shown', value: filteredReports.length },
+              ].map((item, index) => (
+                <div
+                  key={item.label}
+                  className={`rounded-[20px] border px-3 py-3 shadow-[0_12px_28px_rgba(49,39,131,0.06)] ${
+                    index === 0
+                      ? 'border-[var(--color-primary)]/15 bg-[linear-gradient(135deg,rgba(49,39,131,0.10),rgba(255,255,255,0.96))]'
+                      : index === 1
+                        ? 'border-[var(--color-accent)]/12 bg-[linear-gradient(135deg,rgba(190,23,23,0.08),rgba(255,255,255,0.96))]'
+                        : 'border-[#d5aa4d]/18 bg-[linear-gradient(135deg,rgba(213,170,77,0.12),rgba(255,255,255,0.96))]'
+                  }`}
+                >
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">{item.label}</p>
+                  <p className="mt-2 text-2xl font-black leading-none text-[var(--color-dark)]">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           {isAdmin && adminLoadError && (
             <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -354,7 +384,78 @@ export default function Dashboard() {
             />
           )}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {/* Mobile compact list */}
+          <div className="md:hidden">
+            {loading && (
+              <div className="py-10 text-center text-[var(--color-mid)]">
+                <p className="text-base font-semibold">Loading reports...</p>
+              </div>
+            )}
+
+            {!loading && filteredReports.length === 0 && (
+              <div className="rounded-[24px] border border-dashed border-[var(--color-mid)]/30 bg-white/70 py-10 text-center text-[var(--color-mid)]">
+                <FileText size={40} className="mx-auto mb-3 opacity-40" />
+                <p className="text-base font-semibold">No reports found.</p>
+              </div>
+            )}
+
+            {!loading && filteredReports.length > 0 && (
+              <div className="overflow-hidden rounded-[24px] border border-[var(--color-mid)]/18 bg-white shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
+                {filteredReports.map((report, index) => {
+                  const variant = REPORT_CARD_VARIANTS[index % REPORT_CARD_VARIANTS.length];
+                  const isLast = index === filteredReports.length - 1;
+
+                  return (
+                    <div
+                      key={report.id}
+                      onClick={() => navigate(`/report/${report.id}`)}
+                      className={`flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-colors active:bg-[var(--color-light)] ${!isLast ? 'border-b border-[var(--color-mid)]/12' : ''}`}
+                    >
+                      <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-xs font-black ${variant.badge}`}>
+                        {report.home_score !== null && report.away_score !== null
+                          ? `${report.home_score}-${report.away_score}`
+                          : <FileText size={16} />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-black text-[var(--color-dark)]">
+                          {report.home_team || 'Home'} vs {report.away_team || 'Away'}
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${variant.badge}`}>
+                            {report.competition || 'Friendly'}
+                          </span>
+                          <span className="flex items-center text-[10px] font-semibold text-[var(--color-mid)]">
+                            <Calendar size={10} className="mr-1" />
+                            {formatDisplayDate(report.date)}
+                          </span>
+                        </div>
+                        {isAdmin && (report.owner_name || report.owner_email) && (
+                          <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--color-mid)]">
+                            {report.owner_name || report.owner_email}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(event) => void handleDeleteReport(event, report.id!)}
+                          disabled={deletingReportId === report.id}
+                          className="rounded-lg p-2 text-[var(--color-mid)] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          aria-label="Delete report"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                        <ChevronRight size={18} className="text-[var(--color-mid)]" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop card grid */}
+          <div className="hidden md:grid md:grid-cols-2 md:gap-4 xl:grid-cols-3">
             {!loading &&
               filteredReports.map((report, index) => {
                 const variant = REPORT_CARD_VARIANTS[index % REPORT_CARD_VARIANTS.length];
