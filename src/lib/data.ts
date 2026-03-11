@@ -283,9 +283,21 @@ export interface PlayerHubOverview {
   watchlistCount: number;
   highPotentialCount: number;
   reportedWellCount: number;
+  pendingReviewCount: number;
+  reportsThisWeek: number;
   entries: PlayerHubEntry[];
   topReported: PlayerHubEntry[];
   watchlist: PlayerHubEntry[];
+  recentReports: Array<{
+    id: string;
+    competition: string;
+    date: string;
+    fixture: string;
+    venue: string;
+    focus: string;
+    scoutName: string;
+    createdAt: string;
+  }>;
 }
 
 export interface ReportComment {
@@ -1443,14 +1455,46 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     .filter((entry) => entry.averageScore >= 3.2 || getPotentialRank(entry.bestPotential) >= 3)
     .slice(0, 6);
 
+  const pendingReviewCount = entries.filter((entry) => {
+    const verdict = entry.latestVerdict.toLowerCase();
+    return (
+      entry.reportCount <= 1 ||
+      entry.trend === 'down' ||
+      verdict.includes('monitor') ||
+      verdict.includes('follow') ||
+      verdict.includes('review')
+    );
+  }).length;
+
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const reportsThisWeek = reports.filter((report) => {
+    const basis = toStringValue(report.date) || report.created_at;
+    const time = new Date(basis).getTime();
+    return !Number.isNaN(time) && time >= sevenDaysAgo;
+  }).length;
+
+  const recentReports = reports.slice(0, 6).map((report) => ({
+    id: report.id,
+    competition: toStringValue(report.competition) || 'Friendly',
+    date: toStringValue(report.date) || report.created_at,
+    fixture: buildFixtureLabel(report),
+    venue: toStringValue(report.venue) || 'Unknown venue',
+    focus: buildShortExcerpt(toStringValue(report.focus), toStringValue(report.general_notes)),
+    scoutName: toStringValue(report.scout_name) || 'Scout team',
+    createdAt: report.created_at,
+  }));
+
   return {
     totalTrackedPlayers: entries.length,
     watchlistCount: entries.filter((entry) => entry.isWatchlisted).length,
     highPotentialCount: entries.filter((entry) => getPotentialRank(entry.bestPotential) >= 3).length,
     reportedWellCount: topReported.length,
+    pendingReviewCount,
+    reportsThisWeek,
     entries,
     topReported,
     watchlist: entries.filter((entry) => entry.isWatchlisted),
+    recentReports,
   };
 }
 

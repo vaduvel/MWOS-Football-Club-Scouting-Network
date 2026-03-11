@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import { useReportStore } from '../store/report';
 import { Save, ArrowLeft, CheckCircle, FileText, Users, LayoutDashboard, UserCheck, Download, MessageSquare } from 'lucide-react';
@@ -64,6 +64,7 @@ function hasMeaningfulDraftContent(report: ReturnType<typeof useReportStore.getS
 export default function ReportEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { token, user } = useAuthStore();
   const { currentReport, setCurrentReport } = useReportStore();
   const [activeTab, setActiveTab] = useState('match');
@@ -75,6 +76,15 @@ export default function ReportEditor() {
   const isAdmin = (user?.role || '').trim().toLowerCase() === 'admin';
   const isNewReport = !id || id === 'new';
   const canCreateInitialDraft = hasMeaningfulDraftContent(currentReport);
+  const requestedTab = searchParams.get('tab');
+
+  useEffect(() => {
+    if (!requestedTab || !TABS.some((tab) => tab.id === requestedTab)) {
+      return;
+    }
+
+    setActiveTab(requestedTab);
+  }, [requestedTab]);
 
   // Load initial data
   useEffect(() => {
