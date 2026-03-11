@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import { useReportStore } from '../store/report';
-import { Save, ArrowLeft, CheckCircle, FileText, Users, LayoutDashboard, UserCheck, Download, MessageSquare } from 'lucide-react';
+import { Save, ArrowLeft, CheckCircle, ChevronLeft, ChevronRight, FileText, Users, LayoutDashboard, UserCheck, Download, MessageSquare } from 'lucide-react';
 import MatchReportTab from './tabs/MatchReportTab';
 import TeamSheetsTab from './tabs/TeamSheetsTab';
 import FormationsTab from './tabs/FormationsTab';
@@ -72,11 +72,14 @@ export default function ReportEditor() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [persistedReportId, setPersistedReportId] = useState<string | undefined>(id && id !== 'new' ? id : undefined);
+  const [showMobileTabPicker, setShowMobileTabPicker] = useState(false);
   const skipDirtyTrackingRef = useRef(false);
   const isAdmin = (user?.role || '').trim().toLowerCase() === 'admin';
   const isNewReport = !id || id === 'new';
   const canCreateInitialDraft = hasMeaningfulDraftContent(currentReport);
   const requestedTab = searchParams.get('tab');
+  const activeTabIndex = TABS.findIndex((tab) => tab.id === activeTab);
+  const currentTabMeta = TABS[activeTabIndex] || TABS[0];
 
   useEffect(() => {
     if (!requestedTab || !TABS.some((tab) => tab.id === requestedTab)) {
@@ -188,6 +191,25 @@ export default function ReportEditor() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
+  useEffect(() => {
+    setShowMobileTabPicker(false);
+  }, [activeTab]);
+
+  const goToTab = (tabId: string) => {
+    setActiveTab(tabId);
+    setShowMobileTabPicker(false);
+  };
+
+  const goToPreviousTab = () => {
+    if (activeTabIndex <= 0) return;
+    goToTab(TABS[activeTabIndex - 1].id);
+  };
+
+  const goToNextTab = () => {
+    if (activeTabIndex >= TABS.length - 1) return;
+    goToTab(TABS[activeTabIndex + 1].id);
+  };
+
   if (!currentReport) return <div className="p-10 text-center font-bold">Loading...</div>;
 
   return (
@@ -225,6 +247,9 @@ export default function ReportEditor() {
                   Owner: {currentReport.owner_name || currentReport.owner_email}
                 </p>
               )}
+              <p className="mt-2 text-[11px] font-black uppercase tracking-[0.22em] text-white/62 md:hidden">
+                Step {activeTabIndex + 1} / {TABS.length} · {currentTabMeta.mobileLabel}
+              </p>
             </div>
           </div>
           
@@ -259,14 +284,14 @@ export default function ReportEditor() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Tabs Sidebar (Desktop) / Bottom Nav (Mobile) */}
-        <nav className="fixed inset-x-0 bottom-0 z-40 flex w-full flex-shrink-0 overflow-x-auto border-t border-[var(--color-mid)]/20 bg-white shadow-[0_-10px_30px_rgba(15,23,42,0.12)] md:static md:w-64 md:flex-col md:overflow-y-auto md:border-t-0 md:border-r md:shadow-none">
+        <nav className="hidden w-full flex-shrink-0 overflow-x-auto border-t border-[var(--color-mid)]/20 bg-white shadow-[0_-10px_30px_rgba(15,23,42,0.12)] md:static md:flex md:w-64 md:flex-col md:overflow-y-auto md:border-t-0 md:border-r md:shadow-none">
           {TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => goToTab(tab.id)}
                 className={`flex min-w-[74px] flex-1 flex-col items-center justify-center p-2.5 transition-colors md:min-w-0 md:flex-none md:flex-row md:justify-start md:px-6 md:py-4 border-b-2 md:border-b-0 md:border-l-4 ${
                   isActive 
                     ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5 text-[var(--color-accent)]' 
@@ -275,8 +300,7 @@ export default function ReportEditor() {
               >
                 <Icon size={18} className="mb-1 md:mb-0 md:mr-3 md:h-5 md:w-5" />
                 <span className="text-[9px] md:text-sm font-bold uppercase tracking-[0.08em] md:tracking-wider">
-                  <span className="md:hidden">{tab.mobileLabel}</span>
-                  <span className="hidden md:inline">{tab.label}</span>
+                  {tab.label}
                 </span>
               </button>
             );
@@ -284,7 +308,7 @@ export default function ReportEditor() {
         </nav>
 
         {/* Tab Content */}
-        <main className="order-1 flex-1 overflow-y-auto p-4 pb-28 md:order-2 md:p-8">
+        <main className="order-1 flex-1 overflow-y-auto p-3 pb-24 md:order-2 md:p-8">
           <div className="max-w-5xl mx-auto">
             {activeTab === 'match' && <MatchReportTab />}
             {activeTab === 'teams' && <TeamSheetsTab />}
@@ -294,6 +318,66 @@ export default function ReportEditor() {
             {activeTab === 'export' && <ExportTab />}
           </div>
         </main>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-mid)]/20 bg-white/96 px-3 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] pt-2 shadow-[0_-14px_32px_rgba(15,23,42,0.16)] backdrop-blur-xl md:hidden">
+        {showMobileTabPicker ? (
+          <div className="mb-2 grid grid-cols-3 gap-2 rounded-[22px] border border-[var(--color-mid)]/16 bg-white p-2 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => goToTab(tab.id)}
+                  className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-black uppercase tracking-[0.12em] ${
+                    isActive
+                      ? 'bg-[var(--color-primary)] text-white'
+                      : 'bg-[var(--color-light)]/55 text-[var(--color-dark)]'
+                  }`}
+                >
+                  <Icon size={16} />
+                  <span>{tab.mobileLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        <div className="mx-auto grid max-w-lg grid-cols-[68px_minmax(0,1fr)_68px] items-center gap-2 rounded-[24px] border border-[var(--color-mid)]/16 bg-white p-2">
+          <button
+            type="button"
+            onClick={goToPreviousTab}
+            disabled={activeTabIndex <= 0}
+            className="flex h-12 w-full items-center justify-center rounded-2xl border border-[var(--color-mid)]/16 bg-[var(--color-light)]/50 text-[var(--color-dark)] transition-colors disabled:opacity-35"
+          >
+            <ChevronLeft size={18} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowMobileTabPicker((current) => !current)}
+            className="flex h-12 min-w-0 flex-col items-center justify-center rounded-2xl bg-[var(--color-primary)] px-3 text-white shadow-[0_12px_24px_rgba(49,39,131,0.18)]"
+          >
+            <span className="text-[10px] font-black uppercase tracking-[0.18em] opacity-72">
+              Step {activeTabIndex + 1} / {TABS.length}
+            </span>
+            <span className="truncate text-sm font-black uppercase tracking-[0.08em]">
+              {currentTabMeta.mobileLabel}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={goToNextTab}
+            disabled={activeTabIndex >= TABS.length - 1}
+            className="flex h-12 w-full items-center justify-center rounded-2xl border border-[var(--color-mid)]/16 bg-[var(--color-light)]/50 text-[var(--color-dark)] transition-colors disabled:opacity-35"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
       </div>
     </div>
   );
