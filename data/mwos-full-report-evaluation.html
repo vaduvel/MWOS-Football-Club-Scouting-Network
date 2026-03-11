@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MWOS Full Report Evaluation</title>
+    <style>
+      :root {
+        --mwos-primary: #312783;
+        --mwos-primary-strong: #241b67;
+        --mwos-accent: #be1717;
+        --mwos-light: #edf2f4;
+        --mwos-mid: #8e9aaf;
+        --mwos-dark: #212529;
+        --mwos-gold: #d5aa4d;
+        --card-shadow: 0 18px 40px rgba(17, 24, 39, 0.12);
+        --border-soft: rgba(142, 154, 175, 0.24);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
+        color: var(--mwos-dark);
+        background:
+          radial-gradient(circle at top right, rgba(190, 23, 23, 0.12), transparent 26%),
+          linear-gradient(180deg, #f4f7fb 0%, #edf2f4 100%);
+      }
+
+      .page-shell {
+        width: min(1240px, calc(100% - 48px));
+        margin: 24px auto 48px;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        box-shadow: var(--card-shadow);
+        background:
+          linear-gradient(135deg, rgba(36, 27, 103, 0.94), rgba(49, 39, 131, 0.85)),
+          url("../public/branding/att.AGuDIc57f42thGuMeUSyrotRD6Zy0fxGX1rynzNNmWM.JPG") center/cover no-repeat;
+        color: #fff;
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+        background-size: 48px 48px;
+        opacity: 0.28;
+        pointer-events: none;
+      }
+
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+        padding: 32px;
+      }
+
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .brand-lockup {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .brand-lockup img {
+        width: 84px;
+        height: 84px;
+        object-fit: contain;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        padding: 6px;
+      }
+
+      .eyebrow {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.72);
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-family: "Arial Narrow", Impact, Haettenschweiler, sans-serif;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .hero-title {
+        margin-top: 18px;
+        font-size: clamp(40px, 5vw, 74px);
+        line-height: 0.96;
+        max-width: 820px;
+      }
+
+      .hero-subtitle {
+        margin-top: 16px;
+        font-size: 18px;
+        line-height: 1.6;
+        max-width: 760px;
+        color: rgba(255, 255, 255, 0.84);
+        font-weight: 600;
+      }
+
+      .score-bar {
+        margin-top: 28px;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 18px;
+        align-items: center;
+        border-radius: 24px;
+        padding: 20px 24px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(12px);
+      }
+
+      .team-block {
+        display: grid;
+        gap: 6px;
+      }
+
+      .team-block.away {
+        text-align: right;
+      }
+
+      .team-label {
+        font-size: 12px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.66);
+        font-weight: 800;
+      }
+
+      .team-name {
+        font-size: clamp(22px, 2.8vw, 34px);
+        font-weight: 800;
+      }
+
+      .team-meta {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.78);
+        font-weight: 600;
+      }
+
+      .scoreline {
+        min-width: 230px;
+        text-align: center;
+      }
+
+      .scoreline-value {
+        display: block;
+        font-size: clamp(42px, 6vw, 72px);
+        line-height: 0.92;
+        font-weight: 900;
+      }
+
+      .scoreline-caption {
+        margin-top: 8px;
+        font-size: 13px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.66);
+        font-weight: 800;
+      }
+
+      .meta-grid {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .meta-card {
+        border-radius: 18px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .meta-card .label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: rgba(255, 255, 255, 0.66);
+        font-weight: 800;
+      }
+
+      .meta-card .value {
+        margin-top: 8px;
+        font-size: 15px;
+        line-height: 1.5;
+        font-weight: 700;
+        color: #fff;
+      }
+
+      .content-grid {
+        margin-top: 28px;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 24px;
+      }
+
+      .card {
+        background: #fff;
+        border-radius: 24px;
+        padding: 24px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-soft);
+      }
+
+      .card + .card {
+        margin-top: 24px;
+      }
+
+      .section-label {
+        color: var(--mwos-mid);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        font-weight: 800;
+      }
+
+      .section-title {
+        margin-top: 6px;
+        font-size: 34px;
+        line-height: 0.98;
+        color: var(--mwos-primary);
+      }
+
+      .summary-text {
+        margin-top: 18px;
+        white-space: pre-wrap;
+        line-height: 1.75;
+        font-size: 15px;
+        color: #334155;
+      }
+
+      .focus-box {
+        margin-top: 18px;
+        border-radius: 20px;
+        padding: 18px 20px;
+        background: linear-gradient(135deg, rgba(49, 39, 131, 0.08), rgba(190, 23, 23, 0.06));
+        border: 1px solid rgba(49, 39, 131, 0.12);
+      }
+
+      .focus-box strong {
+        display: block;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 11px;
+        color: var(--mwos-primary);
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+
+      .team-sheet {
+        overflow: hidden;
+        border-radius: 20px;
+        border: 1px solid var(--border-soft);
+      }
+
+      .team-sheet-header {
+        padding: 18px 20px;
+        color: #fff;
+      }
+
+      .team-sheet-header.home {
+        background: linear-gradient(135deg, var(--mwos-primary), #4a3fb2);
+      }
+
+      .team-sheet-header.away {
+        background: linear-gradient(135deg, var(--mwos-accent), #d93838);
+      }
+
+      .team-sheet-title {
+        font-size: 24px;
+      }
+
+      .team-sheet-meta {
+        margin-top: 6px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.84);
+        font-weight: 600;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      thead th {
+        padding: 14px 16px;
+        background: #f8fafc;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        text-align: left;
+        color: #64748b;
+      }
+
+      tbody td {
+        padding: 14px 16px;
+        border-top: 1px solid rgba(142, 154, 175, 0.18);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .rating-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 48px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(49, 39, 131, 0.08);
+        color: var(--mwos-primary);
+        font-weight: 800;
+      }
+
+      .review-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+
+      .review-card {
+        border-radius: 22px;
+        padding: 20px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid var(--border-soft);
+      }
+
+      .review-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .review-player {
+        font-size: 24px;
+        color: var(--mwos-primary);
+      }
+
+      .review-role {
+        margin-top: 6px;
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 700;
+      }
+
+      .review-badge {
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        font-weight: 800;
+      }
+
+      .review-badge.pro {
+        background: rgba(49, 39, 131, 0.08);
+        color: var(--mwos-primary);
+      }
+
+      .review-badge.elite {
+        background: rgba(213, 170, 77, 0.18);
+        color: #7c5b11;
+      }
+
+      .review-badge.semipro {
+        background: rgba(190, 23, 23, 0.08);
+        color: var(--mwos-accent);
+      }
+
+      .review-section {
+        margin-top: 16px;
+      }
+
+      .review-section strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--mwos-mid);
+      }
+
+      .review-section p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.7;
+        color: #334155;
+      }
+
+      .attributes {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 14px;
+      }
+
+      .attribute {
+        border-radius: 16px;
+        padding: 12px 14px;
+        background: #fff;
+        border: 1px solid rgba(142, 154, 175, 0.18);
+      }
+
+      .attribute-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: #64748b;
+        font-weight: 800;
+      }
+
+      .attribute-value {
+        margin-top: 6px;
+        font-size: 18px;
+        font-weight: 900;
+        color: var(--mwos-primary);
+      }
+
+      details {
+        margin-top: 24px;
+        background: #fff;
+        border-radius: 20px;
+        border: 1px solid var(--border-soft);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+      }
+
+      summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 18px 22px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: var(--mwos-primary);
+        text-transform: uppercase;
+      }
+
+      summary::-webkit-details-marker {
+        display: none;
+      }
+
+      pre {
+        margin: 0;
+        padding: 0 22px 22px;
+        overflow: auto;
+        font-size: 12px;
+        line-height: 1.65;
+        color: #0f172a;
+      }
+
+      @media (max-width: 1080px) {
+        .content-grid,
+        .grid-2,
+        .review-grid,
+        .meta-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .score-bar {
+          grid-template-columns: 1fr;
+          text-align: center;
+        }
+
+        .team-block.away {
+          text-align: center;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .page-shell {
+          width: min(100% - 24px, 100%);
+          margin: 12px auto 24px;
+        }
+
+        .hero-inner,
+        .card {
+          padding: 18px;
+        }
+
+        .brand-lockup {
+          align-items: flex-start;
+        }
+
+        .brand-lockup img {
+          width: 66px;
+          height: 66px;
+        }
+
+        .hero-title {
+          font-size: 34px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-shell">
+      <section class="hero">
+        <div class="hero-inner">
+          <div class="hero-top">
+            <div class="brand-lockup">
+              <img src="../public/branding/mwos-fc-300-2.png" alt="MWOS crest" />
+              <div>
+                <p class="eyebrow">MWOS Full Report Evaluation File</p>
+                <h2>Scouting Network Showcase</h2>
+              </div>
+            </div>
+            <div class="eyebrow">Open this file directly in the browser for review</div>
+          </div>
+
+          <h1 class="hero-title">Elite Match Report for MWOS Recruitment Review</h1>
+          <p class="hero-subtitle">
+            Full sample report built in the same structure as the application: match context, scoreline,
+            line-ups, notes, and individual player recommendations.
+          </p>
+
+          <div class="score-bar">
+            <div class="team-block">
+              <span class="team-label">Home</span>
+              <div class="team-name" id="home-team-name"></div>
+              <div class="team-meta" id="home-team-meta"></div>
+            </div>
+
+            <div class="scoreline">
+              <span class="scoreline-value" id="scoreline-value"></span>
+              <div class="scoreline-caption" id="scoreline-caption"></div>
+            </div>
+
+            <div class="team-block away">
+              <span class="team-label">Away</span>
+              <div class="team-name" id="away-team-name"></div>
+              <div class="team-meta" id="away-team-meta"></div>
+            </div>
+          </div>
+
+          <div class="meta-grid" id="meta-grid"></div>
+        </div>
+      </section>
+
+      <section class="content-grid">
+        <div>
+          <article class="card">
+            <div class="section-label">General Match Summary</div>
+            <h2 class="section-title">What the scout should take away</h2>
+            <div class="focus-box">
+              <strong>Recruitment Focus</strong>
+              <div id="focus-text"></div>
+            </div>
+            <div class="summary-text" id="general-notes"></div>
+          </article>
+
+          <article class="card">
+            <div class="section-label">Team Sheets</div>
+            <h2 class="section-title">Full line-ups used for evaluation</h2>
+            <div class="grid-2" id="team-sheets"></div>
+          </article>
+        </div>
+
+        <div>
+          <article class="card">
+            <div class="section-label">Player Reviews</div>
+            <h2 class="section-title">Priority individual evaluations</h2>
+            <div class="review-grid" id="review-grid"></div>
+          </article>
+        </div>
+      </section>
+
+      <details>
+        <summary>Raw application data</summary>
+        <pre id="json-output"></pre>
+      </details>
+    </div>
+
+    <script>
+      const report = {
+        id: "sample-mwos-report-2026-03-08",
+        owner_id: "sample-admin-owner",
+        owner_name: "MWOS Evaluation Desk",
+        owner_email: "evaluation@mwosfc.local",
+        competition: "MWOS Scouting Network Talent Evaluation Series",
+        date: "2026-03-08",
+        venue: "Prince Edward Academy Ground, Harare",
+        kickoff: "15:00",
+        weather: "Dry heat, 29C, light cross-wind",
+        pitch: "Firm natural grass, central lane slightly worn",
+        home_team: "MWOS Football Club U23",
+        home_score: 3,
+        away_team: "Harare Metropolitan Select",
+        away_score: 1,
+        scout_name: "Adrian Stefanescu",
+        focus:
+          "Assess MWOS attacking efficiency, counter-press reactions after loss, and individual upside in #4 Blessing Ndlovu, #8 Prince Moyo, #9 Keith Nyathi and away #10 Ashley Muchenje.",
+        general_notes: [
+          "MWOS U23 controlled the match through better spacing between the lines and a more aggressive second-ball reaction. The home side created repeated access into the right half-space by rotating #8 Prince Moyo higher while #6 Kuda Bango protected central rest defence.",
+          "The first goal came from a simple but repeatable pattern: diagonal switch into the right winger, underlap from the full-back, and early service into the striker. Nyathi's timing across the front post was the best attacking action of the game and translated directly into two goals.",
+          "Out of possession, MWOS looked strongest in the first five seconds after losing the ball. Their recovery runs from midfield were immediate, forcing Harare Select into rushed clearances. When the press was bypassed, the back line defended the box well, particularly Ndlovu on the front foot against the striker.",
+          "Harare Metropolitan Select had their best period late in the first half when #10 Ashley Muchenje drifted away from the double pivot and received between the home midfield and centre-backs. He scored from the edge of the box after a recycled set play and remained their main creative outlet.",
+          "Recruitment takeaway: Prince Moyo profiles as the cleanest medium-term upside piece in the match because he combined volume, intensity and decision quality. Keith Nyathi is the most ready-made attacking profile for senior integration. Blessing Ndlovu is worth continued live tracking as a physically reliable centre-back with progressive passing value."
+        ].join("\n\n"),
+        home_manager: "Tendai Mazarura",
+        away_manager: "Kelvin Chuma",
+        formation_home: "4-3-3",
+        formation_away: "4-2-3-1",
+        players: [
+          { id: "h-1", team_side: "home", shirt_number: 1, name: "Tawanda Dube", subbed: "", goal: "", rating: 7.0, position_x: 8, position_y: 50 },
+          { id: "h-2", team_side: "home", shirt_number: 2, name: "Farai Mhlanga", subbed: "", goal: "", rating: 7.1, position_x: 24, position_y: 86 },
+          { id: "h-4", team_side: "home", shirt_number: 4, name: "Blessing Ndlovu", subbed: "", goal: "", rating: 8.1, position_x: 26, position_y: 64 },
+          { id: "h-5", team_side: "home", shirt_number: 5, name: "Tinashe Moyo", subbed: "", goal: "", rating: 7.6, position_x: 26, position_y: 36 },
+          { id: "h-3", team_side: "home", shirt_number: 3, name: "Jayden Sibanda", subbed: "82'", goal: "", rating: 6.9, position_x: 24, position_y: 14 },
+          { id: "h-6", team_side: "home", shirt_number: 6, name: "Kuda Bango", subbed: "", goal: "", rating: 7.4, position_x: 46, position_y: 50 },
+          { id: "h-8", team_side: "home", shirt_number: 8, name: "Prince Moyo", subbed: "", goal: "77'", rating: 8.4, position_x: 53, position_y: 66 },
+          { id: "h-10", team_side: "home", shirt_number: 10, name: "Tatenda Chikore", subbed: "78'", goal: "", rating: 7.2, position_x: 53, position_y: 34 },
+          { id: "h-7", team_side: "home", shirt_number: 7, name: "Nyasha Dube", subbed: "68'", goal: "", rating: 7.8, position_x: 74, position_y: 84 },
+          { id: "h-9", team_side: "home", shirt_number: 9, name: "Keith Nyathi", subbed: "", goal: "18', 63'", rating: 8.7, position_x: 79, position_y: 50 },
+          { id: "h-11", team_side: "home", shirt_number: 11, name: "Junior Phiri", subbed: "84'", goal: "", rating: 7.5, position_x: 74, position_y: 16 },
+          { id: "a-1", team_side: "away", shirt_number: 1, name: "Elvis Mataruse", subbed: "", goal: "", rating: 6.4, position_x: 8, position_y: 50 },
+          { id: "a-2", team_side: "away", shirt_number: 2, name: "Brian Chirenje", subbed: "", goal: "", rating: 6.8, position_x: 24, position_y: 84 },
+          { id: "a-4", team_side: "away", shirt_number: 4, name: "Dennis Vuma", subbed: "", goal: "", rating: 6.7, position_x: 26, position_y: 62 },
+          { id: "a-5", team_side: "away", shirt_number: 5, name: "Simon Marufu", subbed: "", goal: "", rating: 6.5, position_x: 26, position_y: 38 },
+          { id: "a-3", team_side: "away", shirt_number: 3, name: "Tapiwa Mandaza", subbed: "", goal: "", rating: 6.3, position_x: 24, position_y: 16 },
+          { id: "a-6", team_side: "away", shirt_number: 6, name: "Leon Chari", subbed: "", goal: "", rating: 6.9, position_x: 44, position_y: 58 },
+          { id: "a-8", team_side: "away", shirt_number: 8, name: "Prosper Hove", subbed: "71'", goal: "", rating: 7.0, position_x: 44, position_y: 42 },
+          { id: "a-7", team_side: "away", shirt_number: 7, name: "Nigel Choto", subbed: "65'", goal: "", rating: 6.2, position_x: 66, position_y: 84 },
+          { id: "a-10", team_side: "away", shirt_number: 10, name: "Ashley Muchenje", subbed: "", goal: "41'", rating: 7.2, position_x: 62, position_y: 50 },
+          { id: "a-11", team_side: "away", shirt_number: 11, name: "Martin Jere", subbed: "75'", goal: "", rating: 6.6, position_x: 66, position_y: 16 },
+          { id: "a-9", team_side: "away", shirt_number: 9, name: "Kelvin Mandipa", subbed: "", goal: "", rating: 6.4, position_x: 79, position_y: 50 }
+        ],
+        reviews: [
+          {
+            id: "r-1",
+            player_id: "h-9",
+            overview: "Direct, physically competitive striker who consistently attacked the highest value spaces inside the box. His movement across the front centre-back was decisive and he finished without extra touches.",
+            strengths: "Explosive first two steps, aggressive front-post timing, good contact under pressure, presses centre-backs honestly and sustains sprint repeatability late into the match.",
+            areas_to_improve: "Needs cleaner lay-off execution with back to goal and can still force low-value shots when early support is available underneath him.",
+            pace: 4,
+            strength: 4,
+            stamina: 4,
+            agility: 3,
+            decision_making: 4,
+            composure: 4,
+            work_rate: 4,
+            positioning: 5,
+            recommendation_verdict: "Strong signing candidate for senior transition pathway",
+            potential_level: "Pro"
+          },
+          {
+            id: "r-2",
+            player_id: "h-8",
+            overview: "Best all-round midfielder on the pitch. Covered ground aggressively, arrived into advanced pockets at the correct moments and still recovered quickly enough to protect central transition moments.",
+            strengths: "High work capacity, clean first touch at speed, progressive passing through traffic, good instinct for underlapping support runs, and mature timing when to accelerate the attack.",
+            areas_to_improve: "Can add more body strength in shoulder duels and still over-hits the occasional switch when playing early from deeper zones.",
+            pace: 4,
+            strength: 3,
+            stamina: 5,
+            agility: 4,
+            decision_making: 5,
+            composure: 4,
+            work_rate: 5,
+            positioning: 4,
+            recommendation_verdict: "Priority monitor with clear upward trajectory",
+            potential_level: "Elite"
+          },
+          {
+            id: "r-3",
+            player_id: "h-4",
+            overview: "Reliable right-sided centre-back who defended forward and prevented the away striker from pinning the line. Distribution into midfield was calm and mostly accurate.",
+            strengths: "Front-foot defending, recovery stride length, assertive aerial timing, and enough passing range to skip the first pressing line without panic.",
+            areas_to_improve: "Needs more disguise on diagonal release balls and should scan earlier before receiving from the goalkeeper under direct pressure.",
+            pace: 3,
+            strength: 4,
+            stamina: 4,
+            agility: 3,
+            decision_making: 4,
+            composure: 4,
+            work_rate: 4,
+            positioning: 4,
+            recommendation_verdict: "Continue live tracking over multiple fixtures",
+            potential_level: "Pro"
+          },
+          {
+            id: "r-4",
+            player_id: "a-10",
+            overview: "Most creative attacking player for the away team. Found soft pockets between the lines and created the only sustained threat when the away side settled into possession.",
+            strengths: "Receives on the half turn, carries well off either foot, disguises short passes and strikes cleanly from the edge of the box.",
+            areas_to_improve: "Defensive intensity drops after turnovers and he was unable to maintain influence once the game became more transitional.",
+            pace: 3,
+            strength: 2,
+            stamina: 3,
+            agility: 4,
+            decision_making: 4,
+            composure: 4,
+            work_rate: 2,
+            positioning: 4,
+            recommendation_verdict: "Worth monitoring in a stronger possession environment",
+            potential_level: "Semi-pro"
+          }
+        ]
+      };
+
+      const metaItems = [
+        ["Competition", report.competition],
+        ["Date", report.date],
+        ["Venue", report.venue],
+        ["Kickoff", report.kickoff],
+        ["Weather", report.weather],
+        ["Pitch", report.pitch],
+        ["Scout", report.scout_name],
+        ["Report Owner", `${report.owner_name} (${report.owner_email})`]
+      ];
+
+      document.getElementById("home-team-name").textContent = report.home_team;
+      document.getElementById("away-team-name").textContent = report.away_team;
+      document.getElementById("home-team-meta").textContent = `${report.home_manager} | ${report.formation_home}`;
+      document.getElementById("away-team-meta").textContent = `${report.away_manager} | ${report.formation_away}`;
+      document.getElementById("scoreline-value").textContent = `${report.home_score} - ${report.away_score}`;
+      document.getElementById("scoreline-caption").textContent = `${report.date} | ${report.venue}`;
+      document.getElementById("focus-text").textContent = report.focus;
+      document.getElementById("general-notes").textContent = report.general_notes;
+      document.getElementById("json-output").textContent = JSON.stringify(report, null, 2);
+
+      const metaGrid = document.getElementById("meta-grid");
+      metaItems.forEach(([label, value]) => {
+        const card = document.createElement("div");
+        card.className = "meta-card";
+        card.innerHTML = `<div class="label">${label}</div><div class="value">${value}</div>`;
+        metaGrid.appendChild(card);
+      });
+
+      const teamSheets = document.getElementById("team-sheets");
+
+      function renderTeamSheet(side, title, metaClass) {
+        const players = report.players.filter((player) => player.team_side === side);
+        const wrapper = document.createElement("div");
+        wrapper.className = "team-sheet";
+        wrapper.innerHTML = `
+          <div class="team-sheet-header ${metaClass}">
+            <div class="section-label" style="color: rgba(255,255,255,0.7)">Formation Overview</div>
+            <h3 class="team-sheet-title">${title}</h3>
+            <div class="team-sheet-meta">${side === "home" ? report.home_manager : report.away_manager} | ${side === "home" ? report.formation_home : report.formation_away}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Player</th>
+                <th>Goal / Off</th>
+                <th>Rating</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${players
+                .map(
+                  (player) => `
+                    <tr>
+                      <td>${player.shirt_number}</td>
+                      <td><strong>${player.name}</strong></td>
+                      <td>${player.goal || "-"} ${player.subbed ? `/ ${player.subbed}` : ""}</td>
+                      <td><span class="rating-pill">${player.rating.toFixed(1)}</span></td>
+                    </tr>
+                  `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        `;
+        teamSheets.appendChild(wrapper);
+      }
+
+      renderTeamSheet("home", report.home_team, "home");
+      renderTeamSheet("away", report.away_team, "away");
+
+      const reviewGrid = document.getElementById("review-grid");
+
+      function badgeClass(level) {
+        if (level === "Elite") return "elite";
+        if (level === "Semi-pro") return "semipro";
+        return "pro";
+      }
+
+      report.reviews.forEach((review) => {
+        const player = report.players.find((entry) => entry.id === review.player_id);
+        const card = document.createElement("div");
+        card.className = "review-card";
+        card.innerHTML = `
+          <div class="review-top">
+            <div>
+              <h3 class="review-player">${player ? player.name : "Unknown Player"}</h3>
+              <div class="review-role">#${player ? player.shirt_number : "-"} | ${player ? player.team_side.toUpperCase() : "N/A"} side</div>
+            </div>
+            <div class="review-badge ${badgeClass(review.potential_level)}">${review.potential_level}</div>
+          </div>
+
+          <div class="review-section">
+            <strong>Verdict</strong>
+            <p>${review.recommendation_verdict}</p>
+          </div>
+
+          <div class="review-section">
+            <strong>Overview</strong>
+            <p>${review.overview}</p>
+          </div>
+
+          <div class="review-section">
+            <strong>Strengths</strong>
+            <p>${review.strengths}</p>
+          </div>
+
+          <div class="review-section">
+            <strong>Areas to improve</strong>
+            <p>${review.areas_to_improve}</p>
+          </div>
+
+          <div class="attributes">
+            <div class="attribute"><div class="attribute-label">Pace</div><div class="attribute-value">${review.pace}/5</div></div>
+            <div class="attribute"><div class="attribute-label">Strength</div><div class="attribute-value">${review.strength}/5</div></div>
+            <div class="attribute"><div class="attribute-label">Stamina</div><div class="attribute-value">${review.stamina}/5</div></div>
+            <div class="attribute"><div class="attribute-label">Agility</div><div class="attribute-value">${review.agility}/5</div></div>
+            <div class="attribute"><div class="attribute-label">Decision Making</div><div class="attribute-value">${review.decision_making}/5</div></div>
+            <div class="attribute"><div class="attribute-label">Composure</div><div class="attribute-value">${review.composure}/5</div></div>
+            <div class="attribute"><div class="attribute-label">Work Rate</div><div class="attribute-value">${review.work_rate}/5</div></div>
+            <div class="attribute"><div class="attribute-label">Positioning</div><div class="attribute-value">${review.positioning}/5</div></div>
+          </div>
+        `;
+        reviewGrid.appendChild(card);
+      });
+    </script>
+  </body>
+</html>

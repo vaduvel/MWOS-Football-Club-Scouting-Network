@@ -1,0 +1,127 @@
+import { createClient } from '@supabase/supabase-js';
+
+function json(statusCode, payload) {
+  return {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  };
+}
+
+function getSupabaseEnv() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error('Missing Supabase environment variables.');
+  }
+
+  return { url, anonKey };
+}
+
+function getAuthorizedSupabaseClient(event) {
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  if (!authHeader) {
+    return { error: json(401, { error: 'Missing Authorization header.' }) };
+  }
+
+  const { url, anonKey } = getSupabaseEnv();
+  const supabase = createClient(url, anonKey, {
+    global: {
+      headers: {
+        Authorization: authHeader,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  return { supabase };
+}
+
+export async function requireAuthenticatedUser(event) {
+  const { supabase, error } = getAuthorizedSupabaseClient(event);
+  if (error) {
+    return { error };
+  }
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: json(401, { error: 'Invalid or expired session.' }) };
+  }
+
+  return { supabase, user };
+}
+
+export async function requireAdminUser(event) {
+  const auth = await requireAuthenticatedUser(event);
+  if (auth.error) {
+    return auth;
+  }
+
+  const { data, error } = await auth.supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', auth.user.id)
+    .maybeSingle();
+
+  if (error) {
+    return { error: json(500, { error: error.message }) };
+  }
+
+  if ((data?.role || '').trim().toLowerCase() !== 'admin') {
+    return { error: json(403, { error: 'Admin access is required.' }) };
+  }
+
+  return auth;
+}
+
+export async function getUserSettingsFromEvent(event) {
+  const { supabase, error: authError } = await requireAuthenticatedUser(event);
+  if (authError) {
+    return { error: authError };
+  }
+
+  const { data, error } = await supabase
+    .from('user_settings')
+    .select('football_api_provider, football_api_key')
+    .maybeSingle();
+
+  if (error) {
+    return { error: json(500, { error: error.message }) };
+  }
+
+  if (!data?.football_api_key) {
+    return { error: json(400, { error: 'API key not configured in settings.' }) };
+  }
+
+  if (data.football_api_provider !== 'api-football') {
+    return { error: json(400, { error: 'Unsupported provider.' }) };
+  }
+
+  return { settings: data };
+}
+
+export async function fetchApiFootball(endpoint, apiKey) {
+  const response = await fetch(`https://v3.football.api-sports.io${endpoint}`, {
+    headers: {
+      'x-apisports-key': apiKey,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API-Football request failed with status ${response.status}.`);
+  }
+
+  return response.json();
+}
+
+export { json };

@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Teko:wght@500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-primary: #312783;
+  --color-accent: #BE1717;
+  --color-dark: #2C2E43;
+  --color-mid: #8E9AAF;
+  --color-light: #EDF2F4;
+  --color-ink: #212529;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, rgba(190, 23, 23, 0.08), transparent 28%),
+    linear-gradient(180deg, #f8fbfd 0%, var(--color-light) 52%, #e6edf1 100%);
+  color: var(--color-dark);
+}
+
+.mwos-display {
+  font-family: "Teko", "Lato", sans-serif;
+}
+
+.mwos-auth-shell {
+  background:
+    radial-gradient(circle at top right, rgba(190, 23, 23, 0.22), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.08), transparent 22%),
+    linear-gradient(145deg, #1e1f56 0%, #312783 58%, #3e45a1 100%);
+}
+
+.mwos-subtle-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+.mwos-ribbon-surface {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(135deg, #26246f 0%, #312783 55%, #4836ab 100%);
+  background-size: 24px 24px, 24px 24px, auto;
+  border-top: 3px solid var(--color-accent);
+}

@@ -1,0 +1,19 @@
+[build]
+command = "npm run build"
+publish = "dist"
+functions = "netlify/functions"
+
+[[redirects]]
+from = "/api/admin-ai/insights"
+to = "/.netlify/functions/admin-ai-insights"
+status = 200
+
+[[redirects]]
+from = "/api/admin-ai/chat"
+to = "/.netlify/functions/admin-ai-chat"
+status = 200
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
