@@ -104,7 +104,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
           Save the report to unlock comments
         </h2>
         <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
-          Comments are collaboration-safe and lightweight, but they only attach to persisted reports.
+          Save first, then add notes and follow-up comments.
         </p>
       </div>
     );
@@ -118,7 +118,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
             <div>
               <h2 className="text-xl font-black text-[var(--color-dark)] md:text-2xl">Report Comments</h2>
               <p className="mt-1 text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                Lightweight collaboration for scouts and admins without adding storage-heavy features.
+                Keep follow-up notes and match discussion in one place.
               </p>
             </div>
             <div className="rounded-2xl bg-[var(--color-primary)]/8 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">
@@ -143,7 +143,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
               onChange={(event) => setDraft(event.target.value)}
               rows={4}
               placeholder="Add a scouting follow-up, internal remark or action item..."
-              className="mt-3 w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white p-4 text-sm font-semibold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+              className="mt-3 w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white p-4 text-sm font-semibold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] resize-none md:resize-y"
             />
             <div className="mt-4 flex justify-end">
               <button

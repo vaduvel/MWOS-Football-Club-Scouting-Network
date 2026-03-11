@@ -1039,7 +1039,7 @@ export default function PlayersPage() {
 
                   {!loading && (overview?.watchlist || []).length === 0 && (
                     <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/25 bg-[var(--color-light)]/55 p-5 text-sm font-semibold text-[var(--color-mid)]">
-                      Use the star button on a player card to build a shortlist without adding storage-heavy features.
+                      Use the star on a player card to build your shortlist.
                     </div>
                   )}
                 </div>

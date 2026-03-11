@@ -97,7 +97,7 @@ export default function MatchReportTab() {
   const sectionPadding = isCompact ? 'p-4' : 'p-6 md:p-8';
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-8">
       <section className={`${sectionSurface} ${sectionPadding}`}>
         <button
           type="button"
@@ -107,7 +107,7 @@ export default function MatchReportTab() {
           <div className="text-left">
             <h2 className="text-xl font-black uppercase tracking-tighter text-[var(--color-dark)] md:text-2xl">Handwritten Import</h2>
             <p className="mt-2 max-w-2xl text-sm font-semibold text-[var(--color-mid)]">
-              Upload a photo or scan of a handwritten report. Google Vision OCR will extract the text and suggest match fields you can apply into this draft.
+              Upload a report photo to pull notes and match details into this draft.
             </p>
           </div>
           {isCompact ? (
@@ -136,7 +136,7 @@ export default function MatchReportTab() {
                   {selectedFile ? (
                     <p>Selected: <span className="text-[var(--color-dark)]">{selectedFile.name}</span></p>
                   ) : (
-                    <p>Use JPG, PNG or another image format. PDF support is not included yet in this first version.</p>
+                    <p>Use a clear image of the handwritten report.</p>
                   )}
                 </div>
 
@@ -149,12 +149,12 @@ export default function MatchReportTab() {
                   {ocrLoading ? (
                     <>
                       <Loader2 size={18} className="animate-spin" />
-                      <span>Running OCR...</span>
+                      <span>Reading report...</span>
                     </>
                   ) : (
                     <>
                       <Upload size={18} />
-                      <span>Extract Text with Vision</span>
+                      <span>Read Report</span>
                     </>
                   )}
                 </button>
@@ -199,7 +199,7 @@ export default function MatchReportTab() {
                         <div>
                           <h3 className="text-lg font-black uppercase tracking-wider text-[var(--color-dark)]">Detected Fields</h3>
                           <p className="text-sm font-semibold text-[var(--color-mid)]">
-                            Review the suggestions before applying them to the form.
+                            Review and apply the suggested match details.
                           </p>
                         </div>
                         <button
@@ -217,7 +217,7 @@ export default function MatchReportTab() {
                         {detectedFields.length === 0 ? (
                           <div className="flex items-start space-x-3 text-sm font-semibold text-[var(--color-mid)]">
                             <FileText size={18} className="mt-0.5 flex-shrink-0" />
-                            <p>No structured fields were recognized yet. You can still append the extracted text into the notes.</p>
+                            <p>No match fields were found yet. You can still add the extracted text into notes.</p>
                           </div>
                         ) : (
                           detectedFields.map(([key, value]) => (
@@ -305,7 +305,7 @@ export default function MatchReportTab() {
         
         {(!isCompact || openSections.teams) && (
           <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
-          <div className="bg-[var(--color-light)] p-6 rounded-xl border border-[var(--color-mid)]/20">
+          <div className="bg-[var(--color-light)] p-4 rounded-xl border border-[var(--color-mid)]/20 md:p-6">
             <h3 className="text-lg font-black text-[var(--color-primary)] mb-4 uppercase tracking-wider text-center">Home Team</h3>
             <div className="space-y-4">
               <div>
@@ -323,7 +323,7 @@ export default function MatchReportTab() {
             </div>
           </div>
 
-          <div className="bg-[var(--color-light)] p-6 rounded-xl border border-[var(--color-mid)]/20">
+          <div className="bg-[var(--color-light)] p-4 rounded-xl border border-[var(--color-mid)]/20 md:p-6">
             <h3 className="text-lg font-black text-[var(--color-accent)] mb-4 uppercase tracking-wider text-center">Away Team</h3>
             <div className="space-y-4">
               <div>
@@ -366,11 +366,11 @@ export default function MatchReportTab() {
           <div className="mt-6 space-y-6">
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Focus of the Report</label>
-            <textarea name="focus" value={currentReport.focus} onChange={handleChange} rows={3} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-y" placeholder="e.g. Analyzing the opposition's defensive shape..." />
+            <textarea name="focus" value={currentReport.focus} onChange={handleChange} rows={3} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y" placeholder="e.g. Analyzing the opposition's defensive shape..." />
           </div>
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">General Match Notes</label>
-            <textarea name="general_notes" value={currentReport.general_notes} onChange={handleChange} rows={5} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-y" placeholder="Overall impressions of the match..." />
+            <textarea name="general_notes" value={currentReport.general_notes} onChange={handleChange} rows={5} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y" placeholder="Overall impressions of the match..." />
           </div>
           </div>
         )}
