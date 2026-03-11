@@ -272,111 +272,246 @@ export default function PlayersPage() {
       <main className="flex-1 overflow-auto p-3 pb-24 md:p-6">
         <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface relative overflow-hidden px-4 py-4 text-white md:px-6 md:py-5">
-              <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-                <div className="max-w-2xl">
-                  <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/65">
-                    MWOS Player Intelligence
-                  </p>
-                  <h1 className="mt-1 mwos-display text-[2.35rem] uppercase leading-none tracking-[0.05em] text-white md:mt-2 md:text-4xl md:tracking-[0.08em]">
-                    Player Hub
-                  </h1>
-                  <p className="mt-2 max-w-xl text-[13px] font-semibold leading-5 text-white/76 md:text-sm">
-                    Track players, compare reports and manage follow-up.
-                  </p>
+            <div className="mwos-ribbon-surface relative overflow-hidden text-white">
+              <div className="space-y-3 px-4 py-4 md:hidden">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/65">
+                      MWOS Player Intelligence
+                    </p>
+                    <h1 className="mt-1 mwos-display text-[2.2rem] uppercase leading-none tracking-[0.04em] text-white">
+                      Player Hub
+                    </h1>
+                    <p className="mt-2 max-w-[17rem] text-xs font-semibold leading-5 text-white/76">
+                      Track, shortlist and compare players from one mobile scouting workspace.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleCreateReport('match')}
+                    className="inline-flex h-11 min-w-[92px] items-center justify-center gap-2 rounded-2xl bg-white px-3 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)]"
+                  >
+                    <Plus size={15} />
+                    Report
+                  </button>
                 </div>
 
-                <div className="grid w-full grid-cols-2 gap-2 xl:w-auto xl:min-w-[320px]">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <div className="flex items-center rounded-2xl border border-white/12 bg-white/10 px-3 py-2.5 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
+                    <Search className="mr-2 text-white/68" size={16} />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Search players or reports..."
+                      className="w-full bg-transparent text-sm font-semibold text-white placeholder:text-white/60 outline-none"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setShowMobileFilters((current) => !current)}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-3 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm"
+                  >
+                    <SlidersHorizontal size={15} />
+                    Filter
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleCreateReport('teams')}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm transition-all hover:bg-white/16"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white"
                   >
-                    <Plus size={16} />
+                    <Plus size={15} />
                     Add Player
                   </button>
                   <button
-                    onClick={() => handleCreateReport('match')}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-3 py-2.5 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)] transition-opacity hover:opacity-92"
+                    onClick={handleOpenComparison}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white"
                   >
-                    <Plus size={16} />
-                    New Report
+                    <GitCompareArrows size={15} />
+                    Compare
                   </button>
+                </div>
+
+                <div className={`${showMobileFilters ? 'grid' : 'hidden'} gap-2`}>
+                  <select
+                    value={potentialFilter}
+                    onChange={(event) => setPotentialFilter(event.target.value)}
+                    className="rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
+                  >
+                    <option value="all" className="text-slate-900">
+                      All potential levels
+                    </option>
+                    <option value="Academy" className="text-slate-900">
+                      Academy
+                    </option>
+                    <option value="Semi-pro" className="text-slate-900">
+                      Semi-pro
+                    </option>
+                    <option value="Pro" className="text-slate-900">
+                      Pro
+                    </option>
+                    <option value="Elite" className="text-slate-900">
+                      Elite
+                    </option>
+                  </select>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setWatchlistOnly((current) => !current)}
+                      className={`rounded-2xl px-4 py-2.5 text-sm font-black transition-all ${
+                        watchlistOnly
+                          ? 'bg-white text-[var(--color-primary)] shadow-[0_16px_32px_rgba(12,16,53,0.22)]'
+                          : 'border border-white/12 bg-white/10 text-white'
+                      }`}
+                    >
+                      Shortlist
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSearch('');
+                        setPotentialFilter('all');
+                        setWatchlistOnly(false);
+                      }}
+                      className="rounded-2xl border border-white/12 bg-transparent px-4 py-2.5 text-sm font-black text-white/86 transition-colors hover:bg-white/10"
+                    >
+                      Reset
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
-                <div className="flex items-center rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
-                  <Search className="mr-3 text-white/68" size={18} />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search tracked players, reports or notes..."
-                    className="w-full bg-transparent text-sm font-semibold text-white placeholder:text-white/60 outline-none"
-                  />
+              <div className="hidden px-6 py-5 md:block">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+                  <div className="max-w-2xl">
+                    <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/65">
+                      MWOS Player Intelligence
+                    </p>
+                    <h1 className="mt-2 mwos-display text-4xl uppercase leading-none tracking-[0.08em] text-white">
+                      Player Hub
+                    </h1>
+                    <p className="mt-2 max-w-xl text-sm font-semibold leading-5 text-white/76">
+                      Track players, compare reports and manage follow-up.
+                    </p>
+                  </div>
+
+                  <div className="grid w-full grid-cols-2 gap-2 xl:w-auto xl:min-w-[320px]">
+                    <button
+                      onClick={() => handleCreateReport('teams')}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm transition-all hover:bg-white/16"
+                    >
+                      <Plus size={16} />
+                      Add Player
+                    </button>
+                    <button
+                      onClick={() => handleCreateReport('match')}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-3 py-2.5 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)] transition-opacity hover:opacity-92"
+                    >
+                      <Plus size={16} />
+                      New Report
+                    </button>
+                  </div>
                 </div>
 
-                <div className="sm:hidden">
+                <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="flex items-center rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
+                    <Search className="mr-3 text-white/68" size={18} />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Search tracked players, reports or notes..."
+                      className="w-full bg-transparent text-sm font-semibold text-white placeholder:text-white/60 outline-none"
+                    />
+                  </div>
+
+                  <div className="sm:hidden">
+                    <button
+                      onClick={() => setShowMobileFilters((current) => !current)}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm"
+                    >
+                      <SlidersHorizontal size={16} />
+                      Filters
+                      {showMobileFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto]">
+                  <select
+                    value={potentialFilter}
+                    onChange={(event) => setPotentialFilter(event.target.value)}
+                    className="rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
+                  >
+                    <option value="all" className="text-slate-900">
+                      All potential levels
+                    </option>
+                    <option value="Academy" className="text-slate-900">
+                      Academy
+                    </option>
+                    <option value="Semi-pro" className="text-slate-900">
+                      Semi-pro
+                    </option>
+                    <option value="Pro" className="text-slate-900">
+                      Pro
+                    </option>
+                    <option value="Elite" className="text-slate-900">
+                      Elite
+                    </option>
+                  </select>
+
                   <button
-                    onClick={() => setShowMobileFilters((current) => !current)}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm"
+                    onClick={() => setWatchlistOnly((current) => !current)}
+                    className={`rounded-2xl px-4 py-3 text-sm font-black transition-all ${
+                      watchlistOnly
+                        ? 'bg-white text-[var(--color-primary)] shadow-[0_16px_32px_rgba(12,16,53,0.22)]'
+                        : 'border border-white/12 bg-white/10 text-white'
+                    }`}
                   >
-                    <SlidersHorizontal size={16} />
-                    Filters
-                    {showMobileFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    Shortlist only
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSearch('');
+                      setPotentialFilter('all');
+                      setWatchlistOnly(false);
+                    }}
+                    className="rounded-2xl border border-white/12 bg-transparent px-4 py-2.5 text-sm font-black text-white/86 transition-colors hover:bg-white/10"
+                  >
+                    Reset
                   </button>
                 </div>
-              </div>
-
-              <div className={`${showMobileFilters ? 'grid' : 'hidden'} mt-2 gap-2 sm:grid md:grid-cols-[1fr_auto_auto]`}>
-                <select
-                  value={potentialFilter}
-                  onChange={(event) => setPotentialFilter(event.target.value)}
-                  className="rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
-                >
-                  <option value="all" className="text-slate-900">
-                    All potential levels
-                  </option>
-                  <option value="Academy" className="text-slate-900">
-                    Academy
-                  </option>
-                  <option value="Semi-pro" className="text-slate-900">
-                    Semi-pro
-                  </option>
-                  <option value="Pro" className="text-slate-900">
-                    Pro
-                  </option>
-                  <option value="Elite" className="text-slate-900">
-                    Elite
-                  </option>
-                </select>
-
-                <button
-                  onClick={() => setWatchlistOnly((current) => !current)}
-                  className={`rounded-2xl px-4 py-3 text-sm font-black transition-all ${
-                    watchlistOnly
-                      ? 'bg-white text-[var(--color-primary)] shadow-[0_16px_32px_rgba(12,16,53,0.22)]'
-                      : 'border border-white/12 bg-white/10 text-white'
-                  }`}
-                >
-                  Shortlist only
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSearch('');
-                    setPotentialFilter('all');
-                    setWatchlistOnly(false);
-                  }}
-                  className="rounded-2xl border border-white/12 bg-transparent px-4 py-2.5 text-sm font-black text-white/86 transition-colors hover:bg-white/10"
-                >
-                  Reset
-                </button>
               </div>
             </div>
           </section>
 
-          <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <section className="md:hidden">
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              <div className="min-w-[148px] rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.06)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Tracked</p>
+                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.totalTrackedPlayers || 0}</p>
+                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Players</p>
+              </div>
+              <div className="min-w-[148px] rounded-[22px] border border-[#d5aa4d]/20 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(213,170,77,0.05)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Shortlist</p>
+                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.watchlistCount || 0}</p>
+                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Ready now</p>
+              </div>
+              <div className="min-w-[148px] rounded-[22px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(190,23,23,0.05)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Review</p>
+                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.pendingReviewCount || 0}</p>
+                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Need check</p>
+              </div>
+              <div className="min-w-[148px] rounded-[22px] border border-emerald-200 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(16,185,129,0.05)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">This Week</p>
+                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.reportsThisWeek || 0}</p>
+                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Reports</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="hidden grid-cols-2 gap-3 xl:grid-cols-4 md:grid">
             <div className="rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.06)]">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Tracked Players</p>
               <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.totalTrackedPlayers || 0}</p>

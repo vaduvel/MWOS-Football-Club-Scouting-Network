@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
-import { useReportStore } from '../store/report';
-import { Save, ArrowLeft, CheckCircle, ChevronLeft, ChevronRight, FileText, Users, LayoutDashboard, UserCheck, Download, MessageSquare } from 'lucide-react';
+import { useReportStore, type Report } from '../store/report';
+import { Save, ArrowLeft, CheckCircle, FileText, Users, LayoutDashboard, UserCheck, Download, MessageSquare } from 'lucide-react';
 import MatchReportTab from './tabs/MatchReportTab';
 import TeamSheetsTab from './tabs/TeamSheetsTab';
 import FormationsTab from './tabs/FormationsTab';
@@ -13,12 +13,12 @@ import { fetchReport, saveReport } from '../lib/data';
 import { createId } from '../lib/ids';
 
 const TABS = [
-  { id: 'match', label: 'Match Report', mobileLabel: 'Match', icon: FileText },
-  { id: 'teams', label: 'Team Sheets', mobileLabel: 'Team', icon: Users },
+  { id: 'match', label: 'Match Report', mobileLabel: 'Report', icon: FileText },
+  { id: 'teams', label: 'Team Sheets', mobileLabel: 'Squad', icon: Users },
   { id: 'formations', label: 'Formations', mobileLabel: 'Shape', icon: LayoutDashboard },
-  { id: 'reviews', label: 'Player Reviews', mobileLabel: 'Reviews', icon: UserCheck },
+  { id: 'reviews', label: 'Player Reviews', mobileLabel: 'Review', icon: UserCheck },
   { id: 'comments', label: 'Comments', mobileLabel: 'Notes', icon: MessageSquare },
-  { id: 'export', label: 'Export PDF', mobileLabel: 'PDF', icon: Download },
+  { id: 'export', label: 'Export PDF', mobileLabel: 'Export', icon: Download },
 ];
 
 function hasMeaningfulDraftContent(report: ReturnType<typeof useReportStore.getState>['currentReport']) {
@@ -61,6 +61,53 @@ function hasMeaningfulDraftContent(report: ReturnType<typeof useReportStore.getS
   return hasText || hasScores || hasPlayers || hasReviews;
 }
 
+const LOCAL_DRAFT_PREFIX = 'mwos-report-draft';
+
+function getDraftStorageKey(reportId?: string) {
+  return `${LOCAL_DRAFT_PREFIX}:${reportId || 'new'}`;
+}
+
+function loadLocalDraft(reportId?: string): { report: Report; savedAt: string } | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(getDraftStorageKey(reportId));
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as { report?: Report; savedAt?: string };
+    if (!parsed.report || !parsed.savedAt) return null;
+
+    return { report: parsed.report, savedAt: parsed.savedAt };
+  } catch (error) {
+    console.error('Failed to load local report draft.', error);
+    return null;
+  }
+}
+
+function saveLocalDraft(report: Report, reportId?: string) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(
+    getDraftStorageKey(reportId),
+    JSON.stringify({
+      report,
+      savedAt: new Date().toISOString(),
+    }),
+  );
+}
+
+function clearLocalDraft(reportId?: string) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.removeItem(getDraftStorageKey(reportId));
+}
+
 export default function ReportEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -72,7 +119,8 @@ export default function ReportEditor() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [persistedReportId, setPersistedReportId] = useState<string | undefined>(id && id !== 'new' ? id : undefined);
-  const [showMobileTabPicker, setShowMobileTabPicker] = useState(false);
+  const [draftNotice, setDraftNotice] = useState('');
+  const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
   const skipDirtyTrackingRef = useRef(false);
   const isAdmin = (user?.role || '').trim().toLowerCase() === 'admin';
   const isNewReport = !id || id === 'new';
@@ -89,14 +137,40 @@ export default function ReportEditor() {
     setActiveTab(requestedTab);
   }, [requestedTab]);
 
+  useEffect(() => {
+    const syncNetworkStatus = () => {
+      setIsOffline(!navigator.onLine);
+    };
+
+    syncNetworkStatus();
+    window.addEventListener('online', syncNetworkStatus);
+    window.addEventListener('offline', syncNetworkStatus);
+
+    return () => {
+      window.removeEventListener('online', syncNetworkStatus);
+      window.removeEventListener('offline', syncNetworkStatus);
+    };
+  }, []);
+
   // Load initial data
   useEffect(() => {
     skipDirtyTrackingRef.current = true;
     setPersistedReportId(id && id !== 'new' ? id : undefined);
+    setDraftNotice('');
 
     if (!token) return;
 
     if (id && id !== 'new') {
+      const localDraft = loadLocalDraft(id);
+
+      if (localDraft) {
+        setCurrentReport(localDraft.report);
+        setPersistedReportId(id);
+        setHasUnsavedChanges(true);
+        setDraftNotice(`Recovered local draft from ${new Date(localDraft.savedAt).toLocaleTimeString()}.`);
+        return;
+      }
+
       void (async () => {
         try {
           const data = await fetchReport(id);
@@ -107,6 +181,15 @@ export default function ReportEditor() {
           console.error('Failed to load report.', error);
         }
       })();
+      return;
+    }
+
+    const localDraft = loadLocalDraft();
+
+    if (localDraft) {
+      setCurrentReport(localDraft.report);
+      setHasUnsavedChanges(true);
+      setDraftNotice(`Recovered local draft from ${new Date(localDraft.savedAt).toLocaleTimeString()}.`);
       return;
     }
 
@@ -156,6 +239,10 @@ export default function ReportEditor() {
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
       setPersistedReportId(savedId);
+      clearLocalDraft(id && id !== 'new' ? id : undefined);
+      clearLocalDraft(savedId);
+      clearLocalDraft();
+      setDraftNotice('');
 
       if (isNewReport) {
         navigate(`/report/${savedId}`, { replace: true });
@@ -166,19 +253,32 @@ export default function ReportEditor() {
     } finally {
       setSaving(false);
     }
-  }, [currentReport, isNewReport, navigate, hasUnsavedChanges, persistedReportId, setCurrentReport]);
+  }, [currentReport, hasUnsavedChanges, id, isNewReport, navigate, persistedReportId]);
 
   // Autosave effect
   useEffect(() => {
     if (!hasUnsavedChanges) return;
     if (!persistedReportId && !canCreateInitialDraft) return;
+    if (isOffline) return;
 
     const timeoutId = setTimeout(() => {
       handleSave();
     }, 2000); // 2 seconds debounce
 
     return () => clearTimeout(timeoutId);
-  }, [currentReport, hasUnsavedChanges, handleSave, persistedReportId, canCreateInitialDraft]);
+  }, [currentReport, hasUnsavedChanges, handleSave, persistedReportId, canCreateInitialDraft, isOffline]);
+
+  useEffect(() => {
+    if (!currentReport) return;
+    if (!hasMeaningfulDraftContent(currentReport)) return;
+    if (!hasUnsavedChanges && !isOffline) return;
+
+    const timeoutId = window.setTimeout(() => {
+      saveLocalDraft(currentReport, persistedReportId);
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [currentReport, hasUnsavedChanges, persistedReportId, isOffline]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -191,23 +291,8 @@ export default function ReportEditor() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  useEffect(() => {
-    setShowMobileTabPicker(false);
-  }, [activeTab]);
-
   const goToTab = (tabId: string) => {
     setActiveTab(tabId);
-    setShowMobileTabPicker(false);
-  };
-
-  const goToPreviousTab = () => {
-    if (activeTabIndex <= 0) return;
-    goToTab(TABS[activeTabIndex - 1].id);
-  };
-
-  const goToNextTab = () => {
-    if (activeTabIndex >= TABS.length - 1) return;
-    goToTab(TABS[activeTabIndex + 1].id);
   };
 
   if (!currentReport) return <div className="p-10 text-center font-bold">Loading...</div>;
@@ -215,67 +300,125 @@ export default function ReportEditor() {
   return (
     <div className="min-h-screen bg-[var(--color-light)] flex flex-col">
       <header className="mwos-ribbon-surface sticky top-0 z-50 shadow-sm">
-        <div className="hidden items-center gap-4 border-b border-white/10 px-4 py-3 md:flex md:px-6">
-          <img
-            src="/branding/mwos-fc-300-2.png"
-            alt="MWOS logo"
-            className="h-11 w-11 rounded-full border border-white/20 bg-white/10 p-0.5"
-          />
+        <div className="px-3 py-3 text-white md:hidden">
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate('/')} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10">
+              <ArrowLeft size={20} className="text-white" />
+            </button>
+
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <img
+                src="/branding/mwos-fc-300-2.png"
+                alt="MWOS logo"
+                className="h-10 w-10 rounded-full border border-white/20 bg-white/10 p-0.5"
+              />
+              <div className="min-w-0">
+                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/62">MWOS Match Report</p>
+                <h1 className="truncate text-xl font-black leading-none text-white">
+                  {currentReport.home_team && currentReport.away_team ? `${currentReport.home_team} vs ${currentReport.away_team}` : 'New Report'}
+                </h1>
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/72">
+                  {currentReport.competition || 'Draft'} · {currentTabMeta.mobileLabel}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSave}
+              disabled={saving || isOffline || !hasUnsavedChanges || (!persistedReportId && !canCreateInitialDraft)}
+              className="inline-flex h-11 min-w-[88px] flex-shrink-0 items-center justify-center gap-2 rounded-2xl bg-white px-3 text-sm font-black text-[var(--color-primary)] shadow-md transition-all hover:bg-white/92 disabled:opacity-50"
+            >
+              <Save size={16} />
+              <span>{saving ? '...' : 'Save'}</span>
+            </button>
+          </div>
+
+          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] font-semibold text-white/72">
+            <div className="truncate">
+              {isOffline ? (
+                'Offline mode · changes stay on this device'
+              ) : draftNotice ? (
+                draftNotice
+              ) : hasUnsavedChanges ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse"></span>
+                  Unsaved changes
+                </span>
+              ) : !persistedReportId && !canCreateInitialDraft ? (
+                'Add details before first save'
+              ) : lastSaved ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <CheckCircle size={12} className="text-emerald-300" />
+                  Saved
+                </span>
+              ) : (
+                'Ready to scout'
+              )}
+            </div>
+            {isAdmin && (currentReport.owner_name || currentReport.owner_email) ? (
+              <span className="max-w-[42%] truncate text-right">Owner: {currentReport.owner_name || currentReport.owner_email}</span>
+            ) : (
+              <span>Step {activeTabIndex + 1}/{TABS.length}</span>
+            )}
+          </div>
         </div>
-        <div className="flex flex-col gap-3 px-4 py-3 text-white md:flex-row md:items-center md:justify-between md:px-6 md:py-4">
-          <div className="flex items-start gap-3 md:items-center md:space-x-4">
-            <button onClick={() => navigate('/')} className="rounded-full p-1.5 transition-colors hover:bg-white/10 md:p-2">
-              <ArrowLeft size={22} className="text-white md:h-6 md:w-6" />
+
+        <div className="hidden items-center justify-between gap-4 px-6 py-4 text-white md:flex">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/')} className="rounded-full p-2 transition-colors hover:bg-white/10">
+              <ArrowLeft size={22} className="text-white" />
             </button>
             <img
               src="/branding/mwos-fc-300-2.png"
               alt="MWOS logo"
-              className="h-9 w-9 rounded-full border border-white/20 bg-white/10 p-0.5 md:hidden"
+              className="h-11 w-11 rounded-full border border-white/20 bg-white/10 p-0.5"
             />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/68 md:tracking-[0.28em]">MWOS Match Report</p>
-              <h1 className="text-2xl font-black leading-none text-white md:text-xl md:leading-normal">
-                {currentReport.home_team && currentReport.away_team 
-                  ? `${currentReport.home_team} vs ${currentReport.away_team}` 
-                  : 'New Report'}
-                </h1>
-              <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-white/74 md:text-xs md:tracking-wider">
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/68">MWOS Match Report</p>
+              <h1 className="text-xl font-black leading-normal text-white">
+                {currentReport.home_team && currentReport.away_team ? `${currentReport.home_team} vs ${currentReport.away_team}` : 'New Report'}
+              </h1>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-white/74">
                 {currentReport.competition || 'Draft'}
               </p>
               {isAdmin && (currentReport.owner_name || currentReport.owner_email) && (
-                <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-white/88 md:text-xs md:tracking-wider">
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-white/88">
                   Owner: {currentReport.owner_name || currentReport.owner_email}
                 </p>
               )}
-              <p className="mt-2 text-[11px] font-black uppercase tracking-[0.22em] text-white/62 md:hidden">
-                Step {activeTabIndex + 1} / {TABS.length} · {currentTabMeta.mobileLabel}
-              </p>
             </div>
           </div>
-          
-          <div className="flex items-center justify-between gap-3 md:justify-end md:space-x-4">
-            {hasUnsavedChanges ? (
-              <span className="hidden items-center text-xs font-semibold text-white/72 md:inline-flex">
-                <span className="w-2 h-2 rounded-full bg-yellow-500 mr-2 animate-pulse"></span>
+
+          <div className="flex items-center gap-4">
+            {isOffline ? (
+              <span className="inline-flex items-center text-xs font-semibold text-white/72">
+                Offline mode · saving locally
+              </span>
+            ) : draftNotice ? (
+              <span className="inline-flex items-center text-xs font-semibold text-white/72">{draftNotice}</span>
+            ) : hasUnsavedChanges ? (
+              <span className="inline-flex items-center text-xs font-semibold text-white/72">
+                <span className="mr-2 h-2 w-2 rounded-full bg-yellow-500 animate-pulse"></span>
                 Unsaved changes
               </span>
             ) : !persistedReportId && !canCreateInitialDraft ? (
-              <span className="hidden items-center text-xs font-semibold text-white/72 md:inline-flex">
+              <span className="inline-flex items-center text-xs font-semibold text-white/72">
                 Add match details before first save
               </span>
             ) : lastSaved ? (
-              <span className="hidden items-center text-xs font-semibold text-white/72 md:inline-flex">
+              <span className="inline-flex items-center text-xs font-semibold text-white/72">
                 <CheckCircle size={14} className="mr-1 text-emerald-300" />
                 Saved {lastSaved.toLocaleTimeString()}
               </span>
             ) : null}
-            <button 
-              onClick={handleSave} 
-              disabled={saving || !hasUnsavedChanges || (!persistedReportId && !canCreateInitialDraft)}
-              className="flex min-w-[168px] items-center justify-center space-x-2 rounded-2xl bg-white px-5 py-3 font-bold text-[var(--color-primary)] shadow-md transition-all hover:bg-white/92 disabled:opacity-50 md:min-w-0 md:rounded-xl md:px-6 md:py-2"
+
+            <button
+              onClick={handleSave}
+              disabled={saving || isOffline || !hasUnsavedChanges || (!persistedReportId && !canCreateInitialDraft)}
+              className="flex min-w-[148px] items-center justify-center space-x-2 rounded-xl bg-white px-6 py-2.5 font-bold text-[var(--color-primary)] shadow-md transition-all hover:bg-white/92 disabled:opacity-50"
             >
               <Save size={18} />
-              <span className="text-lg md:text-base">{saving ? 'Saving...' : 'Save Report'}</span>
+              <span>{saving ? 'Saving...' : 'Save Report'}</span>
             </button>
           </div>
         </div>
@@ -320,63 +463,28 @@ export default function ReportEditor() {
         </main>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-mid)]/20 bg-white/96 px-3 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] pt-2 shadow-[0_-14px_32px_rgba(15,23,42,0.16)] backdrop-blur-xl md:hidden">
-        {showMobileTabPicker ? (
-          <div className="mb-2 grid grid-cols-3 gap-2 rounded-[22px] border border-[var(--color-mid)]/16 bg-white p-2 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-mid)]/18 bg-white/96 px-2 pb-[calc(env(safe-area-inset-bottom)+0.4rem)] pt-2 shadow-[0_-12px_28px_rgba(15,23,42,0.12)] backdrop-blur-xl md:hidden">
+        <div className="mx-auto flex max-w-md gap-2 overflow-x-auto rounded-[22px] border border-[var(--color-mid)]/16 bg-white p-1.5">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
 
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => goToTab(tab.id)}
-                  className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-black uppercase tracking-[0.12em] ${
-                    isActive
-                      ? 'bg-[var(--color-primary)] text-white'
-                      : 'bg-[var(--color-light)]/55 text-[var(--color-dark)]'
-                  }`}
-                >
-                  <Icon size={16} />
-                  <span>{tab.mobileLabel}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-
-        <div className="mx-auto grid max-w-lg grid-cols-[68px_minmax(0,1fr)_68px] items-center gap-2 rounded-[24px] border border-[var(--color-mid)]/16 bg-white p-2">
-          <button
-            type="button"
-            onClick={goToPreviousTab}
-            disabled={activeTabIndex <= 0}
-            className="flex h-12 w-full items-center justify-center rounded-2xl border border-[var(--color-mid)]/16 bg-[var(--color-light)]/50 text-[var(--color-dark)] transition-colors disabled:opacity-35"
-          >
-            <ChevronLeft size={18} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowMobileTabPicker((current) => !current)}
-            className="flex h-12 min-w-0 flex-col items-center justify-center rounded-2xl bg-[var(--color-primary)] px-3 text-white shadow-[0_12px_24px_rgba(49,39,131,0.18)]"
-          >
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] opacity-72">
-              Step {activeTabIndex + 1} / {TABS.length}
-            </span>
-            <span className="truncate text-sm font-black uppercase tracking-[0.08em]">
-              {currentTabMeta.mobileLabel}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={goToNextTab}
-            disabled={activeTabIndex >= TABS.length - 1}
-            className="flex h-12 w-full items-center justify-center rounded-2xl border border-[var(--color-mid)]/16 bg-[var(--color-light)]/50 text-[var(--color-dark)] transition-colors disabled:opacity-35"
-          >
-            <ChevronRight size={18} />
-          </button>
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => goToTab(tab.id)}
+                className={`flex min-w-[72px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[9px] font-black uppercase tracking-[0.1em] transition-colors ${
+                  isActive
+                    ? 'bg-[var(--color-primary)] text-white shadow-[0_10px_24px_rgba(49,39,131,0.18)]'
+                    : 'text-[var(--color-mid)]'
+                }`}
+              >
+                <Icon size={16} />
+                <span>{tab.mobileLabel}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

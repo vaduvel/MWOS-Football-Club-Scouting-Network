@@ -28,13 +28,13 @@ export default function TeamSheetsTab() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-6">
       
       {/* Team Toggle */}
-      <div className="flex p-1 bg-[var(--color-mid)]/20 rounded-xl w-full max-w-md mx-auto">
+      <div className="mx-auto flex w-full max-w-md rounded-2xl bg-[var(--color-mid)]/18 p-1">
         <button
           onClick={() => setActiveSide('home')}
-          className={`flex-1 py-3 px-4 rounded-lg font-bold uppercase tracking-wider text-sm transition-all ${
+          className={`flex-1 rounded-[14px] px-3 py-2.5 text-sm font-bold uppercase tracking-[0.14em] transition-all ${
             activeSide === 'home' 
               ? 'bg-white text-[var(--color-primary)] shadow-sm' 
               : 'text-[var(--color-dark)]/60 hover:text-[var(--color-dark)]'
@@ -44,7 +44,7 @@ export default function TeamSheetsTab() {
         </button>
         <button
           onClick={() => setActiveSide('away')}
-          className={`flex-1 py-3 px-4 rounded-lg font-bold uppercase tracking-wider text-sm transition-all ${
+          className={`flex-1 rounded-[14px] px-3 py-2.5 text-sm font-bold uppercase tracking-[0.14em] transition-all ${
             activeSide === 'away' 
               ? 'bg-white text-[var(--color-accent)] shadow-sm' 
               : 'text-[var(--color-dark)]/60 hover:text-[var(--color-dark)]'
@@ -54,17 +54,22 @@ export default function TeamSheetsTab() {
         </button>
       </div>
 
-      <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-[var(--color-mid)]/20">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <h2 className="text-lg md:text-xl font-black text-[var(--color-dark)] uppercase tracking-tighter">
-            {activeSide === 'home' ? 'Home' : 'Away'} Squad
-          </h2>
-          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-            <button onClick={() => setIsImportModalOpen(true)} className="bg-[var(--color-light)] text-[var(--color-primary)] px-4 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-[var(--color-mid)]/20 transition-all text-sm border border-[var(--color-primary)]/20">
+      <div className="rounded-2xl border border-[var(--color-mid)]/20 bg-white p-4 shadow-sm md:p-6">
+        <div className="mb-4 flex flex-col gap-3 md:mb-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">
+              {activeSide === 'home' ? currentReport.home_team || 'Home team' : currentReport.away_team || 'Away team'}
+            </p>
+            <h2 className="mt-1 text-base font-black uppercase tracking-tight text-[var(--color-dark)] md:text-xl">
+              Squad List
+            </h2>
+          </div>
+          <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:flex-wrap">
+            <button onClick={() => setIsImportModalOpen(true)} className="flex items-center justify-center space-x-2 rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-light)] px-3 py-2.5 text-sm font-bold text-[var(--color-primary)] transition-all hover:bg-[var(--color-mid)]/20">
               <Download size={16} />
               <span>Import</span>
             </button>
-            <button onClick={handleAddPlayer} className="bg-[var(--color-dark)] text-white px-4 py-2.5 rounded-xl font-bold flex items-center space-x-2 hover:bg-opacity-90 transition-all text-sm">
+            <button onClick={handleAddPlayer} className="flex items-center justify-center space-x-2 rounded-2xl bg-[var(--color-dark)] px-3 py-2.5 text-sm font-bold text-white transition-all hover:bg-opacity-90">
               <Plus size={16} />
               <span>Add Player</span>
             </button>
@@ -75,16 +80,16 @@ export default function TeamSheetsTab() {
           {players.map((player, index) => (
             <article
               key={player.id}
-              className="rounded-[22px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/50 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
+              className="rounded-[20px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/50 p-3.5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
             >
-              <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-black text-white ${activeSide === 'home' ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-accent)]'}`}>
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-black text-white ${activeSide === 'home' ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-accent)]'}`}>
                     {player.shirt_number || index + 1}
                   </div>
                   <div>
                     <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Player</p>
-                    <p className="mt-1 text-base font-black text-[var(--color-dark)]">{player.name || 'Unnamed player'}</p>
+                    <p className="mt-1 text-[15px] font-black text-[var(--color-dark)]">{player.name || 'Unnamed player'}</p>
                   </div>
                 </div>
                 <button
@@ -95,7 +100,17 @@ export default function TeamSheetsTab() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Player Name</label>
+                  <input
+                    type="text"
+                    value={player.name}
+                    onChange={e => updatePlayer(player.id, { name: e.target.value })}
+                    className="w-full rounded-xl border border-[var(--color-mid)]/20 bg-white p-3 font-bold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                    placeholder="Player Name"
+                  />
+                </div>
                 <div>
                   <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Shirt Number</label>
                   <input
@@ -108,43 +123,31 @@ export default function TeamSheetsTab() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Player Name</label>
+                  <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Sub (Min)</label>
                   <input
                     type="text"
-                    value={player.name}
-                    onChange={e => updatePlayer(player.id, { name: e.target.value })}
-                    className="w-full rounded-xl border border-[var(--color-mid)]/20 bg-white p-3 font-bold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-                    placeholder="Player Name"
+                    inputMode="numeric"
+                    value={player.subbed}
+                    onChange={e => updatePlayer(player.id, { subbed: e.target.value })}
+                    className="w-full rounded-xl border border-[var(--color-mid)]/20 bg-white p-3 text-center font-semibold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                    placeholder="75"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Sub (Min)</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={player.subbed}
-                      onChange={e => updatePlayer(player.id, { subbed: e.target.value })}
-                      className="w-full rounded-xl border border-[var(--color-mid)]/20 bg-white p-3 text-center font-semibold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-                      placeholder="75"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Rating</label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.5"
-                      min="1"
-                      max="10"
-                      value={player.rating}
-                      onChange={e => updatePlayer(player.id, { rating: e.target.value ? Number(e.target.value) : '' })}
-                      className="w-full rounded-xl border border-[var(--color-mid)]/20 bg-white p-3 text-center font-black text-[var(--color-primary)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-                      placeholder="1-10"
-                    />
-                  </div>
-                </div>
                 <div>
+                  <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Rating</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.5"
+                    min="1"
+                    max="10"
+                    value={player.rating}
+                    onChange={e => updatePlayer(player.id, { rating: e.target.value ? Number(e.target.value) : '' })}
+                    className="w-full rounded-xl border border-[var(--color-mid)]/20 bg-white p-3 text-center font-black text-[var(--color-primary)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                    placeholder="1-10"
+                  />
+                </div>
+                <div className="col-span-2">
                   <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Goal (Min)</label>
                   <input
                     type="text"
