@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import PwaStatusDock from './components/PwaStatusDock';
 import { useAuthStore } from './store/auth';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import PlayersPage from './pages/PlayersPage';
 import ReportEditor from './pages/ReportEditor';
@@ -176,6 +177,7 @@ export default function App() {
       />
       <Routes>
         <Route path="/login" element={!token ? <Login /> : <Navigate to="/" />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/players" element={<ProtectedRoute><PlayersPage /></ProtectedRoute>} />
         <Route path="/report/new" element={<ProtectedRoute><ReportEditor /></ProtectedRoute>} />

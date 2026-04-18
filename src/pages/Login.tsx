@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FileText, ShieldCheck, Users } from 'lucide-react';
-import { signIn, signUp } from '../lib/data';
+import { requestPasswordReset, signIn, signUp } from '../lib/data';
 import { useAuthStore } from '../store/auth';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -15,6 +16,18 @@ export default function Login() {
   const [info, setInfo] = useState('');
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('reset') === 'success') {
+      setInfo('Password updated. Sign in with your new password.');
+      setIsLogin(true);
+      setIsRecoveryMode(false);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('reset');
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +35,12 @@ export default function Login() {
     setInfo('');
 
     try {
+      if (isRecoveryMode) {
+        await requestPasswordReset(email);
+        setInfo('Password reset link sent. Check your email and open the link on this device.');
+        return;
+      }
+
       if (isLogin) {
         const data = await signIn(email, password);
         setAuth(data.user, data.session);
@@ -63,9 +82,9 @@ export default function Login() {
 
       <main className="relative flex min-h-screen items-start justify-center px-4 py-6 md:px-6 md:py-10">
         <div className="w-full max-w-6xl">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-center lg:gap-10">
-            <div className="order-1 mx-auto w-full max-w-xl">
-              <div className="mb-3 flex items-center justify-center lg:hidden">
+          <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4 lg:gap-6">
+            <div className="order-1 mx-auto w-full max-w-xl md:order-2">
+              <div className="mb-3 flex items-center justify-center md:hidden">
                 <img
                   src="/branding/mwos-fc-300-2.png"
                   alt="MWOS logo"
@@ -73,7 +92,7 @@ export default function Login() {
                 />
               </div>
 
-              <div className="mb-3 text-center text-white lg:hidden">
+              <div className="mb-3 text-center text-white md:hidden">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/68">
                   MWOS Football Club
                 </p>
@@ -96,7 +115,7 @@ export default function Login() {
                       </div>
                     )}
 
-                    {!isLogin && (
+                    {!isLogin && !isRecoveryMode && (
                       <>
                         <div>
                           <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Full Name</label>
@@ -174,65 +193,95 @@ export default function Login() {
                       />
                     </div>
 
-                    <div>
-                      <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Password</label>
-                      <input
-                        required
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        autoComplete={isLogin ? 'current-password' : 'new-password'}
-                        className="w-full rounded-2xl border border-[var(--color-mid)]/30 p-3 outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-                      />
-                    </div>
+                    {!isRecoveryMode && (
+                      <div>
+                        <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Password</label>
+                        <input
+                          required
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          autoComplete={isLogin ? 'current-password' : 'new-password'}
+                          className="w-full rounded-2xl border border-[var(--color-mid)]/30 p-3 outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                        />
+                      </div>
+                    )}
 
                     <button
                       type="submit"
                       className="w-full rounded-2xl bg-[var(--color-primary)] py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-92"
                     >
-                      {isLogin ? 'Sign In' : 'Create Account'}
+                      {isRecoveryMode ? 'Send Reset Link' : isLogin ? 'Sign In' : 'Create Account'}
                     </button>
                   </form>
 
                   <div className="mt-5 text-center">
-                    <button
-                      onClick={() => {
-                        setIsLogin(!isLogin);
-                        setError('');
-                        setInfo('');
-                        setRequestedRole('Scout');
-                      }}
-                      className="text-sm font-semibold text-[var(--color-mid)] transition-colors hover:text-[var(--color-primary)]"
-                    >
-                      {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-                    </button>
+                    {isLogin && !isRecoveryMode ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsRecoveryMode(true);
+                          setError('');
+                          setInfo('');
+                        }}
+                        className="text-sm font-semibold text-[var(--color-primary)] transition-colors hover:text-[var(--color-accent)]"
+                      >
+                        Forgot password?
+                      </button>
+                    ) : null}
+
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsRecoveryMode(false);
+                          setIsLogin(!isLogin || isRecoveryMode);
+                          setError('');
+                          setInfo('');
+                          setRequestedRole('Scout');
+                        }}
+                        className="text-sm font-semibold text-[var(--color-mid)] transition-colors hover:text-[var(--color-primary)]"
+                      >
+                        {isRecoveryMode
+                          ? 'Back to sign in'
+                          : isLogin
+                            ? "Don't have an account? Sign up"
+                            : 'Already have an account? Sign in'}
+                      </button>
+                    </div>
+
+                    {isRecoveryMode ? (
+                      <p className="mt-3 text-xs font-semibold text-[var(--color-mid)]">
+                        Forgot email? Ask your club admin or the person who created the account.
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="order-2">
+            <div className="order-2 w-full md:order-1">
               <div className="mx-auto max-w-3xl pt-1 text-center text-white lg:pt-2">
                 <img
                   src="/branding/mwos-fc-300-2.png"
                   alt="MWOS logo"
-                  className="mx-auto hidden h-20 w-20 rounded-full border border-white/20 bg-white/10 p-0.5 shadow-[0_18px_45px_rgba(12,16,53,0.28)] lg:block"
+                  className="mx-auto hidden h-20 w-20 rounded-full border border-white/20 bg-white/10 p-0.5 shadow-[0_18px_45px_rgba(12,16,53,0.28)] md:block"
                 />
-                <p className="mt-3 text-[10px] font-black uppercase tracking-[0.32em] text-white/68 lg:mt-4 lg:text-[11px] lg:tracking-[0.34em]">
+                <p className="mt-3 text-[10px] font-black uppercase tracking-[0.32em] text-white/68 md:mt-4 md:text-[11px] md:tracking-[0.34em]">
                   MWOS Football Club
                 </p>
-                <p className="mt-2 mwos-display text-lg uppercase leading-none tracking-[0.12em] text-white lg:text-2xl lg:tracking-[0.14em]">
+                <p className="mt-2 mwos-display text-lg uppercase leading-none tracking-[0.12em] text-white md:text-2xl md:tracking-[0.14em]">
                   Scouting Network
                 </p>
-                <p className="mt-4 mwos-display text-[2rem] uppercase leading-[0.94] tracking-[0.05em] text-white lg:mt-5 lg:text-5xl lg:tracking-[0.07em]">
+                <p className="mt-4 mwos-display text-[2rem] uppercase leading-[0.94] tracking-[0.05em] text-white md:mt-5 md:text-5xl md:tracking-[0.07em]">
                   Elite match reporting for MWOS scouts.
                 </p>
-                <p className="mx-auto mt-3 max-w-xl text-xs font-semibold leading-6 text-white/82 lg:text-[15px]">
+                <p className="mx-auto mt-3 max-w-xl text-xs font-semibold leading-6 text-white/82 md:text-[15px]">
                   Build structured reports, review players, attach handwritten notes and keep the full scouting workflow in one branded workspace.
                 </p>
               </div>
 
-              <div className="mx-auto mt-4 max-w-3xl lg:mt-6">
+              <div className="mx-auto mt-4 max-w-3xl md:mt-6">
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 lg:gap-3">
                   {[
                     { icon: FileText, label: 'Match Reports' },
@@ -241,7 +290,7 @@ export default function Login() {
                   ].map(({ icon: Icon, label }) => (
                     <div
                       key={label}
-                      className="rounded-[20px] border border-white/12 bg-white/10 p-3.5 text-white shadow-[0_20px_40px_rgba(12,16,53,0.16)] backdrop-blur-sm lg:rounded-[22px] lg:p-4"
+                      className="flex flex-col items-center justify-center rounded-[20px] border border-white/12 bg-white/10 p-3.5 text-center text-white shadow-[0_20px_40px_rgba(12,16,53,0.16)] backdrop-blur-sm sm:items-start sm:justify-start sm:text-left lg:rounded-[22px] lg:p-4"
                     >
                       <Icon size={17} />
                       <p className="mt-2.5 text-xs font-black uppercase tracking-[0.15em] text-white/92 lg:mt-3 lg:text-sm lg:tracking-[0.16em]">

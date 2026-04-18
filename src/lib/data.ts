@@ -688,6 +688,35 @@ export async function signOut() {
   }
 }
 
+export async function requestPasswordReset(email: string) {
+  assertSupabaseConfigured();
+
+  const redirectTo =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/reset-password`
+      : undefined;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function updatePassword(nextPassword: string) {
+  assertSupabaseConfigured();
+
+  const { error } = await supabase.auth.updateUser({
+    password: nextPassword,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function fetchReports() {
   const authUser = await getCurrentAppUser();
   const { data, error } = await supabase
