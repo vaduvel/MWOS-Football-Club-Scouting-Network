@@ -15,7 +15,9 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL)),
   );
-  self.skipWaiting();
+  // Do NOT call self.skipWaiting() here — the update banner in App.tsx
+  // relies on the new SW entering the "waiting" state so the user can
+  // choose when to reload.
 });
 
 self.addEventListener('activate', (event) => {

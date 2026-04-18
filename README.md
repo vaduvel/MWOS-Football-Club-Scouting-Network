@@ -14,6 +14,7 @@ Aplicatia este pregatita acum pentru:
 3. Creeaza un proiect Supabase.
 4. Ruleaza SQL-ul din [supabase/schema.sql](/Users/vaduvageorge/Desktop/Scout Report Builder/supabase/schema.sql) in SQL Editor-ul Supabase.
 5. Completeaza:
+   `VITE_APP_URL`
    `VITE_SUPABASE_URL`
    `VITE_SUPABASE_ANON_KEY`
 6. Porneste frontend-ul:
@@ -30,6 +31,7 @@ Observatie: importul de echipe foloseste functii Netlify. In productie merge dir
 4. Publish directory:
    `dist`
 5. Adauga environment variables in Netlify:
+   `VITE_APP_URL=https://app.exemplu.com`
    `VITE_SUPABASE_URL`
    `VITE_SUPABASE_ANON_KEY`
    `VITE_NETLIFY_FUNCTIONS_BASE_URL=/.netlify/functions`
@@ -47,3 +49,9 @@ Aplicatia foloseste Supabase Auth cu email/parola.
 
 - Daca vrei login imediat dupa sign-up, dezactiveaza `Confirm email` in Supabase Auth settings.
 - Daca lasi confirmarea activa, utilizatorul trebuie sa confirme emailul inainte de login.
+- Pentru recovery/reset password, in `Authentication -> URL Configuration` adauga:
+  `http://127.0.0.1:3001/reset-password`
+- Cand ai domeniul final, adauga si:
+  `https://app.exemplu.com/reset-password`
+  sau URL-ul final pe care va rula aplicatia.
+- `VITE_APP_URL` trebuie sa fie acelasi URL public folosit pentru linkurile de reset.
