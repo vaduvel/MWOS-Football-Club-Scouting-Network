@@ -40,6 +40,7 @@ interface ReportRow {
   away_manager: string | null;
   formation_home: string | null;
   formation_away: string | null;
+  video_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -283,9 +284,21 @@ export interface PlayerHubOverview {
   watchlistCount: number;
   highPotentialCount: number;
   reportedWellCount: number;
+  pendingReviewCount: number;
+  reportsThisWeek: number;
   entries: PlayerHubEntry[];
   topReported: PlayerHubEntry[];
   watchlist: PlayerHubEntry[];
+  recentReports: Array<{
+    id: string;
+    competition: string;
+    date: string;
+    fixture: string;
+    venue: string;
+    focus: string;
+    scoutName: string;
+    createdAt: string;
+  }>;
 }
 
 export interface ReportComment {
@@ -399,6 +412,7 @@ function mapReport(row: ReportRow, players: PlayerRow[] = [], reviews: PlayerRev
     away_manager: toStringValue(row.away_manager),
     formation_home: row.formation_home || DEFAULT_FORMATION,
     formation_away: row.formation_away || DEFAULT_FORMATION,
+    video_url: row.video_url ?? undefined,
     players: players.map(mapPlayer),
     reviews: reviews.map(mapReview),
   };
@@ -669,6 +683,38 @@ export async function signUp(
 export async function signOut() {
   assertSupabaseConfigured();
   const { error } = await supabase.auth.signOut();
+  if (error) {
+    throw error;
+  }
+}
+
+export async function requestPasswordReset(email: string) {
+  assertSupabaseConfigured();
+
+  const explicitAppUrl = import.meta.env.VITE_APP_URL?.trim();
+  const redirectTo =
+    explicitAppUrl && explicitAppUrl.length > 0
+      ? `${explicitAppUrl.replace(/\/$/, '')}/reset-password`
+      : typeof window !== 'undefined'
+        ? `${window.location.origin}/reset-password`
+        : undefined;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function updatePassword(nextPassword: string) {
+  assertSupabaseConfigured();
+
+  const { error } = await supabase.auth.updateUser({
+    password: nextPassword,
+  });
+
   if (error) {
     throw error;
   }
@@ -1038,6 +1084,7 @@ export async function saveReport(report: Report) {
     away_manager: toNullableText(report.away_manager),
     formation_home: toNullableText(report.formation_home) || DEFAULT_FORMATION,
     formation_away: toNullableText(report.formation_away) || DEFAULT_FORMATION,
+    video_url: report.video_url ?? null,
   };
 
   let savedReportId = reportId;
@@ -1443,14 +1490,46 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     .filter((entry) => entry.averageScore >= 3.2 || getPotentialRank(entry.bestPotential) >= 3)
     .slice(0, 6);
 
+  const pendingReviewCount = entries.filter((entry) => {
+    const verdict = entry.latestVerdict.toLowerCase();
+    return (
+      entry.reportCount <= 1 ||
+      entry.trend === 'down' ||
+      verdict.includes('monitor') ||
+      verdict.includes('follow') ||
+      verdict.includes('review')
+    );
+  }).length;
+
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const reportsThisWeek = reports.filter((report) => {
+    const basis = toStringValue(report.date) || report.created_at;
+    const time = new Date(basis).getTime();
+    return !Number.isNaN(time) && time >= sevenDaysAgo;
+  }).length;
+
+  const recentReports = reports.slice(0, 6).map((report) => ({
+    id: report.id,
+    competition: toStringValue(report.competition) || 'Friendly',
+    date: toStringValue(report.date) || report.created_at,
+    fixture: buildFixtureLabel(report),
+    venue: toStringValue(report.venue) || 'Unknown venue',
+    focus: buildShortExcerpt(toStringValue(report.focus), toStringValue(report.general_notes)),
+    scoutName: toStringValue(report.scout_name) || 'Scout team',
+    createdAt: report.created_at,
+  }));
+
   return {
     totalTrackedPlayers: entries.length,
     watchlistCount: entries.filter((entry) => entry.isWatchlisted).length,
     highPotentialCount: entries.filter((entry) => getPotentialRank(entry.bestPotential) >= 3).length,
     reportedWellCount: topReported.length,
+    pendingReviewCount,
+    reportsThisWeek,
     entries,
     topReported,
     watchlist: entries.filter((entry) => entry.isWatchlisted),
+    recentReports,
   };
 }
 
@@ -1783,4 +1862,120 @@ export async function sendAdminChatMessage(context: AdminAiContext, messages: Ad
     },
     body: JSON.stringify({ context, messages }),
   });
+}
+
+const VIDEO_BUCKET = 'report-videos';
+export const MAX_REPORT_VIDEO_BYTES = 30 * 1024 * 1024; // 30 MB
+export const MAX_REPORT_VIDEO_DURATION_SECONDS = 90; // 1 minute 30 seconds
+export const ALLOWED_REPORT_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'] as const;
+
+function loadVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+
+    const cleanup = () => {
+      URL.revokeObjectURL(objectUrl);
+      video.removeAttribute('src');
+      video.load();
+    };
+
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      cleanup();
+      resolve(duration);
+    };
+
+    video.onerror = () => {
+      cleanup();
+      reject(new Error('The selected video could not be read. Try MP4, MOV or WebM.'));
+    };
+
+    video.src = objectUrl;
+  });
+}
+
+function getReportVideoPath(reportId: string, file: File) {
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'mp4';
+  return `${reportId}/clip.${ext}`;
+}
+
+async function removeExistingReportVideos(reportId: string) {
+  const { data, error } = await supabase.storage
+    .from(VIDEO_BUCKET)
+    .list(reportId, { limit: 20 });
+
+  if (error) throw error;
+
+  if (!data?.length) return;
+
+  const paths = data
+    .filter((entry) => entry.name)
+    .map((entry) => `${reportId}/${entry.name}`);
+
+  if (!paths.length) return;
+
+  const { error: removeError } = await supabase.storage
+    .from(VIDEO_BUCKET)
+    .remove(paths);
+
+  if (removeError) throw removeError;
+}
+
+export async function uploadReportVideo(reportId: string, file: File): Promise<string> {
+  assertSupabaseConfigured();
+
+  if (file.size > MAX_REPORT_VIDEO_BYTES) {
+    throw new Error(`Video is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed size is 30 MB.`);
+  }
+
+  if (!ALLOWED_REPORT_VIDEO_TYPES.includes(file.type as (typeof ALLOWED_REPORT_VIDEO_TYPES)[number])) {
+    throw new Error('Only MP4, MOV or WebM files are supported.');
+  }
+
+  const durationSeconds = await loadVideoDuration(file);
+  if (!durationSeconds || durationSeconds > MAX_REPORT_VIDEO_DURATION_SECONDS) {
+    throw new Error('Video is too long. Maximum allowed duration is 1 minute 30 seconds.');
+  }
+
+  await removeExistingReportVideos(reportId);
+
+  const storagePath = getReportVideoPath(reportId, file);
+
+  const { error: uploadError } = await supabase.storage
+    .from(VIDEO_BUCKET)
+    .upload(storagePath, file, { upsert: true, contentType: file.type });
+
+  if (uploadError) throw uploadError;
+
+  const { data: urlData } = supabase.storage
+    .from(VIDEO_BUCKET)
+    .getPublicUrl(storagePath);
+
+  const publicUrl = urlData.publicUrl;
+
+  const { error: updateError } = await supabase
+    .from('reports')
+    .update({ video_url: publicUrl })
+    .eq('id', reportId);
+
+  if (updateError) throw updateError;
+
+  return publicUrl;
+}
+
+export async function deleteReportVideo(reportId: string, _videoUrl: string): Promise<void> {
+  assertSupabaseConfigured();
+
+  await removeExistingReportVideos(reportId);
+
+  const { error: updateError } = await supabase
+    .from('reports')
+    .update({ video_url: null })
+    .eq('id', reportId);
+
+  if (updateError) throw updateError;
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useReportStore, PlayerReview } from '../../store/report';
 import { Plus, Trash2, ChevronDown, ChevronUp, UserCheck } from 'lucide-react';
 import { createId } from '../../lib/ids';
@@ -6,8 +6,19 @@ import { createId } from '../../lib/ids';
 export default function PlayerReviewsTab() {
   const { currentReport, addReview, updateReview, removeReview } = useReportStore();
   const [expandedId, setExpandedId] = useState<string | number | null>(null);
+  const [isCompact, setIsCompact] = useState(false);
 
   if (!currentReport) return null;
+
+  useEffect(() => {
+    const syncCompactMode = () => {
+      setIsCompact(window.innerWidth < 768);
+    };
+
+    syncCompactMode();
+    window.addEventListener('resize', syncCompactMode);
+    return () => window.removeEventListener('resize', syncCompactMode);
+  }, []);
 
   const handleAddReview = () => {
     const newReview: PlayerReview = {
@@ -30,14 +41,15 @@ export default function PlayerReviewsTab() {
   };
 
   const renderRating = (review: PlayerReview, field: keyof PlayerReview, label: string) => (
-    <div className="flex items-center justify-between bg-[var(--color-light)] p-2 rounded-lg">
-      <span className="text-xs font-bold text-[var(--color-dark)] uppercase tracking-wider">{label}</span>
-      <div className="flex space-x-1">
+    <div className="rounded-xl bg-[var(--color-light)] p-2.5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-dark)]">{label}</span>
+      <div className="flex gap-1.5">
         {[1, 2, 3, 4, 5].map(val => (
           <button
             key={val}
             onClick={() => updateReview(review.id, { [field]: val })}
-            className={`w-6 h-6 rounded flex items-center justify-center text-xs font-black transition-colors ${
+            className={`flex ${isCompact ? 'h-9 w-9' : 'h-10 w-10'} items-center justify-center rounded text-xs font-black transition-colors ${
               (review[field] as number) >= val 
                 ? 'bg-[var(--color-primary)] text-white' 
                 : 'bg-white text-[var(--color-mid)] border border-[var(--color-mid)]/30'
@@ -47,19 +59,20 @@ export default function PlayerReviewsTab() {
           </button>
         ))}
       </div>
+      </div>
     </div>
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-[var(--color-mid)]/20">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-6">
+      <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-mid)]/20 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between md:gap-4 md:p-6">
         <div>
-          <h2 className="text-2xl font-black text-[var(--color-dark)] uppercase tracking-tighter">Player Reviews</h2>
-          <p className="text-sm text-[var(--color-mid)] font-semibold mt-1">Detailed analysis of specific players.</p>
+          <h2 className="text-lg font-black uppercase tracking-tighter text-[var(--color-dark)] md:text-2xl">Player Reviews</h2>
+          <p className="mt-1 text-xs font-semibold text-[var(--color-mid)] md:text-sm">Score players, verdicts and next-step recommendations.</p>
         </div>
-        <button onClick={handleAddReview} className="bg-[var(--color-primary)] text-white px-6 py-3 rounded-xl font-bold flex items-center space-x-2 hover:bg-opacity-90 transition-all shadow-md">
+        <button onClick={handleAddReview} className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-90 md:w-auto md:rounded-xl md:px-6">
           <Plus size={20} />
-          <span className="hidden sm:inline">Add Review</span>
+          <span>Add Review</span>
         </button>
       </div>
 
@@ -69,29 +82,34 @@ export default function PlayerReviewsTab() {
           const player = currentReport.players.find(p => p.id.toString() === review.player_id.toString());
           
           return (
-            <div key={review.id} className="bg-white rounded-2xl shadow-sm border border-[var(--color-mid)]/20 overflow-hidden transition-all">
+            <div key={review.id} className="overflow-hidden rounded-2xl border border-[var(--color-mid)]/20 bg-white shadow-sm transition-all">
               {/* Header (Click to expand) */}
               <div 
-                className="p-4 md:p-6 flex items-center justify-between cursor-pointer hover:bg-[var(--color-light)]/50 transition-colors"
+                className="flex cursor-pointer items-start justify-between gap-3 p-4 transition-colors hover:bg-[var(--color-light)]/50 md:p-6"
                 onClick={() => toggleExpand(review.id)}
               >
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] font-black text-lg">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-lg font-black text-[var(--color-primary)]">
                     {index + 1}
                   </div>
-                  <div>
-                    <h3 className="font-black text-lg text-[var(--color-dark)]">
+                  <div className="min-w-0">
+                    <h3 className="truncate text-base font-black text-[var(--color-dark)] md:text-lg">
                       {player ? `${player.name} (${player.shirt_number})` : 'Select Player'}
                     </h3>
-                    <p className="text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider">
-                      {review.potential_level} • {review.recommendation_verdict || 'No verdict'}
-                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <span className="rounded-full bg-[var(--color-primary)]/8 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]">
+                        {review.potential_level}
+                      </span>
+                      <span className="rounded-full bg-[var(--color-light)] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                        {review.recommendation_verdict || 'No verdict'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center gap-1">
                   <button 
                     onClick={(e) => { e.stopPropagation(); removeReview(review.id); }}
-                    className="p-2 text-[var(--color-mid)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 rounded-lg transition-colors"
+                    className="rounded-lg p-2 text-[var(--color-mid)] transition-colors hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)]"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -101,11 +119,11 @@ export default function PlayerReviewsTab() {
 
               {/* Expanded Content */}
               {isExpanded && (
-                <div className="p-4 md:p-6 border-t border-[var(--color-mid)]/20 bg-[var(--color-light)]/30 space-y-8">
+                <div className="space-y-4 border-t border-[var(--color-mid)]/20 bg-[var(--color-light)]/30 p-4 md:space-y-8 md:p-6">
                   
                   {/* Player Selection */}
                   <div>
-                    <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Select Player</label>
+                    <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Select Player</label>
                     <select 
                       value={review.player_id} 
                       onChange={e => updateReview(review.id, { player_id: e.target.value })}
@@ -126,43 +144,43 @@ export default function PlayerReviewsTab() {
                   </div>
 
                   {/* Text Areas */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Overview</label>
+                      <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Overview</label>
                       <textarea 
                         value={review.overview} 
                         onChange={e => updateReview(review.id, { overview: e.target.value })}
-                        rows={3} 
-                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-y bg-white" 
+                        rows={isCompact ? 4 : 3} 
+                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white" 
                         placeholder="General summary of performance..." 
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Strengths</label>
+                      <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Strengths</label>
                       <textarea 
                         value={review.strengths} 
                         onChange={e => updateReview(review.id, { strengths: e.target.value })}
-                        rows={4} 
-                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-y bg-white" 
+                        rows={isCompact ? 3 : 4} 
+                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white" 
                         placeholder="- Good vision&#10;- Strong in the air" 
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Areas to Improve</label>
+                      <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Areas to Improve</label>
                       <textarea 
                         value={review.areas_to_improve} 
                         onChange={e => updateReview(review.id, { areas_to_improve: e.target.value })}
-                        rows={4} 
-                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-y bg-white" 
+                        rows={isCompact ? 3 : 4} 
+                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white" 
                         placeholder="- Weak foot crossing&#10;- Tracking back" 
                       />
                     </div>
                   </div>
 
                   {/* Attributes */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-white p-4 rounded-xl border border-[var(--color-mid)]/20 shadow-sm">
-                      <h4 className="text-sm font-black text-[var(--color-primary)] uppercase tracking-wider mb-4 border-b border-[var(--color-mid)]/20 pb-2">Physical Attributes</h4>
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+                    <div className="rounded-xl border border-[var(--color-mid)]/20 bg-white p-4 shadow-sm">
+                      <h4 className="mb-3 border-b border-[var(--color-mid)]/20 pb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">Physical</h4>
                       <div className="space-y-2">
                         {renderRating(review, 'pace', 'Pace')}
                         {renderRating(review, 'strength', 'Strength')}
@@ -170,8 +188,8 @@ export default function PlayerReviewsTab() {
                         {renderRating(review, 'agility', 'Agility')}
                       </div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-[var(--color-mid)]/20 shadow-sm">
-                      <h4 className="text-sm font-black text-[var(--color-primary)] uppercase tracking-wider mb-4 border-b border-[var(--color-mid)]/20 pb-2">Mental Attributes</h4>
+                    <div className="rounded-xl border border-[var(--color-mid)]/20 bg-white p-4 shadow-sm">
+                      <h4 className="mb-3 border-b border-[var(--color-mid)]/20 pb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">Mental</h4>
                       <div className="space-y-2">
                         {renderRating(review, 'decision_making', 'Decision Making')}
                         {renderRating(review, 'composure', 'Composure')}
@@ -182,11 +200,11 @@ export default function PlayerReviewsTab() {
                   </div>
 
                   {/* Recommendation */}
-                  <div className="bg-[var(--color-primary)]/5 p-6 rounded-xl border border-[var(--color-primary)]/20">
-                    <h4 className="text-sm font-black text-[var(--color-primary)] uppercase tracking-wider mb-4">Overall Recommendation</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="rounded-xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-4 md:p-6">
+                    <h4 className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">Recommendation</h4>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
                       <div className="md:col-span-2">
-                        <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Short Verdict</label>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Short Verdict</label>
                         <input 
                           type="text" 
                           value={review.recommendation_verdict} 
@@ -196,7 +214,7 @@ export default function PlayerReviewsTab() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Potential Level</label>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Potential Level</label>
                         <select 
                           value={review.potential_level} 
                           onChange={e => updateReview(review.id, { potential_level: e.target.value })}
@@ -218,10 +236,10 @@ export default function PlayerReviewsTab() {
         })}
         
         {currentReport.reviews.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-2xl border border-[var(--color-mid)]/20 border-dashed">
+          <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/20 bg-white py-10 text-center">
             <UserCheck size={48} className="mx-auto mb-4 text-[var(--color-mid)] opacity-50" />
             <p className="text-lg font-bold text-[var(--color-dark)]">No player reviews yet</p>
-            <p className="text-sm text-[var(--color-mid)] font-semibold mt-1">Click "Add Review" to start analyzing players.</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">Add the first review to start rating players.</p>
           </div>
         )}
       </div>

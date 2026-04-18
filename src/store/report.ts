@@ -54,6 +54,7 @@ export interface Report {
   formation_away: string;
   players: Player[];
   reviews: PlayerReview[];
+  video_url?: string;
 }
 
 interface ReportState {

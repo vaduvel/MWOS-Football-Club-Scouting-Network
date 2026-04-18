@@ -1,11 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   BarChart3,
+  ChevronDown,
+  ChevronUp,
+  FileDown,
   GitCompareArrows,
   Minus,
+  Plus,
   Search,
+  SlidersHorizontal,
   Star,
   TrendingDown,
   TrendingUp,
@@ -120,6 +125,9 @@ export default function PlayersPage() {
   const [comparisonLeft, setComparisonLeft] = useState('');
   const [comparisonRight, setComparisonRight] = useState('');
   const [updatingWatchlistKey, setUpdatingWatchlistKey] = useState<string | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showMobileComparison, setShowMobileComparison] = useState(false);
+  const comparisonSectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -162,6 +170,8 @@ export default function PlayersPage() {
   }, [overview, comparisonLeft, comparisonRight]);
 
   const allEntries = overview?.entries || [];
+  const recentReports = overview?.recentReports || [];
+  const shortlistedEntries = overview?.watchlist || [];
   const filteredEntries = allEntries.filter((entry) => {
     const matchesSearch =
       entry.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -176,6 +186,26 @@ export default function PlayersPage() {
 
   const leftPlayer = allEntries.find((entry) => entry.playerKey === comparisonLeft) || null;
   const rightPlayer = allEntries.find((entry) => entry.playerKey === comparisonRight) || null;
+  const primaryExportReportId =
+    shortlistedEntries[0]?.latestReportId || recentReports[0]?.id || allEntries[0]?.latestReportId || '';
+
+  const handleCreateReport = (tab: 'match' | 'teams' = 'match') => {
+    navigate(tab === 'match' ? '/report/new' : `/report/new?tab=${tab}`);
+  };
+
+  const handleOpenComparison = () => {
+    setShowMobileComparison(true);
+    comparisonSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleOpenExport = () => {
+    if (primaryExportReportId) {
+      navigate(`/report/${primaryExportReportId}?tab=export`);
+      return;
+    }
+
+    handleCreateReport();
+  };
 
   const handleWatchlistToggle = async (entry: PlayerHubEntry) => {
     setUpdatingWatchlistKey(entry.playerKey);
@@ -239,75 +269,102 @@ export default function PlayersPage() {
         onLogout={() => void logout()}
       />
 
-      <main className="flex-1 overflow-auto p-4 md:p-6">
-        <div className="mx-auto max-w-7xl space-y-6">
+      <main className="flex-1 overflow-auto p-3 pb-24 md:p-6">
+        <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface relative overflow-hidden px-5 py-5 text-white md:px-6">
-              <div className="flex items-center gap-4 border-b border-white/10 pb-4">
-                <img
-                  src="/branding/mwos-fc-300-2.png"
-                  alt="MWOS logo"
-                  className="h-12 w-12 rounded-full border border-white/20 bg-white/10 p-0.5"
-                />
-              </div>
-              <div className="mt-5 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/65">
-                    MWOS Player Intelligence
-                  </p>
-                  <h1 className="mt-2 mwos-display text-4xl uppercase leading-none tracking-[0.08em] text-white md:text-5xl">
-                    Player Hub
-                  </h1>
-                  <p className="mt-3 max-w-3xl text-sm font-semibold text-white/78">
-                    Safe-to-scale features on the free tier: shortlist tracking, player comparison, development-style
-                    trends and report-backed scouting notes.
-                  </p>
+            <div className="mwos-ribbon-surface relative overflow-hidden text-white">
+              <div className="space-y-3 px-4 py-4 md:hidden">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/65">
+                      MWOS Player Intelligence
+                    </p>
+                    <h1 className="mt-1 mwos-display text-[2.2rem] uppercase leading-none tracking-[0.04em] text-white">
+                      Player Hub
+                    </h1>
+                    <p className="mt-2 max-w-[17rem] text-xs font-semibold leading-5 text-white/76">
+                      Track, shortlist and compare players from one mobile scouting workspace.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleCreateReport('match')}
+                    className="inline-flex h-11 min-w-[92px] items-center justify-center gap-2 rounded-2xl bg-white px-3 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)]"
+                  >
+                    <Plus size={15} />
+                    Report
+                  </button>
                 </div>
 
-                <div className="flex w-full flex-col gap-3 xl:max-w-[560px]">
-                  <div className="flex items-center rounded-2xl border border-white/12 bg-white/10 px-4 py-3 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
-                    <Search className="mr-3 text-white/68" size={18} />
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <div className="flex items-center rounded-2xl border border-white/12 bg-white/10 px-3 py-2.5 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
+                    <Search className="mr-2 text-white/68" size={16} />
                     <input
                       type="text"
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
-                      placeholder="Search player, club or fixture..."
+                      placeholder="Search players or reports..."
                       className="w-full bg-transparent text-sm font-semibold text-white placeholder:text-white/60 outline-none"
                     />
                   </div>
+                  <button
+                    onClick={() => setShowMobileFilters((current) => !current)}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-3 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm"
+                  >
+                    <SlidersHorizontal size={15} />
+                    Filter
+                  </button>
+                </div>
 
-                  <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
-                    <select
-                      value={potentialFilter}
-                      onChange={(event) => setPotentialFilter(event.target.value)}
-                      className="rounded-2xl border border-white/12 bg-white/10 px-4 py-3 text-sm font-semibold text-white outline-none backdrop-blur-sm"
-                    >
-                      <option value="all" className="text-slate-900">
-                        All potential levels
-                      </option>
-                      <option value="Academy" className="text-slate-900">
-                        Academy
-                      </option>
-                      <option value="Semi-pro" className="text-slate-900">
-                        Semi-pro
-                      </option>
-                      <option value="Pro" className="text-slate-900">
-                        Pro
-                      </option>
-                      <option value="Elite" className="text-slate-900">
-                        Elite
-                      </option>
-                    </select>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleCreateReport('teams')}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white"
+                  >
+                    <Plus size={15} />
+                    Add Player
+                  </button>
+                  <button
+                    onClick={handleOpenComparison}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white"
+                  >
+                    <GitCompareArrows size={15} />
+                    Compare
+                  </button>
+                </div>
 
+                <div className={`${showMobileFilters ? 'grid' : 'hidden'} gap-2`}>
+                  <select
+                    value={potentialFilter}
+                    onChange={(event) => setPotentialFilter(event.target.value)}
+                    className="rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
+                  >
+                    <option value="all" className="text-slate-900">
+                      All potential levels
+                    </option>
+                    <option value="Academy" className="text-slate-900">
+                      Academy
+                    </option>
+                    <option value="Semi-pro" className="text-slate-900">
+                      Semi-pro
+                    </option>
+                    <option value="Pro" className="text-slate-900">
+                      Pro
+                    </option>
+                    <option value="Elite" className="text-slate-900">
+                      Elite
+                    </option>
+                  </select>
+
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setWatchlistOnly((current) => !current)}
-                      className={`rounded-2xl px-4 py-3 text-sm font-black transition-all ${
+                      className={`rounded-2xl px-4 py-2.5 text-sm font-black transition-all ${
                         watchlistOnly
                           ? 'bg-white text-[var(--color-primary)] shadow-[0_16px_32px_rgba(12,16,53,0.22)]'
                           : 'border border-white/12 bg-white/10 text-white'
                       }`}
                     >
-                      Watchlist only
+                      Shortlist
                     </button>
 
                     <button
@@ -316,36 +373,164 @@ export default function PlayersPage() {
                         setPotentialFilter('all');
                         setWatchlistOnly(false);
                       }}
-                      className="rounded-2xl border border-white/12 bg-transparent px-4 py-3 text-sm font-black text-white/86 transition-colors hover:bg-white/10"
+                      className="rounded-2xl border border-white/12 bg-transparent px-4 py-2.5 text-sm font-black text-white/86 transition-colors hover:bg-white/10"
                     >
                       Reset
                     </button>
                   </div>
                 </div>
               </div>
+
+              <div className="hidden px-6 py-5 md:block">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+                  <div className="max-w-2xl">
+                    <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/65">
+                      MWOS Player Intelligence
+                    </p>
+                    <h1 className="mt-2 mwos-display text-4xl uppercase leading-none tracking-[0.08em] text-white">
+                      Player Hub
+                    </h1>
+                    <p className="mt-2 max-w-xl text-sm font-semibold leading-5 text-white/76">
+                      Track players, compare reports and manage follow-up.
+                    </p>
+                  </div>
+
+                  <div className="grid w-full grid-cols-2 gap-2 xl:w-auto xl:min-w-[320px]">
+                    <button
+                      onClick={() => handleCreateReport('teams')}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm transition-all hover:bg-white/16"
+                    >
+                      <Plus size={16} />
+                      Add Player
+                    </button>
+                    <button
+                      onClick={() => handleCreateReport('match')}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-3 py-2.5 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)] transition-opacity hover:opacity-92"
+                    >
+                      <Plus size={16} />
+                      New Report
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="flex items-center rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
+                    <Search className="mr-3 text-white/68" size={18} />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Search tracked players, reports or notes..."
+                      className="w-full bg-transparent text-sm font-semibold text-white placeholder:text-white/60 outline-none"
+                    />
+                  </div>
+
+                  <div className="sm:hidden">
+                    <button
+                      onClick={() => setShowMobileFilters((current) => !current)}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm"
+                    >
+                      <SlidersHorizontal size={16} />
+                      Filters
+                      {showMobileFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto]">
+                  <select
+                    value={potentialFilter}
+                    onChange={(event) => setPotentialFilter(event.target.value)}
+                    className="rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
+                  >
+                    <option value="all" className="text-slate-900">
+                      All potential levels
+                    </option>
+                    <option value="Academy" className="text-slate-900">
+                      Academy
+                    </option>
+                    <option value="Semi-pro" className="text-slate-900">
+                      Semi-pro
+                    </option>
+                    <option value="Pro" className="text-slate-900">
+                      Pro
+                    </option>
+                    <option value="Elite" className="text-slate-900">
+                      Elite
+                    </option>
+                  </select>
+
+                  <button
+                    onClick={() => setWatchlistOnly((current) => !current)}
+                    className={`rounded-2xl px-4 py-3 text-sm font-black transition-all ${
+                      watchlistOnly
+                        ? 'bg-white text-[var(--color-primary)] shadow-[0_16px_32px_rgba(12,16,53,0.22)]'
+                        : 'border border-white/12 bg-white/10 text-white'
+                    }`}
+                  >
+                    Shortlist only
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSearch('');
+                      setPotentialFilter('all');
+                      setWatchlistOnly(false);
+                    }}
+                    className="rounded-2xl border border-white/12 bg-transparent px-4 py-2.5 text-sm font-black text-white/86 transition-colors hover:bg-white/10"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[24px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] p-5 shadow-[0_12px_28px_rgba(49,39,131,0.06)]">
-              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Tracked</p>
-              <p className="mt-3 text-4xl font-black text-[var(--color-dark)]">{overview?.totalTrackedPlayers || 0}</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">Distinct player profiles assembled from reports</p>
+          <section className="md:hidden">
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              <div className="min-w-[148px] rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.06)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Tracked</p>
+                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.totalTrackedPlayers || 0}</p>
+                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Players</p>
+              </div>
+              <div className="min-w-[148px] rounded-[22px] border border-[#d5aa4d]/20 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(213,170,77,0.05)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Shortlist</p>
+                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.watchlistCount || 0}</p>
+                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Ready now</p>
+              </div>
+              <div className="min-w-[148px] rounded-[22px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(190,23,23,0.05)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Review</p>
+                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.pendingReviewCount || 0}</p>
+                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Need check</p>
+              </div>
+              <div className="min-w-[148px] rounded-[22px] border border-emerald-200 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(16,185,129,0.05)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">This Week</p>
+                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.reportsThisWeek || 0}</p>
+                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Reports</p>
+              </div>
             </div>
-            <div className="rounded-[24px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] p-5 shadow-[0_12px_28px_rgba(190,23,23,0.05)]">
-              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Watchlist</p>
-              <p className="mt-3 text-4xl font-black text-[var(--color-dark)]">{overview?.watchlistCount || 0}</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">Shortlisted players ready for follow-up reports</p>
+          </section>
+
+          <section className="hidden grid-cols-2 gap-3 xl:grid-cols-4 md:grid">
+            <div className="rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.06)]">
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Tracked Players</p>
+              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.totalTrackedPlayers || 0}</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Player profiles tracked.</p>
             </div>
-            <div className="rounded-[24px] border border-[#d5aa4d]/20 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))] p-5 shadow-[0_12px_28px_rgba(213,170,77,0.05)]">
-              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">High potential</p>
-              <p className="mt-3 text-4xl font-black text-[var(--color-dark)]">{overview?.highPotentialCount || 0}</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">Players tagged Pro or Elite across your reports</p>
+            <div className="rounded-[22px] border border-[#d5aa4d]/20 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(213,170,77,0.05)]">
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Shortlisted</p>
+              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.watchlistCount || 0}</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Ready for follow-up.</p>
             </div>
-            <div className="rounded-[24px] border border-emerald-200 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,1))] p-5 shadow-[0_12px_28px_rgba(16,185,129,0.05)]">
-              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Reported well</p>
-              <p className="mt-3 text-4xl font-black text-[var(--color-dark)]">{overview?.reportedWellCount || 0}</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">Strong review score or standout potential signal</p>
+            <div className="rounded-[22px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(190,23,23,0.05)]">
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Pending Review</p>
+              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.pendingReviewCount || 0}</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Need another look.</p>
+            </div>
+            <div className="rounded-[22px] border border-emerald-200 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(16,185,129,0.05)]">
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Reports This Week</p>
+              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.reportsThisWeek || 0}</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Recent scouting activity.</p>
             </div>
           </section>
 
@@ -355,12 +540,137 @@ export default function PlayersPage() {
             </div>
           )}
 
+          <section className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+            <div className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
+              <div className="flex items-center justify-between gap-4 border-b border-[var(--color-mid)]/12 pb-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Recent Activity</p>
+                  <h2 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">Recent Reports</h2>
+                </div>
+                <div className="rounded-2xl bg-[var(--color-primary)]/8 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">
+                  {recentReports.length} live
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {recentReports.map((report, index) => (
+                  <article
+                    key={report.id}
+                    className={`rounded-[22px] border p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)] ${
+                      index === 0
+                        ? 'border-[var(--color-primary)]/16 bg-[linear-gradient(180deg,rgba(49,39,131,0.05),rgba(255,255,255,1))]'
+                        : 'border-[var(--color-mid)]/12 bg-[var(--color-light)]/45'
+                    }`}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-[var(--color-accent)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                            {report.competition}
+                          </span>
+                          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-mid)]">
+                            {formatDisplayDate(report.date)}
+                          </span>
+                        </div>
+                        <h3 className="mt-3 text-xl font-black text-[var(--color-dark)]">{report.fixture}</h3>
+                        <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">
+                          {report.venue} • {report.scoutName}
+                        </p>
+                        <p className="mt-3 text-sm leading-6 text-[var(--color-mid)]">
+                          {report.focus || 'Open the report to add focus notes and match observations.'}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col gap-2 sm:min-w-[160px]">
+                        <button
+                          onClick={() => navigate(`/report/${report.id}`)}
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(49,39,131,0.18)] transition-opacity hover:opacity-90"
+                        >
+                          Open Report
+                          <ArrowRight size={16} />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/report/${report.id}?tab=export`)}
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-2.5 text-sm font-black text-[var(--color-primary)] transition-all hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5"
+                        >
+                          Export Dossier
+                          <FileDown size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+
+                {!loading && recentReports.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/25 bg-[var(--color-light)]/55 p-5 text-sm font-semibold text-[var(--color-mid)]">
+                    Your latest reports will appear here as soon as scouts start saving match evaluations.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
+              <div className="border-b border-[var(--color-mid)]/12 pb-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Quick Actions</p>
+                <h2 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">Next best action</h2>
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                <button
+                  onClick={() => handleCreateReport('teams')}
+                  className="inline-flex items-center justify-between rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] px-4 py-4 text-left"
+                >
+                  <div>
+                    <p className="text-sm font-black text-[var(--color-dark)]">Add Player</p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Open team sheets and start logging a new squad.</p>
+                  </div>
+                  <Plus size={18} className="text-[var(--color-primary)]" />
+                </button>
+
+                <button
+                  onClick={() => handleCreateReport('match')}
+                  className="inline-flex items-center justify-between rounded-[22px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] px-4 py-4 text-left"
+                >
+                  <div>
+                    <p className="text-sm font-black text-[var(--color-dark)]">New Report</p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Start a fresh match report for the next fixture.</p>
+                  </div>
+                  <ArrowRight size={18} className="text-[var(--color-accent)]" />
+                </button>
+
+                <button
+                  onClick={handleOpenComparison}
+                  className="inline-flex items-center justify-between rounded-[22px] border border-[#d5aa4d]/18 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))] px-4 py-4 text-left"
+                >
+                  <div>
+                    <p className="text-sm font-black text-[var(--color-dark)]">Compare Players</p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Open the comparison panel to decide between candidates.</p>
+                  </div>
+                  <GitCompareArrows size={18} className="text-[#7c5b11]" />
+                </button>
+
+                <button
+                  onClick={handleOpenExport}
+                  className="inline-flex items-center justify-between rounded-[22px] border border-emerald-200 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,1))] px-4 py-4 text-left"
+                >
+                  <div>
+                    <p className="text-sm font-black text-[var(--color-dark)]">Export Dossier</p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">
+                      {primaryExportReportId ? 'Jump straight into export for the strongest available report.' : 'Create a report first, then export a player dossier.'}
+                    </p>
+                  </div>
+                  <FileDown size={18} className="text-emerald-700" />
+                </button>
+              </div>
+            </div>
+          </section>
+
           <section className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
             <div className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
               <div className="flex items-center justify-between gap-4 border-b border-[var(--color-mid)]/12 pb-4">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Highlights</p>
-                  <h2 className="mt-2 text-2xl font-black text-[var(--color-dark)]">Players Reported Well</h2>
+                  <h2 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">Players Reported Well</h2>
                 </div>
                 <div className="rounded-2xl bg-[var(--color-primary)]/8 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">
                   Board-ready shortlist
@@ -430,18 +740,34 @@ export default function PlayersPage() {
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
+            <div
+              ref={(node) => {
+                comparisonSectionRef.current = node;
+              }}
+              className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]"
+            >
               <div className="flex items-center gap-3 border-b border-[var(--color-mid)]/12 pb-4">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
                   <GitCompareArrows size={22} />
                 </div>
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Comparison</p>
-                  <h2 className="mt-1 text-2xl font-black text-[var(--color-dark)]">Player Comparison</h2>
+                  <h2 className="mt-1 text-xl font-black text-[var(--color-dark)] md:text-2xl">Player Comparison</h2>
                 </div>
               </div>
 
-              <div className="mt-5 space-y-4">
+              <div className="mt-5 xl:hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowMobileComparison((current) => !current)}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-[var(--color-mid)]/18 bg-[var(--color-light)]/55 px-4 py-3 text-sm font-black text-[var(--color-primary)]"
+                >
+                  {showMobileComparison ? 'Hide comparison' : 'Open comparison'}
+                  {showMobileComparison ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+              </div>
+
+              <div className={`${showMobileComparison ? 'block' : 'hidden'} mt-5 space-y-4 xl:block`}>
                 <select
                   value={comparisonLeft}
                   onChange={(event) => setComparisonLeft(event.target.value)}
@@ -469,10 +795,10 @@ export default function PlayersPage() {
 
               {leftPlayer && rightPlayer ? (
                 <div className="mt-5 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-[var(--color-primary)]/14 bg-[var(--color-primary)]/5 p-4">
-                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Left</p>
-                      <h3 className="mt-2 text-lg font-black text-[var(--color-dark)]">{leftPlayer.name}</h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-[var(--color-primary)]/14 bg-[var(--color-primary)]/5 p-4">
+                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Left</p>
+                    <h3 className="mt-2 text-lg font-black text-[var(--color-dark)]">{leftPlayer.name}</h3>
                       <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">{leftPlayer.clubLabel}</p>
                     </div>
                     <div className="rounded-2xl border border-[var(--color-accent)]/14 bg-[var(--color-accent)]/5 p-4">
@@ -492,7 +818,7 @@ export default function PlayersPage() {
                     </div>
                   ))}
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/50 p-4">
                       <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Verdict</p>
                       <p className="mt-2 text-sm font-semibold text-[var(--color-dark)]">{leftPlayer.latestVerdict}</p>
@@ -516,7 +842,7 @@ export default function PlayersPage() {
               <div className="flex items-center justify-between gap-4 border-b border-[var(--color-mid)]/12 pb-4">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Database</p>
-                  <h2 className="mt-1 text-2xl font-black text-[var(--color-dark)]">Tracked Players</h2>
+                  <h2 className="mt-1 text-xl font-black text-[var(--color-dark)] md:text-2xl">Tracked Players</h2>
                 </div>
                 <div className="rounded-2xl bg-[var(--color-light)] px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
                   {filteredEntries.length} shown
@@ -561,7 +887,7 @@ export default function PlayersPage() {
                             </p>
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-3">
+                          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center">
                             <div className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 px-4 py-3 text-center">
                               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Avg score</p>
                               <p className="mt-1 text-2xl font-black text-[var(--color-dark)]">{entry.averageScore.toFixed(1)}</p>
@@ -573,7 +899,7 @@ export default function PlayersPage() {
                             <button
                               onClick={() => void handleWatchlistToggle(entry)}
                               disabled={updatingWatchlistKey === entry.playerKey}
-                              className={`rounded-2xl px-4 py-3 text-sm font-black transition-all ${
+                              className={`col-span-2 rounded-2xl px-4 py-3 text-sm font-black transition-all sm:col-span-1 ${
                                 entry.isWatchlisted
                                   ? 'bg-[#d5aa4d] text-[#3b2d06] shadow-[0_14px_30px_rgba(213,170,77,0.22)]'
                                   : 'border border-[var(--color-mid)]/20 bg-white text-[var(--color-primary)] hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5'
@@ -620,10 +946,10 @@ export default function PlayersPage() {
                           </div>
                         </div>
 
-                        <div className="mt-4 flex flex-wrap gap-3">
+                        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                           <button
                             onClick={() => navigate(`/report/${entry.latestReportId}`)}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(49,39,131,0.2)] transition-opacity hover:opacity-90"
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(49,39,131,0.2)] transition-opacity hover:opacity-90"
                           >
                             Open latest report
                             <ArrowRight size={16} />
@@ -638,7 +964,7 @@ export default function PlayersPage() {
                                 }
                               }
                             }}
-                            className="inline-flex items-center gap-2 rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-2.5 text-sm font-black text-[var(--color-primary)] transition-all hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5"
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-2.5 text-sm font-black text-[var(--color-primary)] transition-all hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5"
                           >
                             Compare in panel
                             <BarChart3 size={16} />
@@ -664,8 +990,8 @@ export default function PlayersPage() {
               <div className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
                 <div className="flex items-center justify-between gap-3 border-b border-[var(--color-mid)]/12 pb-4">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Shortlist</p>
-                    <h2 className="mt-1 text-2xl font-black text-[var(--color-dark)]">Watchlist</h2>
+                    <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Trial Shortlist</p>
+                    <h2 className="mt-1 text-xl font-black text-[var(--color-dark)] md:text-2xl">Priority Follow-up</h2>
                   </div>
                   <div className="rounded-2xl bg-[#d5aa4d]/18 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-[#7c5b11]">
                     {overview?.watchlistCount || 0} saved
@@ -692,19 +1018,28 @@ export default function PlayersPage() {
                       </div>
 
                       <p className="mt-3 text-sm font-semibold text-[var(--color-mid)]">{entry.latestVerdict}</p>
-                      <button
-                        onClick={() => navigate(`/report/${entry.latestReportId}`)}
-                        className="mt-4 inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary)] transition-opacity hover:opacity-80"
-                      >
-                        Open supporting report
-                        <ArrowRight size={15} />
-                      </button>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <button
+                          onClick={() => navigate(`/report/${entry.latestReportId}`)}
+                          className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary)] transition-opacity hover:opacity-80"
+                        >
+                          Open supporting report
+                          <ArrowRight size={15} />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/report/${entry.latestReportId}?tab=export`)}
+                          className="inline-flex items-center gap-2 text-sm font-black text-[#7c5b11] transition-opacity hover:opacity-80"
+                        >
+                          Export dossier
+                          <FileDown size={15} />
+                        </button>
+                      </div>
                     </div>
                   ))}
 
                   {!loading && (overview?.watchlist || []).length === 0 && (
                     <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/25 bg-[var(--color-light)]/55 p-5 text-sm font-semibold text-[var(--color-mid)]">
-                      Use the star button on a player card to build a shortlist without adding storage-heavy features.
+                      Use the star on a player card to build your shortlist.
                     </div>
                   )}
                 </div>
@@ -717,7 +1052,7 @@ export default function PlayersPage() {
                   </div>
                   <div>
                     <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Trend Notes</p>
-                    <h2 className="mt-1 text-2xl font-black text-[var(--color-dark)]">Development Signal</h2>
+                    <h2 className="mt-1 text-xl font-black text-[var(--color-dark)] md:text-2xl">Development Signal</h2>
                   </div>
                 </div>
 

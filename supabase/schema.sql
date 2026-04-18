@@ -34,9 +34,12 @@ create table if not exists public.reports (
   away_manager text,
   formation_home text not null default '4-3-3',
   formation_away text not null default '4-3-3',
+  video_url text,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.reports add column if not exists video_url text;
 
 create table if not exists public.players (
   id text primary key default gen_random_uuid()::text,
@@ -166,6 +169,81 @@ as $$
       and lower(role) = 'admin'
   );
 $$;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'report-videos',
+  'report-videos',
+  true,
+  31457280,
+  array['video/mp4', 'video/quicktime', 'video/webm']
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "report_videos_public_read" on storage.objects;
+create policy "report_videos_public_read"
+on storage.objects
+for select
+to public
+using (bucket_id = 'report-videos');
+
+drop policy if exists "report_videos_owner_insert" on storage.objects;
+create policy "report_videos_owner_insert"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'report-videos'
+  and exists (
+    select 1
+    from public.reports
+    where reports.id = (storage.foldername(name))[1]
+      and (reports.user_id = auth.uid() or public.is_admin())
+  )
+);
+
+drop policy if exists "report_videos_owner_update" on storage.objects;
+create policy "report_videos_owner_update"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'report-videos'
+  and exists (
+    select 1
+    from public.reports
+    where reports.id = (storage.foldername(name))[1]
+      and (reports.user_id = auth.uid() or public.is_admin())
+  )
+)
+with check (
+  bucket_id = 'report-videos'
+  and exists (
+    select 1
+    from public.reports
+    where reports.id = (storage.foldername(name))[1]
+      and (reports.user_id = auth.uid() or public.is_admin())
+  )
+);
+
+drop policy if exists "report_videos_owner_delete" on storage.objects;
+create policy "report_videos_owner_delete"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'report-videos'
+  and exists (
+    select 1
+    from public.reports
+    where reports.id = (storage.foldername(name))[1]
+      and (reports.user_id = auth.uid() or public.is_admin())
+  )
+);
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created

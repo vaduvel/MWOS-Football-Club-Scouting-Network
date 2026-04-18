@@ -4,6 +4,8 @@ import {
   AlertTriangle,
   BarChart3,
   Bot,
+  ChevronDown,
+  ChevronUp,
   FileText,
   Loader2,
   RefreshCcw,
@@ -63,6 +65,8 @@ export default function AdminDashboardPanel({
   onSendChat,
 }: AdminDashboardPanelProps) {
   const [draftMessage, setDraftMessage] = useState('');
+  const [showInsightsMobile, setShowInsightsMobile] = useState(true);
+  const [showChatMobile, setShowChatMobile] = useState(false);
 
   const statCards = [
     {
@@ -117,29 +121,30 @@ export default function AdminDashboardPanel({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
         {statCards.map((card) => {
           const Icon = card.icon;
 
           return (
             <div
               key={card.label}
-              className={`rounded-[24px] border p-5 shadow-[0_14px_36px_rgba(49,39,131,0.06)] ${card.surface}`}
+              className={`rounded-[20px] border p-3 shadow-[0_14px_36px_rgba(49,39,131,0.06)] md:rounded-[24px] md:p-5 ${card.surface}`}
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)] md:text-[11px] md:tracking-[0.26em]">
                     {card.label}
                   </p>
-                  <p className={`mt-3 text-4xl font-black leading-none ${card.valueColor}`}>
+                  <p className={`mt-2 text-3xl font-black leading-none md:mt-3 md:text-4xl ${card.valueColor}`}>
                     {card.value}
                   </p>
                 </div>
-                <div className={`rounded-2xl p-3 ${card.iconSurface}`}>
-                  <Icon size={22} />
+                <div className={`rounded-xl p-2 md:rounded-2xl md:p-3 ${card.iconSurface}`}>
+                  <Icon size={18} className="md:hidden" />
+                  <Icon size={22} className="hidden md:block" />
                 </div>
               </div>
-              <p className="mt-4 text-xs font-semibold text-[var(--color-dark)]/65">{card.hint}</p>
+              <p className="mt-2 text-[10px] font-semibold text-[var(--color-dark)]/65 md:mt-4 md:text-xs">{card.hint}</p>
             </div>
           );
         })}
@@ -152,22 +157,32 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 AI Improvement Suggestions
               </p>
-              <h3 className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Gemini review of admin data
               </h3>
             </div>
-            <button
-              type="button"
-              onClick={onRefreshInsights}
-              disabled={insightsLoading}
-              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--color-primary)]/15 bg-white px-4 py-2 text-sm font-black text-[var(--color-primary)] transition-all hover:bg-[var(--color-primary)]/[0.03] disabled:opacity-50"
-            >
-              {insightsLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
-              Refresh
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowInsightsMobile((current) => !current)}
+                className="inline-flex items-center gap-2 rounded-2xl border border-[var(--color-primary)]/10 bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-[var(--color-primary)] xl:hidden"
+              >
+                {showInsightsMobile ? 'Hide' : 'Open'}
+                {showInsightsMobile ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+              <button
+                type="button"
+                onClick={onRefreshInsights}
+                disabled={insightsLoading}
+                className="inline-flex items-center gap-2 rounded-2xl border border-[var(--color-primary)]/15 bg-white px-4 py-2 text-sm font-black text-[var(--color-primary)] transition-all hover:bg-[var(--color-primary)]/[0.03] disabled:opacity-50"
+              >
+                {insightsLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
+                Refresh
+              </button>
+            </div>
           </div>
 
-          <div className="mt-4 rounded-[22px] border border-[var(--color-primary)]/12 bg-white p-5">
+          <div className={`${showInsightsMobile ? 'block' : 'hidden'} mt-4 rounded-[22px] border border-[var(--color-primary)]/12 bg-white p-5 xl:block`}>
             {insightsLoading ? (
               <div className="flex items-center gap-3 text-sm font-semibold text-[var(--color-mid)]">
                 <Loader2 size={18} className="animate-spin" />
@@ -244,59 +259,71 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Admin Assistant
               </p>
-              <h3 className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Ask the dashboard agent
               </h3>
             </div>
-            <div className="rounded-2xl bg-[var(--color-primary)]/8 p-3 text-[var(--color-primary)]">
-              <Bot size={20} />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowChatMobile((current) => !current)}
+                className="inline-flex items-center gap-2 rounded-2xl border border-[var(--color-primary)]/10 bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-[var(--color-primary)] xl:hidden"
+              >
+                {showChatMobile ? 'Hide' : 'Open'}
+                {showChatMobile ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+              <div className="rounded-2xl bg-[var(--color-primary)]/8 p-3 text-[var(--color-primary)]">
+                <Bot size={20} />
+              </div>
             </div>
           </div>
 
-          <div className="mt-4 h-[340px] space-y-3 overflow-auto rounded-[20px] border border-[var(--color-mid)]/14 bg-white/85 p-4">
-            {chatMessages.map((message, index) => (
-              <div
-                key={`${message.role}-${index}`}
-                className={`max-w-[88%] rounded-[18px] px-4 py-3 text-sm font-semibold leading-6 ${
-                  message.role === 'assistant'
-                    ? 'bg-[var(--color-light)] text-[var(--color-dark)]'
-                    : 'ml-auto bg-[var(--color-primary)] text-white'
-                }`}
-              >
-                {message.content}
-              </div>
-            ))}
+          <div className={`${showChatMobile ? 'block' : 'hidden'} xl:block`}>
+            <div className="mt-4 h-[260px] space-y-3 overflow-auto rounded-[20px] border border-[var(--color-mid)]/14 bg-white/85 p-4 md:h-[340px]">
+              {chatMessages.map((message, index) => (
+                <div
+                  key={`${message.role}-${index}`}
+                  className={`max-w-[88%] rounded-[18px] px-4 py-3 text-sm font-semibold leading-6 ${
+                    message.role === 'assistant'
+                      ? 'bg-[var(--color-light)] text-[var(--color-dark)]'
+                      : 'ml-auto bg-[var(--color-primary)] text-white'
+                  }`}
+                >
+                  {message.content}
+                </div>
+              ))}
 
-            {chatLoading && (
-              <div className="inline-flex items-center gap-2 rounded-[18px] bg-[var(--color-light)] px-4 py-3 text-sm font-semibold text-[var(--color-mid)]">
-                <Loader2 size={16} className="animate-spin" />
-                Thinking...
+              {chatLoading && (
+                <div className="inline-flex items-center gap-2 rounded-[18px] bg-[var(--color-light)] px-4 py-3 text-sm font-semibold text-[var(--color-mid)]">
+                  <Loader2 size={16} className="animate-spin" />
+                  Thinking...
+                </div>
+              )}
+            </div>
+
+            {chatError && (
+              <div className="mt-3 rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {chatError}
               </div>
             )}
+
+            <form onSubmit={(event) => void handleSubmit(event)} className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <input
+                value={draftMessage}
+                onChange={(event) => setDraftMessage(event.target.value)}
+                placeholder="Ask about top scouts, best players, report quality..."
+                className="flex-1 rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/12"
+              />
+              <button
+                type="submit"
+                disabled={chatLoading || !draftMessage.trim()}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white transition-all hover:-translate-y-0.5 disabled:opacity-50 sm:self-auto"
+              >
+                <Send size={16} />
+                Send
+              </button>
+            </form>
           </div>
-
-          {chatError && (
-            <div className="mt-3 rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              {chatError}
-            </div>
-          )}
-
-          <form onSubmit={(event) => void handleSubmit(event)} className="mt-4 flex gap-3">
-            <input
-              value={draftMessage}
-              onChange={(event) => setDraftMessage(event.target.value)}
-              placeholder="Ask about top scouts, best players, report quality..."
-              className="flex-1 rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/12"
-            />
-            <button
-              type="submit"
-              disabled={chatLoading || !draftMessage.trim()}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white transition-all hover:-translate-y-0.5 disabled:opacity-50"
-            >
-              <Send size={16} />
-              Send
-            </button>
-          </form>
         </div>
       </div>
 
@@ -307,7 +334,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Players Reported Well
               </p>
-              <h3 className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Highest-rated monitored players
               </h3>
             </div>
@@ -316,34 +343,34 @@ export default function AdminDashboardPanel({
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
             {overview.topPlayers.length > 0 ? (
               overview.topPlayers.map((player) => (
                 <button
                   key={player.player_id}
                   type="button"
                   onClick={() => onOpenReport(player.report_id)}
-                  className="rounded-[22px] border border-[#d5aa4d]/20 bg-[linear-gradient(135deg,rgba(213,170,77,0.14),rgba(255,255,255,0.96))] p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(124,91,17,0.10)]"
+                  className="rounded-[20px] border border-[#d5aa4d]/20 bg-[linear-gradient(135deg,rgba(213,170,77,0.14),rgba(255,255,255,0.96))] p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(124,91,17,0.10)] md:rounded-[22px] md:p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-lg font-black text-[var(--color-dark)]">
+                      <p className="text-base font-black text-[var(--color-dark)] md:text-lg">
                         #{player.shirt_number || '-'} {player.name}
                       </p>
-                      <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-[#7c5b11]">
+                      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7c5b11] md:text-xs">
                         {player.potential_level} • {player.team_side} side
                       </p>
                     </div>
-                    <div className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#7c5b11] shadow-sm">
+                    <div className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-[#7c5b11] shadow-sm">
                       {player.average_score}/5
                     </div>
                   </div>
-                  <p className="mt-4 text-sm font-semibold leading-6 text-[var(--color-dark)]/82">
+                  <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-dark)]/82 md:mt-4 md:text-sm md:leading-6">
                     {player.verdict}
                   </p>
-                  <div className="mt-4 flex items-center justify-between text-xs font-semibold text-[var(--color-dark)]/62">
-                    <span>{player.fixture}</span>
-                    <span>{formatDisplayDate(player.report_date)}</span>
+                  <div className="mt-2 flex items-center justify-between text-[10px] font-semibold text-[var(--color-dark)]/62 md:mt-4 md:text-xs">
+                    <span className="truncate pr-2">{player.fixture}</span>
+                    <span className="shrink-0">{formatDisplayDate(player.report_date)}</span>
                   </div>
                 </button>
               ))
@@ -361,7 +388,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Recent Reports
               </p>
-              <h3 className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Latest saved scouting reports
               </h3>
             </div>
@@ -377,7 +404,7 @@ export default function AdminDashboardPanel({
                   key={report.id}
                   type="button"
                   onClick={() => onOpenReport(report.id)}
-                  className="flex w-full items-center justify-between gap-4 rounded-[20px] border border-[var(--color-mid)]/14 bg-[var(--color-light)]/40 px-4 py-4 text-left transition-all hover:border-[var(--color-primary)]/35 hover:bg-[var(--color-primary)]/[0.03]"
+                  className="flex w-full flex-col items-start gap-3 rounded-[20px] border border-[var(--color-mid)]/14 bg-[var(--color-light)]/40 px-4 py-4 text-left transition-all hover:border-[var(--color-primary)]/35 hover:bg-[var(--color-primary)]/[0.03] sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-black uppercase tracking-[0.08em] text-[var(--color-primary)]">
@@ -390,7 +417,7 @@ export default function AdminDashboardPanel({
                       {report.owner_name} {report.owner_email ? `• ${report.owner_email}` : ''}
                     </p>
                   </div>
-                  <div className="shrink-0 text-right">
+                  <div className="shrink-0 text-left sm:text-right">
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">
                       Match Date
                     </p>
@@ -416,7 +443,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Users
               </p>
-              <h3 className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Scouts and admins
               </h3>
             </div>
@@ -425,42 +452,38 @@ export default function AdminDashboardPanel({
             </div>
           </div>
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-2">
             {overview.users.length > 0 ? (
               overview.users.slice(0, 8).map((dashboardUser) => (
                 <div
                   key={dashboardUser.id}
-                  className="rounded-[20px] border border-[var(--color-mid)]/14 bg-[var(--color-light)]/40 px-4 py-4"
+                  className="flex items-center gap-3 rounded-[18px] border border-[var(--color-mid)]/14 bg-[var(--color-light)]/40 px-3 py-3 md:rounded-[20px] md:px-4 md:py-4"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="truncate text-base font-black text-[var(--color-dark)]">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-black text-[var(--color-dark)]">
                         {dashboardUser.name}
                       </p>
-                      <p className="mt-1 truncate text-xs font-semibold text-[var(--color-mid)]">
-                        {dashboardUser.email}
-                      </p>
-                      <p className="mt-1 truncate text-xs font-semibold text-[var(--color-mid)]">
-                        {dashboardUser.organization || 'No organization'}
-                      </p>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${
+                          dashboardUser.role.toLowerCase() === 'admin'
+                            ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                            : 'bg-[var(--color-mid)]/12 text-[var(--color-dark)]'
+                        }`}
+                      >
+                        {dashboardUser.role}
+                      </span>
                     </div>
-                    <span
-                      className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${
-                        dashboardUser.role.toLowerCase() === 'admin'
-                          ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-                          : 'bg-[var(--color-mid)]/12 text-[var(--color-dark)]'
-                      }`}
-                    >
-                      {dashboardUser.role}
-                    </span>
+                    <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--color-mid)] md:text-xs">
+                      {dashboardUser.email}
+                    </p>
+                    <p className="hidden truncate text-[10px] font-semibold text-[var(--color-mid)] md:block">
+                      {dashboardUser.organization || 'No organization'}
+                    </p>
                   </div>
-                  <div className="mt-4 flex items-center justify-between text-xs font-semibold text-[var(--color-mid)]">
-                    <span>{dashboardUser.reportCount} reports</span>
-                    <span>
-                      {dashboardUser.lastReportDate
-                        ? `Last report ${formatDisplayDate(dashboardUser.lastReportDate)}`
-                        : 'No reports yet'}
-                    </span>
+                  <div className="shrink-0 text-right">
+                    <p className="text-xs font-black text-[var(--color-dark)]">{dashboardUser.reportCount}</p>
+                    <p className="text-[10px] font-semibold text-[var(--color-mid)]">reports</p>
                   </div>
                 </div>
               ))
@@ -478,7 +501,7 @@ export default function AdminDashboardPanel({
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
                 Short Notes
               </p>
-              <h3 className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+              <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
                 Fast context from saved reports
               </h3>
             </div>
