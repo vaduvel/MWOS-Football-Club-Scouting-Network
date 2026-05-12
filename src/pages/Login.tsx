@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { FileText, ShieldCheck, Users } from 'lucide-react';
+import { Bus, CalendarRange, FileText, ShieldCheck } from 'lucide-react';
 import { requestPasswordReset, signIn, signUp } from '../lib/data';
 import { useAuthStore } from '../store/auth';
 
@@ -11,7 +11,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [organization, setOrganization] = useState('');
-  const [requestedRole, setRequestedRole] = useState<'Scout' | 'Admin'>('Scout');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const { setAuth } = useAuthStore();
@@ -48,20 +47,12 @@ export default function Login() {
         return;
       }
 
-      const data = await signUp(email, password, name, organization, requestedRole);
+      const data = await signUp(email, password, name, organization);
 
       if (data.emailConfirmationRequired) {
-        setInfo(
-          requestedRole === 'Admin'
-            ? 'Account created. Confirm your email, then ask for admin access.'
-            : 'Account created. Confirm your email, then sign in.',
-        );
+        setInfo('Account created. Confirm your email, then your club admin can assign your access.');
         setIsLogin(true);
         return;
-      }
-
-      if (requestedRole === 'Admin') {
-        setInfo('Account created. Admin access can be granted after your first sign in.');
       }
 
       setAuth(data.user, data.session);
@@ -97,7 +88,7 @@ export default function Login() {
                   MWOS Football Club
                 </p>
                 <p className="mt-2 mwos-display text-xl uppercase leading-none tracking-[0.12em] text-white">
-                  Scouting Network
+                  Club Management
                 </p>
               </div>
 
@@ -138,43 +129,8 @@ export default function Login() {
                             className="w-full rounded-2xl border border-[var(--color-mid)]/30 p-3 outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                           />
                         </div>
-                        <div>
-                          <label className="mb-2 block text-sm font-semibold text-[var(--color-dark)]">Account Type</label>
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <button
-                              type="button"
-                              onClick={() => setRequestedRole('Scout')}
-                              className={`rounded-2xl border p-4 text-left transition-all ${
-                                requestedRole === 'Scout'
-                                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
-                                  : 'border-[var(--color-mid)]/20 bg-white hover:border-[var(--color-primary)]/40'
-                              }`}
-                            >
-                              <p className="text-sm font-black uppercase tracking-wider text-[var(--color-dark)]">Scout</p>
-                              <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">
-                                Standard account for creating and managing your own reports.
-                              </p>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setRequestedRole('Admin')}
-                              className={`rounded-2xl border p-4 text-left transition-all ${
-                                requestedRole === 'Admin'
-                                  ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5'
-                                  : 'border-[var(--color-mid)]/20 bg-white hover:border-[var(--color-accent)]/40'
-                              }`}
-                            >
-                              <p className="text-sm font-black uppercase tracking-wider text-[var(--color-dark)]">Admin</p>
-                              <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">
-                                For club-wide access.
-                              </p>
-                            </button>
-                          </div>
-                          <div className="mt-3 rounded-2xl bg-[var(--color-light)] p-3 text-xs font-semibold text-[var(--color-mid)]">
-                            {requestedRole === 'Admin'
-                              ? 'Admin access is enabled after approval.'
-                              : 'Scout accounts manage their own reports.'}
-                          </div>
+                        <div className="rounded-2xl bg-[var(--color-light)] p-3 text-xs font-semibold text-[var(--color-mid)]">
+                          Club access is assigned after account creation. The same login can later receive one or more roles and team assignments.
                         </div>
                       </>
                     )}
@@ -238,7 +194,6 @@ export default function Login() {
                           setIsLogin(!isLogin || isRecoveryMode);
                           setError('');
                           setInfo('');
-                          setRequestedRole('Scout');
                         }}
                         className="text-sm font-semibold text-[var(--color-mid)] transition-colors hover:text-[var(--color-primary)]"
                       >
@@ -271,21 +226,22 @@ export default function Login() {
                   MWOS Football Club
                 </p>
                 <p className="mt-2 mwos-display text-lg uppercase leading-none tracking-[0.12em] text-white md:text-2xl md:tracking-[0.14em]">
-                  Scouting Network
+                  Club Management
                 </p>
                 <p className="mt-4 mwos-display text-[2rem] uppercase leading-[0.94] tracking-[0.05em] text-white md:mt-5 md:text-5xl md:tracking-[0.07em]">
-                  Elite match reporting for MWOS scouts.
+                  One workspace for the whole MWOS staff.
                 </p>
                 <p className="mx-auto mt-3 max-w-xl text-xs font-semibold leading-6 text-white/82 md:text-[15px]">
-                  Build structured reports, review players, attach handwritten notes and keep the full scouting workflow in one branded workspace.
+                  Plan training, coordinate transport, manage scouting reports and keep coaches, drivers and leadership aligned in one branded club system.
                 </p>
               </div>
 
               <div className="mx-auto mt-4 max-w-3xl md:mt-6">
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 lg:gap-3">
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-3">
                   {[
-                    { icon: FileText, label: 'Match Reports' },
-                    { icon: Users, label: 'Team Sheets' },
+                    { icon: CalendarRange, label: 'Training Schedule' },
+                    { icon: Bus, label: 'Transport Plans' },
+                    { icon: FileText, label: 'Scouting Reports' },
                     { icon: ShieldCheck, label: 'Admin Oversight' },
                   ].map(({ icon: Icon, label }) => (
                     <div

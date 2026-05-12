@@ -14,6 +14,40 @@ create table if not exists public.user_settings (
   football_api_key text
 );
 
+create table if not exists public.roles (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  label text not null,
+  description text,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.teams (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null unique,
+  age_group text,
+  is_active boolean not null default true,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.user_roles (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  role_id uuid not null references public.roles (id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  unique (user_id, role_id)
+);
+
+create table if not exists public.user_team_assignments (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  team_id uuid not null references public.teams (id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  unique (user_id, team_id)
+);
+
 create table if not exists public.reports (
   id text primary key default gen_random_uuid()::text,
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -104,6 +138,39 @@ create index if not exists player_reviews_report_id_idx on public.player_reviews
 create index if not exists watchlist_players_user_id_idx on public.watchlist_players (user_id);
 create index if not exists report_comments_report_id_idx on public.report_comments (report_id);
 create index if not exists report_comments_author_id_idx on public.report_comments (author_id);
+create index if not exists user_roles_user_id_idx on public.user_roles (user_id);
+create index if not exists user_roles_role_id_idx on public.user_roles (role_id);
+create index if not exists user_team_assignments_user_id_idx on public.user_team_assignments (user_id);
+create index if not exists user_team_assignments_team_id_idx on public.user_team_assignments (team_id);
+
+insert into public.roles (slug, label, description)
+values
+  ('admin', 'Admin', 'Full club-wide access'),
+  ('technical_director', 'Technical Director', 'Club-wide read and comment access'),
+  ('coach', 'Coach', 'Team-specific training access'),
+  ('driver', 'Driver', 'Transport-focused access'),
+  ('scout', 'Scout', 'Scouting access'),
+  ('board_observer', 'Board Observer', 'Read-only oversight access')
+on conflict (slug) do update
+set
+  label = excluded.label,
+  description = excluded.description;
+
+insert into public.teams (slug, name, age_group, is_active, sort_order)
+values
+  ('u13', 'U13', 'U13', true, 10),
+  ('u15', 'U15', 'U15', true, 20),
+  ('u17', 'U17', 'U17', true, 30),
+  ('u19', 'U19', 'U19', true, 40),
+  ('first-team', 'First Team', 'Senior', true, 50),
+  ('u11', 'U11', 'U11', false, 60),
+  ('u9', 'U9', 'U9', false, 70)
+on conflict (slug) do update
+set
+  name = excluded.name,
+  age_group = excluded.age_group,
+  is_active = excluded.is_active,
+  sort_order = excluded.sort_order;
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -134,14 +201,14 @@ begin
     new.email,
     coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
     coalesce(new.raw_user_meta_data->>'organization', ''),
-    coalesce(new.raw_user_meta_data->>'role', 'Scout')
+    coalesce(new.raw_user_meta_data->>'role', 'Pending')
   )
   on conflict (id) do update
   set
     email = excluded.email,
     name = excluded.name,
     organization = excluded.organization,
-    role = excluded.role;
+    role = coalesce(nullif(public.profiles.role, ''), excluded.role, 'Pending');
 
   insert into public.user_settings (user_id)
   values (new.id)
@@ -155,6 +222,53 @@ exception
 end;
 $$;
 
+create or replace function public.has_role(target_slug text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.user_roles ur
+    join public.roles r on r.id = ur.role_id
+    where ur.user_id = auth.uid()
+      and r.slug = target_slug
+  );
+$$;
+
+create or replace function public.has_any_role(target_slugs text[])
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.user_roles ur
+    join public.roles r on r.id = ur.role_id
+    where ur.user_id = auth.uid()
+      and r.slug = any (target_slugs)
+  );
+$$;
+
+create or replace function public.belongs_to_team(target_team_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.user_team_assignments uta
+    where uta.user_id = auth.uid()
+      and uta.team_id = target_team_id
+  );
+$$;
+
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -164,11 +278,30 @@ stable
 as $$
   select exists (
     select 1
+    from public.user_roles ur
+    join public.roles r on r.id = ur.role_id
+    where ur.user_id = auth.uid()
+      and r.slug = 'admin'
+  )
+  or exists (
+    select 1
     from public.profiles
     where id = auth.uid()
       and lower(role) = 'admin'
   );
 $$;
+
+insert into public.user_roles (user_id, role_id)
+select
+  p.id,
+  r.id
+from public.profiles p
+join public.roles r
+  on r.slug = case
+    when lower(p.role) = 'admin' then 'admin'
+    else 'scout'
+  end
+on conflict (user_id, role_id) do nothing;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -253,17 +386,26 @@ execute procedure public.handle_new_user();
 
 alter table public.profiles enable row level security;
 alter table public.user_settings enable row level security;
+alter table public.roles enable row level security;
+alter table public.teams enable row level security;
+alter table public.user_roles enable row level security;
+alter table public.user_team_assignments enable row level security;
 alter table public.reports enable row level security;
 alter table public.players enable row level security;
 alter table public.player_reviews enable row level security;
 alter table public.watchlist_players enable row level security;
 alter table public.report_comments enable row level security;
 
+alter table public.profiles alter column role set default 'Pending';
+
 drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own"
 on public.profiles
 for select
-using (auth.uid() = id or public.is_admin());
+using (
+  auth.uid() = id
+  or public.has_any_role(array['admin', 'technical_director', 'board_observer'])
+);
 
 drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own"
@@ -275,8 +417,74 @@ drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own"
 on public.profiles
 for update
-using (auth.uid() = id)
-with check (auth.uid() = id);
+using (auth.uid() = id or public.is_admin())
+with check (auth.uid() = id or public.is_admin());
+
+drop policy if exists "roles_select_authenticated" on public.roles;
+create policy "roles_select_authenticated"
+on public.roles
+for select
+to authenticated
+using (true);
+
+drop policy if exists "roles_mutate_admin" on public.roles;
+create policy "roles_mutate_admin"
+on public.roles
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "teams_select_authenticated" on public.teams;
+create policy "teams_select_authenticated"
+on public.teams
+for select
+to authenticated
+using (true);
+
+drop policy if exists "teams_mutate_admin" on public.teams;
+create policy "teams_mutate_admin"
+on public.teams
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "user_roles_select_accessible" on public.user_roles;
+create policy "user_roles_select_accessible"
+on public.user_roles
+for select
+to authenticated
+using (
+  auth.uid() = user_id
+  or public.has_any_role(array['admin', 'technical_director'])
+);
+
+drop policy if exists "user_roles_mutate_admin" on public.user_roles;
+create policy "user_roles_mutate_admin"
+on public.user_roles
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "user_team_assignments_select_accessible" on public.user_team_assignments;
+create policy "user_team_assignments_select_accessible"
+on public.user_team_assignments
+for select
+to authenticated
+using (
+  auth.uid() = user_id
+  or public.has_any_role(array['admin', 'technical_director'])
+);
+
+drop policy if exists "user_team_assignments_mutate_admin" on public.user_team_assignments;
+create policy "user_team_assignments_mutate_admin"
+on public.user_team_assignments
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
 
 drop policy if exists "settings_select_own" on public.user_settings;
 create policy "settings_select_own"
@@ -301,7 +509,11 @@ drop policy if exists "reports_select_own" on public.reports;
 create policy "reports_select_own"
 on public.reports
 for select
-using (auth.uid() = user_id or public.is_admin());
+using (
+  auth.uid() = user_id
+  or public.is_admin()
+  or public.has_any_role(array['technical_director', 'board_observer'])
+);
 
 drop policy if exists "reports_insert_own" on public.reports;
 create policy "reports_insert_own"
@@ -331,7 +543,11 @@ using (
     select 1
     from public.reports
     where reports.id = players.report_id
-      and (reports.user_id = auth.uid() or public.is_admin())
+      and (
+        reports.user_id = auth.uid()
+        or public.is_admin()
+        or public.has_any_role(array['technical_director', 'board_observer'])
+      )
   )
 );
 
@@ -370,7 +586,11 @@ using (
     select 1
     from public.reports
     where reports.id = player_reviews.report_id
-      and (reports.user_id = auth.uid() or public.is_admin())
+      and (
+        reports.user_id = auth.uid()
+        or public.is_admin()
+        or public.has_any_role(array['technical_director', 'board_observer'])
+      )
   )
 );
 
@@ -434,7 +654,11 @@ using (
     select 1
     from public.reports
     where reports.id = report_comments.report_id
-      and (reports.user_id = auth.uid() or public.is_admin())
+      and (
+        reports.user_id = auth.uid()
+        or public.is_admin()
+        or public.has_any_role(array['technical_director', 'board_observer'])
+      )
   )
 );
 
@@ -448,7 +672,11 @@ with check (
     select 1
     from public.reports
     where reports.id = report_comments.report_id
-      and (reports.user_id = auth.uid() or public.is_admin())
+      and (
+        reports.user_id = auth.uid()
+        or public.is_admin()
+        or public.has_role('technical_director')
+      )
   )
 );
 

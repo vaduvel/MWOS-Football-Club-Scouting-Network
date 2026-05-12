@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MessageSquare, Send, Trash2 } from 'lucide-react';
-import { addReportComment, deleteReportComment, fetchReportComments, type ReportComment } from '../../lib/data';
+import { addReportComment, deleteReportComment, fetchReportComments, userHasRole, type ReportComment } from '../../lib/data';
 import { useAuthStore } from '../../store/auth';
 
 function formatTimestamp(value: string) {
@@ -21,7 +21,7 @@ function formatTimestamp(value: string) {
 
 export default function CommentsTab({ reportId }: { reportId?: string }) {
   const { user } = useAuthStore();
-  const isAdmin = (user?.role || '').trim().toLowerCase() === 'admin';
+  const isAdmin = userHasRole(user, 'admin');
 
   const [comments, setComments] = useState<ReportComment[]>([]);
   const [draft, setDraft] = useState('');

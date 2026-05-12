@@ -22,7 +22,7 @@ import FormationsTab from './tabs/FormationsTab';
 import PlayerReviewsTab from './tabs/PlayerReviewsTab';
 import ExportTab from './tabs/ExportTab';
 import CommentsTab from './tabs/CommentsTab';
-import { fetchReport, saveReport } from '../lib/data';
+import { fetchReport, saveReport, userHasRole } from '../lib/data';
 import { createId } from '../lib/ids';
 import { emitDraftSync } from '../lib/pwaEvents';
 import { deleteReportDraft, readReportDraft, writeReportDraft } from '../lib/reportDraftStore';
@@ -125,7 +125,7 @@ export default function ReportEditor() {
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
   const [mobileTabPickerOpen, setMobileTabPickerOpen] = useState(false);
   const skipDirtyTrackingRef = useRef(false);
-  const isAdmin = (user?.role || '').trim().toLowerCase() === 'admin';
+  const isAdmin = userHasRole(user, 'admin');
   const isNewReport = !id || id === 'new';
   const canCreateInitialDraft = hasMeaningfulDraftContent(currentReport);
   const requestedTab = searchParams.get('tab');
@@ -365,7 +365,7 @@ export default function ReportEditor() {
       <header className="mwos-ribbon-surface sticky top-0 z-50 shadow-sm">
         <div className="px-3 py-2.5 text-white md:hidden">
           <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/')} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10">
+            <button onClick={() => navigate('/scouting')} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10">
               <ArrowLeft size={20} className="text-white" />
             </button>
 
@@ -428,7 +428,7 @@ export default function ReportEditor() {
 
         <div className="hidden items-center justify-between gap-4 px-6 py-4 text-white md:flex">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/')} className="rounded-full p-2 transition-colors hover:bg-white/10">
+            <button onClick={() => navigate('/scouting')} className="rounded-full p-2 transition-colors hover:bg-white/10">
               <ArrowLeft size={22} className="text-white" />
             </button>
             <img

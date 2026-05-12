@@ -8,6 +8,7 @@ import {
   fetchAdminAiInsights,
   fetchAdminDashboardOverview,
   fetchReports,
+  userHasRole,
   sendAdminChatMessage,
   type AdminAiContext,
   type AdminAiInsights,
@@ -117,7 +118,7 @@ export default function Dashboard() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState('');
   const navigate = useNavigate();
-  const isAdmin = (user?.role || '').trim().toLowerCase() === 'admin';
+  const isAdmin = userHasRole(user, 'admin');
   const reportsThisWeek = reports.filter((report) => {
     const rawDate = report.date || '';
     const parsedDate = rawDate ? new Date(rawDate) : null;
@@ -277,13 +278,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[var(--color-light)] flex flex-col md:flex-row">
       <AppSidebar
-        current="reports"
-        isAdmin={isAdmin}
-        userName={user?.name}
-        organization={user?.organization}
-        onNavigateReports={() => navigate('/')}
-        onNavigatePlayers={() => navigate('/players')}
-        onNavigateSettings={() => navigate('/settings')}
+        current="scouting"
+        user={user}
         onLogout={() => void logout()}
       />
 
@@ -303,7 +299,7 @@ export default function Dashboard() {
                       MWOS Football Club
                     </p>
                     <h2 className="mt-1 mwos-display text-[2rem] uppercase leading-none tracking-[0.05em] text-white md:mt-2 md:text-4xl xl:text-5xl">
-                      {isAdmin ? 'Admin Dashboard' : 'Dashboard'}
+                      {isAdmin ? 'Scouting Oversight' : 'Scouting Reports'}
                     </h2>
                   </div>
                 </div>
@@ -320,7 +316,7 @@ export default function Dashboard() {
                     />
                   </div>
                   <button
-                    onClick={() => navigate('/report/new')}
+                    onClick={() => navigate('/scouting/report/new')}
                     className="self-start rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-[var(--color-primary)] shadow-[0_16px_32px_rgba(12,16,53,0.22)] transition-all hover:-translate-y-0.5 xl:self-auto"
                   >
                     <span className="inline-flex items-center gap-2">
@@ -333,8 +329,8 @@ export default function Dashboard() {
 
               <p className="mt-4 hidden max-w-3xl text-sm font-semibold text-white/76 md:block">
                 {isAdmin
-                  ? 'Track club-wide reports, user activity, strong player mentions and AI-guided improvement ideas from one admin workspace.'
-                  : 'Review match reports, scout outputs and club-wide activity from one branded workspace.'}
+                  ? 'Track club-wide reports, staff activity, strong player mentions and AI-guided scouting signals from one oversight workspace.'
+                  : 'Review match reports, player output and active scouting notes from the club scouting module.'}
               </p>
             </div>
           </div>
@@ -372,7 +368,7 @@ export default function Dashboard() {
           {isAdmin && adminOverview && (
             <AdminDashboardPanel
               overview={adminOverview}
-              onOpenReport={(reportId) => navigate(`/report/${reportId}`)}
+              onOpenReport={(reportId) => navigate(`/scouting/report/${reportId}`)}
               insights={insights}
               insightsLoading={insightsLoading}
               insightsError={insightsError}
@@ -408,7 +404,7 @@ export default function Dashboard() {
                   return (
                     <div
                       key={report.id}
-                      onClick={() => navigate(`/report/${report.id}`)}
+                      onClick={() => navigate(`/scouting/report/${report.id}`)}
                       className={`flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-colors active:bg-[var(--color-light)] ${!isLast ? 'border-b border-[var(--color-mid)]/12' : ''}`}
                     >
                       <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-xs font-black ${variant.badge}`}>
@@ -463,7 +459,7 @@ export default function Dashboard() {
                 return (
                   <div
                     key={report.id}
-                    onClick={() => navigate(`/report/${report.id}`)}
+                    onClick={() => navigate(`/scouting/report/${report.id}`)}
                     className={`group cursor-pointer rounded-[24px] border p-4 shadow-[0_16px_45px_rgba(49,39,131,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_55px_rgba(49,39,131,0.11)] ${variant.shell}`}
                   >
                     <div className="mb-3 flex items-start justify-between">

@@ -4,12 +4,27 @@ import type { AppSettings } from '../store/settings';
 import { createId } from './ids';
 import { assertSupabaseConfigured, supabase } from './supabase';
 
+export interface AppRole {
+  slug: string;
+  label: string;
+}
+
+export interface AppTeam {
+  id: string;
+  slug: string;
+  name: string;
+  is_active: boolean;
+}
+
 export interface AppUser {
   id: string;
   email: string;
   name: string;
   organization: string;
   role: string;
+  roles: string[];
+  roleLabels: string[];
+  teams: AppTeam[];
 }
 
 interface ProfileRow {
@@ -18,6 +33,37 @@ interface ProfileRow {
   name: string | null;
   organization: string | null;
   role: string | null;
+}
+
+interface UserRoleJoinRow {
+  roles:
+    | {
+        slug: string;
+        label: string;
+      }
+    | {
+        slug: string;
+        label: string;
+      }[]
+    | null;
+}
+
+interface UserTeamJoinRow {
+  team_id: string;
+  teams:
+    | {
+        id: string;
+        slug: string;
+        name: string;
+        is_active: boolean;
+      }
+    | {
+        id: string;
+        slug: string;
+        name: string;
+        is_active: boolean;
+      }[]
+    | null;
 }
 
 interface ReportRow {
@@ -312,7 +358,37 @@ export interface ReportComment {
   isAuthor: boolean;
 }
 
+export interface ClubAccessRoleOption {
+  slug: string;
+  label: string;
+  description: string;
+}
+
+export interface ClubAccessUserRecord {
+  id: string;
+  email: string;
+  name: string;
+  organization: string;
+  legacyRole: string;
+  roles: AppRole[];
+  teams: AppTeam[];
+}
+
+export interface ClubAccessOverview {
+  roles: ClubAccessRoleOption[];
+  teams: AppTeam[];
+  users: ClubAccessUserRecord[];
+}
+
 const DEFAULT_FORMATION = '4-3-3';
+const CLUB_ROLE_PRIORITY = [
+  'admin',
+  'technical_director',
+  'coach',
+  'driver',
+  'scout',
+  'board_observer',
+] as const;
 const PLAYER_ATTRIBUTE_FIELDS = [
   'pace',
   'strength',
@@ -334,13 +410,112 @@ function getDisplayName(email: string | null | undefined) {
   return email.split('@')[0] || 'Scout User';
 }
 
-function toAppUser(profile: ProfileRow): AppUser {
+function normalizeRoleSlug(value: string | null | undefined) {
+  return (value || '').trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+function formatRoleLabel(slug: string) {
+  return slug
+    .split('_')
+    .map((token) => (token ? `${token[0]?.toUpperCase() || ''}${token.slice(1)}` : token))
+    .join(' ');
+}
+
+function normalizeRoleList(values: string[]) {
+  const unique = Array.from(new Set(values.map((value) => normalizeRoleSlug(value)).filter(Boolean)));
+  unique.sort((left, right) => {
+    const leftIndex = CLUB_ROLE_PRIORITY.indexOf(left as (typeof CLUB_ROLE_PRIORITY)[number]);
+    const rightIndex = CLUB_ROLE_PRIORITY.indexOf(right as (typeof CLUB_ROLE_PRIORITY)[number]);
+    const normalizedLeft = leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex;
+    const normalizedRight = rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex;
+    if (normalizedLeft !== normalizedRight) {
+      return normalizedLeft - normalizedRight;
+    }
+    return left.localeCompare(right);
+  });
+  return unique;
+}
+
+function getPrimaryRoleLabel(roleSlugs: string[], fallbackRole: string | null | undefined) {
+  const [primaryRole] = normalizeRoleList(roleSlugs);
+  if (primaryRole) {
+    return formatRoleLabel(primaryRole);
+  }
+
+  const normalizedFallback = normalizeRoleSlug(fallbackRole);
+  return normalizedFallback ? formatRoleLabel(normalizedFallback) : 'Pending';
+}
+
+export function userHasRole(user: Pick<AppUser, 'roles'> | null | undefined, role: string) {
+  const target = normalizeRoleSlug(role);
+  if (!target || !user) return false;
+  return user.roles.some((item) => normalizeRoleSlug(item) === target);
+}
+
+export function userHasAnyRole(user: Pick<AppUser, 'roles'> | null | undefined, roles: string[]) {
+  return roles.some((role) => userHasRole(user, role));
+}
+
+export function canAccessTrainingModule(user: Pick<AppUser, 'roles'> | null | undefined) {
+  return userHasAnyRole(user, ['admin', 'technical_director', 'coach']);
+}
+
+export function canAccessTransportModule(user: Pick<AppUser, 'roles'> | null | undefined) {
+  return userHasAnyRole(user, ['admin', 'technical_director', 'driver']);
+}
+
+export function canAccessScoutingModule(user: Pick<AppUser, 'roles'> | null | undefined) {
+  return userHasAnyRole(user, ['admin', 'scout']);
+}
+
+export function canAccessPlayerHub(user: Pick<AppUser, 'roles'> | null | undefined) {
+  return userHasAnyRole(user, ['admin', 'scout']);
+}
+
+export function canAccessOversightModule(user: Pick<AppUser, 'roles'> | null | undefined) {
+  return userHasAnyRole(user, ['admin', 'technical_director', 'board_observer']);
+}
+
+export function getPrimaryRoleSlug(user: Pick<AppUser, 'roles'> | null | undefined) {
+  if (!user) return 'pending';
+  return normalizeRoleList(user.roles)[0] || 'pending';
+}
+
+export function getDefaultModulePath(user: Pick<AppUser, 'roles'> | null | undefined) {
+  if (canAccessOversightModule(user)) {
+    return '/oversight';
+  }
+
+  if (canAccessTrainingModule(user)) {
+    return '/training';
+  }
+
+  if (canAccessTransportModule(user)) {
+    return '/transport';
+  }
+
+  if (canAccessScoutingModule(user)) {
+    return '/scouting';
+  }
+
+  return '/';
+}
+
+function toAppUser(profile: ProfileRow, roles: AppRole[], teams: AppTeam[]): AppUser {
+  const normalizedRoles = normalizeRoleList(roles.map((item) => item.slug));
+  const roleLabels = roles
+    .map((item) => item.label?.trim() || formatRoleLabel(item.slug))
+    .filter(Boolean);
+
   return {
     id: profile.id,
     email: profile.email,
     name: profile.name || getDisplayName(profile.email),
     organization: profile.organization || '',
-    role: profile.role || 'Scout',
+    role: getPrimaryRoleLabel(normalizedRoles, profile.role),
+    roles: normalizedRoles,
+    roleLabels: roleLabels.length > 0 ? roleLabels : [getPrimaryRoleLabel(normalizedRoles, profile.role)],
+    teams,
   };
 }
 
@@ -419,7 +594,7 @@ function mapReport(row: ReportRow, players: PlayerRow[] = [], reviews: PlayerRev
 }
 
 function isAdminRole(role: string | null | undefined) {
-  return (role || '').trim().toLowerCase() === 'admin';
+  return normalizeRoleSlug(role) === 'admin';
 }
 
 function buildShortExcerpt(...values: Array<string | null | undefined>) {
@@ -547,6 +722,54 @@ async function getCurrentAppUser() {
   return upsertProfile(user);
 }
 
+async function loadUserAccess(userId: string): Promise<{ roles: AppRole[]; teams: AppTeam[] }> {
+  const [rolesResponse, teamsResponse] = await Promise.all([
+    supabase
+      .from('user_roles')
+      .select('roles!inner(slug, label)')
+      .eq('user_id', userId),
+    supabase
+      .from('user_team_assignments')
+      .select('team_id, teams!inner(id, slug, name, is_active)')
+      .eq('user_id', userId),
+  ]);
+
+  if (rolesResponse.error) {
+    throw rolesResponse.error;
+  }
+
+  if (teamsResponse.error) {
+    throw teamsResponse.error;
+  }
+
+  const roles = ((rolesResponse.data || []) as UserRoleJoinRow[])
+    .flatMap((row) => {
+      const joined = row.roles;
+      if (!joined) return [];
+      return Array.isArray(joined) ? joined : [joined];
+    })
+    .map((role) => ({
+      slug: normalizeRoleSlug(role.slug),
+      label: role.label?.trim() || formatRoleLabel(role.slug),
+    }));
+
+  const teams = ((teamsResponse.data || []) as UserTeamJoinRow[])
+    .flatMap((row) => {
+      const joined = row.teams;
+      if (!joined) return [];
+      return Array.isArray(joined) ? joined : [joined];
+    })
+    .map((team) => ({
+      id: team.id,
+      slug: team.slug,
+      name: team.name,
+      is_active: Boolean(team.is_active),
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+
+  return { roles, teams };
+}
+
 async function upsertProfile(user: User) {
   const { data: existingProfile } = await supabase
     .from('profiles')
@@ -560,7 +783,7 @@ async function upsertProfile(user: User) {
     email: user.email || '',
     name: metadata.name || getDisplayName(user.email),
     organization: metadata.organization || '',
-    role: existingProfile?.role || metadata.role || 'Scout',
+    role: existingProfile?.role || metadata.role || 'Pending',
   };
 
   const { data, error } = await supabase
@@ -573,7 +796,8 @@ async function upsertProfile(user: User) {
     throw error;
   }
 
-  return toAppUser(data as ProfileRow);
+  const access = await loadUserAccess(user.id);
+  return toAppUser(data as ProfileRow, access.roles, access.teams);
 }
 
 export async function getSessionWithProfile(): Promise<{ session: Session | null; user: AppUser | null }> {
@@ -641,7 +865,6 @@ export async function signUp(
   password: string,
   name: string,
   organization: string,
-  requestedRole: 'Scout' | 'Admin' = 'Scout',
 ) {
   assertSupabaseConfigured();
   const { data, error } = await supabase.auth.signUp({
@@ -651,7 +874,6 @@ export async function signUp(
       data: {
         name,
         organization,
-        requested_role: requestedRole,
       },
     },
   });
@@ -735,7 +957,7 @@ export async function fetchReports() {
 
   const mappedReports = (data as ReportRow[]).map((row) => mapReport(row));
 
-  if (!isAdminRole(authUser.role) || mappedReports.length === 0) {
+  if (!userHasAnyRole(authUser, ['admin', 'technical_director', 'board_observer']) || mappedReports.length === 0) {
     return mappedReports;
   }
 
@@ -769,8 +991,8 @@ export async function fetchReports() {
 export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverview> {
   const authUser = await getCurrentAppUser();
 
-  if (!isAdminRole(authUser.role)) {
-    throw new Error('Admin access is required.');
+  if (!userHasAnyRole(authUser, ['admin', 'technical_director', 'board_observer'])) {
+    throw new Error('Oversight access is required.');
   }
 
   const [profilesResponse, reportsResponse, playersResponse, reviewsResponse] = await Promise.all([
@@ -1040,7 +1262,7 @@ export async function fetchReport(reportId: string) {
     (reviewsResponse.data || []) as PlayerReviewRow[],
   );
 
-  if (!isAdminRole(authUser.role) || !mappedReport.owner_id) {
+  if (!userHasAnyRole(authUser, ['admin', 'technical_director', 'board_observer']) || !mappedReport.owner_id) {
     return mappedReport;
   }
 
@@ -1690,6 +1912,192 @@ export async function saveUserSettings(settings: AppSettings) {
   }
 
   return settings;
+}
+
+export async function fetchClubAccessOverview(): Promise<ClubAccessOverview> {
+  const authUser = await getCurrentAppUser();
+
+  if (!userHasRole(authUser, 'admin')) {
+    throw new Error('Admin access is required.');
+  }
+
+  const [profilesResponse, rolesResponse, teamsResponse, userRolesResponse, assignmentsResponse] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, email, name, organization, role')
+      .order('name', { ascending: true }),
+    supabase
+      .from('roles')
+      .select('slug, label, description')
+      .order('label', { ascending: true }),
+    supabase
+      .from('teams')
+      .select('id, slug, name, is_active')
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('user_roles')
+      .select('user_id, roles!inner(slug, label)'),
+    supabase
+      .from('user_team_assignments')
+      .select('user_id, team_id, teams!inner(id, slug, name, is_active)'),
+  ]);
+
+  if (profilesResponse.error) throw profilesResponse.error;
+  if (rolesResponse.error) throw rolesResponse.error;
+  if (teamsResponse.error) throw teamsResponse.error;
+  if (userRolesResponse.error) throw userRolesResponse.error;
+  if (assignmentsResponse.error) throw assignmentsResponse.error;
+
+  const roleOptions = ((rolesResponse.data || []) as Array<{ slug: string; label: string; description: string | null }>).map(
+    (role) => ({
+      slug: normalizeRoleSlug(role.slug),
+      label: role.label,
+      description: role.description || '',
+    }),
+  );
+
+  const teams = ((teamsResponse.data || []) as Array<{ id: string; slug: string; name: string; is_active: boolean }>).map((team) => ({
+    id: team.id,
+    slug: team.slug,
+    name: team.name,
+    is_active: Boolean(team.is_active),
+  }));
+
+  const rolesByUser = new Map<string, AppRole[]>();
+  ((userRolesResponse.data || []) as Array<UserRoleJoinRow & { user_id: string }>).forEach((row) => {
+    const joined = row.roles;
+    const entries = Array.isArray(joined) ? joined : joined ? [joined] : [];
+    if (entries.length === 0) return;
+    const existing = rolesByUser.get(row.user_id) || [];
+    entries.forEach((entry) => {
+      existing.push({
+        slug: normalizeRoleSlug(entry.slug),
+        label: entry.label?.trim() || formatRoleLabel(entry.slug),
+      });
+    });
+    rolesByUser.set(row.user_id, existing);
+  });
+
+  const teamsByUser = new Map<string, AppTeam[]>();
+  ((assignmentsResponse.data || []) as Array<UserTeamJoinRow & { user_id: string }>).forEach((row) => {
+    const joined = row.teams;
+    const entries = Array.isArray(joined) ? joined : joined ? [joined] : [];
+    if (entries.length === 0) return;
+    const existing = teamsByUser.get(row.user_id) || [];
+    entries.forEach((entry) => {
+      existing.push({
+        id: entry.id,
+        slug: entry.slug,
+        name: entry.name,
+        is_active: Boolean(entry.is_active),
+      });
+    });
+    teamsByUser.set(row.user_id, existing);
+  });
+
+  const users = ((profilesResponse.data || []) as ProfileRow[])
+    .map((profile) => ({
+      id: profile.id,
+      email: profile.email,
+      name: profile.name || getDisplayName(profile.email),
+      organization: profile.organization || '',
+      legacyRole: profile.role || 'Pending',
+      roles: normalizeRoleList((rolesByUser.get(profile.id) || []).map((item) => item.slug)).map((slug) => {
+        const found = (rolesByUser.get(profile.id) || []).find((item) => item.slug === slug);
+        return found || { slug, label: formatRoleLabel(slug) };
+      }),
+      teams: [...(teamsByUser.get(profile.id) || [])].sort((left, right) => left.name.localeCompare(right.name)),
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+
+  return {
+    roles: roleOptions,
+    teams,
+    users,
+  };
+}
+
+export async function saveUserClubAccess(userId: string, roleSlugs: string[], teamIds: string[]) {
+  const authUser = await getCurrentAppUser();
+
+  if (!userHasRole(authUser, 'admin')) {
+    throw new Error('Admin access is required.');
+  }
+
+  const normalizedRoleSlugs = normalizeRoleList(roleSlugs);
+  const normalizedTeamIds = Array.from(new Set(teamIds.filter(Boolean)));
+
+  const { data: roleRows, error: roleLookupError } = await supabase
+    .from('roles')
+    .select('id, slug, label')
+    .in('slug', normalizedRoleSlugs);
+
+  if (roleLookupError) {
+    throw roleLookupError;
+  }
+
+  const roleRecords = (roleRows || []) as Array<{ id: string; slug: string; label: string }>;
+  const roleRecordBySlug = new Map(roleRecords.map((role) => [normalizeRoleSlug(role.slug), role]));
+
+  if (roleRecords.length !== normalizedRoleSlugs.length) {
+    throw new Error('One or more selected roles could not be matched.');
+  }
+
+  const { error: deleteRolesError } = await supabase
+    .from('user_roles')
+    .delete()
+    .eq('user_id', userId);
+
+  if (deleteRolesError) {
+    throw deleteRolesError;
+  }
+
+  if (roleRecords.length > 0) {
+    const { error: insertRolesError } = await supabase.from('user_roles').insert(
+      roleRecords.map((role) => ({
+        user_id: userId,
+        role_id: role.id,
+      })),
+    );
+
+    if (insertRolesError) {
+      throw insertRolesError;
+    }
+  }
+
+  const { error: deleteTeamsError } = await supabase
+    .from('user_team_assignments')
+    .delete()
+    .eq('user_id', userId);
+
+  if (deleteTeamsError) {
+    throw deleteTeamsError;
+  }
+
+  if (normalizedTeamIds.length > 0) {
+    const { error: insertTeamsError } = await supabase.from('user_team_assignments').insert(
+      normalizedTeamIds.map((teamId) => ({
+        user_id: userId,
+        team_id: teamId,
+      })),
+    );
+
+    if (insertTeamsError) {
+      throw insertTeamsError;
+    }
+  }
+
+  const legacyRole = normalizedRoleSlugs.length > 0
+    ? roleRecordBySlug.get(normalizedRoleSlugs[0])?.label || formatRoleLabel(normalizedRoleSlugs[0])
+    : 'Pending';
+  const { error: profileUpdateError } = await supabase
+    .from('profiles')
+    .update({ role: legacyRole })
+    .eq('id', userId);
+
+  if (profileUpdateError) {
+    throw profileUpdateError;
+  }
 }
 
 function buildFunctionUrl(functionName: string, params?: Record<string, string>) {

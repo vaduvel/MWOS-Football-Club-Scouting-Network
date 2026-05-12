@@ -21,6 +21,7 @@ import {
   addPlayerToWatchlist,
   fetchPlayerHubData,
   removePlayerFromWatchlist,
+  userHasRole,
   type PlayerHubEntry,
   type PlayerHubOverview,
 } from '../lib/data';
@@ -114,7 +115,7 @@ function ComparisonMetricRow({
 export default function PlayersPage() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
-  const isAdmin = (user?.role || '').trim().toLowerCase() === 'admin';
+  const isAdmin = userHasRole(user, 'admin');
 
   const [overview, setOverview] = useState<PlayerHubOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -190,7 +191,7 @@ export default function PlayersPage() {
     shortlistedEntries[0]?.latestReportId || recentReports[0]?.id || allEntries[0]?.latestReportId || '';
 
   const handleCreateReport = (tab: 'match' | 'teams' = 'match') => {
-    navigate(tab === 'match' ? '/report/new' : `/report/new?tab=${tab}`);
+    navigate(tab === 'match' ? '/scouting/report/new' : `/scouting/report/new?tab=${tab}`);
   };
 
   const handleOpenComparison = () => {
@@ -200,7 +201,7 @@ export default function PlayersPage() {
 
   const handleOpenExport = () => {
     if (primaryExportReportId) {
-      navigate(`/report/${primaryExportReportId}?tab=export`);
+      navigate(`/scouting/report/${primaryExportReportId}?tab=export`);
       return;
     }
 
@@ -260,12 +261,7 @@ export default function PlayersPage() {
     <div className="flex min-h-screen flex-col bg-[var(--color-light)] md:flex-row">
       <AppSidebar
         current="players"
-        isAdmin={isAdmin}
-        userName={user?.name}
-        organization={user?.organization}
-        onNavigateReports={() => navigate('/')}
-        onNavigatePlayers={() => navigate('/players')}
-        onNavigateSettings={() => navigate('/settings')}
+        user={user}
         onLogout={() => void logout()}
       />
 

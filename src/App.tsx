@@ -4,12 +4,25 @@ import PwaStatusDock from './components/PwaStatusDock';
 import { useAuthStore } from './store/auth';
 import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
+import ClubHomePage from './pages/ClubHomePage';
 import Dashboard from './pages/Dashboard';
 import PlayersPage from './pages/PlayersPage';
 import ReportEditor from './pages/ReportEditor';
 import SettingsPage from './pages/SettingsPage';
+import TrainingPage from './pages/TrainingPage';
+import TransportPage from './pages/TransportPage';
+import OversightPage from './pages/OversightPage';
 import MissingConfigScreen from './components/MissingConfigScreen';
 import { getSessionWithProfile, subscribeToAuthChanges } from './lib/data';
+import {
+  canAccessOversightModule,
+  canAccessPlayerHub,
+  canAccessScoutingModule,
+  canAccessTrainingModule,
+  canAccessTransportModule,
+  getDefaultModulePath,
+  type AppUser,
+} from './lib/data';
 import {
   DRAFT_SYNC_EVENT,
   SERVICE_WORKER_UPDATE_EVENT,
@@ -25,6 +38,26 @@ type DeferredPromptEvent = Event & {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, token } = useAuthStore();
   if (!token || !user) return <Navigate to="/login" />;
+  return <>{children}</>;
+}
+
+function RoleRoute({
+  children,
+  canAccess,
+}: {
+  children: React.ReactNode;
+  canAccess: (user: AppUser) => boolean;
+}) {
+  const { user, token } = useAuthStore();
+
+  if (!token || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!canAccess(user)) {
+    return <Navigate to={getDefaultModulePath(user)} replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -178,10 +211,16 @@ export default function App() {
       <Routes>
         <Route path="/login" element={!token ? <Login /> : <Navigate to="/" />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/players" element={<ProtectedRoute><PlayersPage /></ProtectedRoute>} />
-        <Route path="/report/new" element={<ProtectedRoute><ReportEditor /></ProtectedRoute>} />
-        <Route path="/report/:id" element={<ProtectedRoute><ReportEditor /></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute><ClubHomePage /></ProtectedRoute>} />
+        <Route path="/training" element={<RoleRoute canAccess={canAccessTrainingModule}><TrainingPage /></RoleRoute>} />
+        <Route path="/transport" element={<RoleRoute canAccess={canAccessTransportModule}><TransportPage /></RoleRoute>} />
+        <Route path="/scouting" element={<RoleRoute canAccess={canAccessScoutingModule}><Dashboard /></RoleRoute>} />
+        <Route path="/players" element={<RoleRoute canAccess={canAccessPlayerHub}><PlayersPage /></RoleRoute>} />
+        <Route path="/oversight" element={<RoleRoute canAccess={canAccessOversightModule}><OversightPage /></RoleRoute>} />
+        <Route path="/scouting/report/new" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
+        <Route path="/scouting/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
+        <Route path="/report/new" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
+        <Route path="/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
