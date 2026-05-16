@@ -28,26 +28,37 @@ export default function Login() {
     }
   }, [searchParams, setSearchParams]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setInfo('');
 
+    const formData = new FormData(e.currentTarget);
+    const submittedEmail = String(formData.get('email') ?? email).trim();
+    const submittedPassword = String(formData.get('password') ?? password);
+    const submittedName = String(formData.get('name') ?? name).trim();
+    const submittedOrganization = String(formData.get('organization') ?? organization).trim();
+
+    setEmail(submittedEmail);
+    setPassword(submittedPassword);
+    setName(submittedName);
+    setOrganization(submittedOrganization);
+
     try {
       if (isRecoveryMode) {
-        await requestPasswordReset(email);
+        await requestPasswordReset(submittedEmail);
         setInfo('Password reset link sent. Check your email and open the link on this device.');
         return;
       }
 
       if (isLogin) {
-        const data = await signIn(email, password);
+        const data = await signIn(submittedEmail, submittedPassword);
         setAuth(data.user, data.session);
         navigate('/');
         return;
       }
 
-      const data = await signUp(email, password, name, organization);
+      const data = await signUp(submittedEmail, submittedPassword, submittedName, submittedOrganization);
 
       if (data.emailConfirmationRequired) {
         setInfo('Account created. Confirm your email, then your club admin can assign your access.');
@@ -112,6 +123,7 @@ export default function Login() {
                           <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Full Name</label>
                           <input
                             required
+                            name="name"
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
@@ -122,6 +134,7 @@ export default function Login() {
                         <div>
                           <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Organization</label>
                           <input
+                            name="organization"
                             type="text"
                             value={organization}
                             onChange={(e) => setOrganization(e.target.value)}
@@ -139,6 +152,7 @@ export default function Login() {
                       <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Email</label>
                       <input
                         required
+                        name="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -154,6 +168,7 @@ export default function Login() {
                         <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Password</label>
                         <input
                           required
+                          name="password"
                           type="password"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}

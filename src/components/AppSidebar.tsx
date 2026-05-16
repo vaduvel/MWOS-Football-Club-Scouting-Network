@@ -4,6 +4,7 @@ import {
   FileText,
   Home,
   LogOut,
+  Bell,
   Settings,
   Shield,
   Star,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { AppUser } from '../lib/data';
+import NotificationCenter from './NotificationCenter';
 import {
   canAccessOversightModule,
   canAccessPlayerHub,
@@ -21,7 +23,7 @@ import {
   userHasAnyRole,
 } from '../lib/data';
 
-export type SidebarSection = 'home' | 'training' | 'transport' | 'scouting' | 'players' | 'oversight' | 'settings';
+export type SidebarSection = 'home' | 'notifications' | 'training' | 'transport' | 'scouting' | 'players' | 'oversight' | 'settings';
 
 type AppSidebarProps = {
   current: SidebarSection;
@@ -39,6 +41,7 @@ type SidebarItem = {
 function buildSidebarItems(user: AppUser | null): SidebarItem[] {
   const items: SidebarItem[] = [
     { key: 'home', label: 'Club Home', path: '/', icon: Home },
+    { key: 'notifications', label: 'Notifications', path: '/notifications', icon: Bell },
   ];
 
   if (canAccessTrainingModule(user)) {
@@ -96,6 +99,7 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
 
   return (
     <>
+      <NotificationCenter />
       <aside className="mwos-auth-shell relative hidden w-[296px] overflow-hidden border-r border-r-white/10 text-white md:block">
         <div className="mwos-subtle-grid absolute inset-0 opacity-30" />
         <div className="relative flex h-full flex-col gap-6 p-6">

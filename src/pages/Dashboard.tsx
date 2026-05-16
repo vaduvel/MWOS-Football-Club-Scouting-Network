@@ -1,12 +1,16 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, ChevronRight, FileText, Plus, Search, Trash2 } from 'lucide-react';
+import { Calendar, ChevronRight, FileText, Trash2 } from 'lucide-react';
 import AdminDashboardPanel from '../components/AdminDashboardPanel';
 import AppSidebar from '../components/AppSidebar';
+import ScoutingWorkspaceActions from '../components/scouting/ScoutingWorkspaceActions';
+import ScoutingWorkspaceHero from '../components/scouting/ScoutingWorkspaceHero';
+import ScoutingWorkspaceMetrics from '../components/scouting/ScoutingWorkspaceMetrics';
 import {
   deleteReport,
   fetchAdminAiInsights,
   fetchAdminDashboardOverview,
+  fetchPlayerHubData,
   fetchReports,
   userHasRole,
   sendAdminChatMessage,
@@ -14,7 +18,13 @@ import {
   type AdminAiInsights,
   type AdminChatMessage,
   type AdminDashboardOverview,
+  type PlayerHubOverview,
 } from '../lib/data';
+import {
+  buildScoutingWorkspaceActions,
+  buildScoutingWorkspaceHero,
+  buildScoutingWorkspaceMetrics,
+} from '../lib/scoutingWorkspaceDomain';
 import { useAuthStore } from '../store/auth';
 import type { Report } from '../store/report';
 
@@ -101,6 +111,7 @@ export default function Dashboard() {
   const { user, token, logout } = useAuthStore();
   const [reports, setReports] = useState<Report[]>([]);
   const [adminOverview, setAdminOverview] = useState<AdminDashboardOverview | null>(null);
+  const [playerHubOverview, setPlayerHubOverview] = useState<PlayerHubOverview | null>(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
@@ -138,13 +149,15 @@ export default function Dashboard() {
 
     void (async () => {
       try {
-        const [data, overview] = await Promise.all([
+        const [data, playerHubData, overview] = await Promise.all([
           fetchReports(),
+          fetchPlayerHubData(),
           isAdmin ? fetchAdminDashboardOverview() : Promise.resolve(null),
         ]);
 
         if (!isMounted) return;
         setReports(data);
+        setPlayerHubOverview(playerHubData);
         setAdminOverview(overview);
       } catch (error) {
         console.error('Failed to load reports.', error);
@@ -275,6 +288,21 @@ export default function Dashboard() {
     }
   };
 
+  const workspaceHero = buildScoutingWorkspaceHero(isAdmin);
+  const workspaceMetrics = buildScoutingWorkspaceMetrics({
+    isLeadership: isAdmin,
+    totalReports: reports.length,
+    reportsThisWeek,
+    filteredReports: filteredReports.length,
+    trackedPlayers: playerHubOverview?.totalTrackedPlayers || 0,
+    shortlistCount: playerHubOverview?.watchlistCount || 0,
+    competitionsTracked: adminOverview?.competitionsTracked || 0,
+  });
+  const workspaceActions = buildScoutingWorkspaceActions({
+    isLeadership: isAdmin,
+    hasTrackedPlayers: (playerHubOverview?.totalTrackedPlayers || 0) > 0,
+  });
+
   return (
     <div className="min-h-screen bg-[var(--color-light)] flex flex-col md:flex-row">
       <AppSidebar
@@ -285,79 +313,16 @@ export default function Dashboard() {
 
       <main className="flex-1 overflow-auto p-4 pb-28 md:p-6">
         <div className="mx-auto w-full max-w-[1560px] space-y-5">
-          <div className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface relative overflow-hidden px-4 py-4 text-white md:px-6 md:py-5">
-              <div className="flex flex-col gap-3 border-b border-white/10 pb-4 xl:flex-row xl:items-start xl:justify-between xl:gap-5 xl:pb-5">
-                <div className="flex items-center gap-3">
-                  <img
-                    src="/branding/mwos-fc-300-2.png"
-                    alt="MWOS logo"
-                    className="h-9 w-9 rounded-full border border-white/20 bg-white/10 p-0.5 md:h-12 md:w-12"
-                  />
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/68 md:text-[11px] md:tracking-[0.32em]">
-                      MWOS Football Club
-                    </p>
-                    <h2 className="mt-1 mwos-display text-[2rem] uppercase leading-none tracking-[0.05em] text-white md:mt-2 md:text-4xl xl:text-5xl">
-                      {isAdmin ? 'Scouting Oversight' : 'Scouting Reports'}
-                    </h2>
-                  </div>
-                </div>
+          <ScoutingWorkspaceHero
+            hero={workspaceHero}
+            search={search}
+            onSearchChange={setSearch}
+            onCreateReport={() => navigate('/scouting/report/new')}
+            secondaryCtaLabel="Open Player Hub"
+            onSecondaryCta={() => navigate('/players')}
+          />
 
-                <div className="flex w-full flex-col gap-2.5 xl:max-w-[680px] xl:items-end">
-                  <div className="flex w-full items-center rounded-2xl border border-white/12 bg-white/10 px-3.5 py-3 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
-                    <Search className="mr-3 text-white/68" size={18} />
-                    <input
-                      type="text"
-                      placeholder={isAdmin ? 'Search reports, competitions, creators…' : 'Search tracked reports and notes…'}
-                      className="w-full bg-transparent text-sm font-semibold text-white placeholder:text-white/60 outline-none"
-                      value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                    />
-                  </div>
-                  <button
-                    onClick={() => navigate('/scouting/report/new')}
-                    className="self-start rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-[var(--color-primary)] shadow-[0_16px_32px_rgba(12,16,53,0.22)] transition-all hover:-translate-y-0.5 xl:self-auto"
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <Plus size={18} />
-                      New Report
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              <p className="mt-4 hidden max-w-3xl text-sm font-semibold text-white/76 md:block">
-                {isAdmin
-                  ? 'Track club-wide reports, staff activity, strong player mentions and AI-guided scouting signals from one oversight workspace.'
-                  : 'Review match reports, player output and active scouting notes from the club scouting module.'}
-              </p>
-            </div>
-          </div>
-
-          {!isAdmin ? (
-            <div className="grid grid-cols-3 gap-2 md:hidden">
-              {[
-                { label: 'Reports', value: reports.length },
-                { label: 'This Week', value: reportsThisWeek },
-                { label: 'Shown', value: filteredReports.length },
-              ].map((item, index) => (
-                <div
-                  key={item.label}
-                  className={`rounded-[20px] border px-3 py-3 shadow-[0_12px_28px_rgba(49,39,131,0.06)] ${
-                    index === 0
-                      ? 'border-[var(--color-primary)]/15 bg-[linear-gradient(135deg,rgba(49,39,131,0.10),rgba(255,255,255,0.96))]'
-                      : index === 1
-                        ? 'border-[var(--color-accent)]/12 bg-[linear-gradient(135deg,rgba(190,23,23,0.08),rgba(255,255,255,0.96))]'
-                        : 'border-[#d5aa4d]/18 bg-[linear-gradient(135deg,rgba(213,170,77,0.12),rgba(255,255,255,0.96))]'
-                  }`}
-                >
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">{item.label}</p>
-                  <p className="mt-2 text-2xl font-black leading-none text-[var(--color-dark)]">{item.value}</p>
-                </div>
-              ))}
-            </div>
-          ) : null}
+          <ScoutingWorkspaceMetrics metrics={workspaceMetrics} />
 
           {isAdmin && adminLoadError && (
             <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -379,6 +344,11 @@ export default function Dashboard() {
               onSendChat={handleSendChat}
             />
           )}
+
+          <ScoutingWorkspaceActions
+            actions={workspaceActions}
+            onOpen={(path) => navigate(path)}
+          />
 
           {/* Mobile compact list */}
           <div className="md:hidden">

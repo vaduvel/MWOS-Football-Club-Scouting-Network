@@ -295,7 +295,7 @@ export default function ReportEditor() {
       setDraftNotice('');
       emitDraftSync({
         state: 'synced',
-        message: 'Changes synced to the club workspace.',
+        message: 'Changes synced to the scouting workspace.',
       });
 
       if (isNewReport) {
@@ -376,12 +376,12 @@ export default function ReportEditor() {
                 className="h-9 w-9 rounded-full border border-white/20 bg-white/10 p-0.5"
               />
               <div className="min-w-0">
-                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/62">MWOS Match Report</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/62">MWOS Scouting Workspace</p>
                 <h1 className="truncate text-lg font-black leading-none text-white">
                   {currentReport.home_team && currentReport.away_team ? `${currentReport.home_team} vs ${currentReport.away_team}` : 'New Report'}
                 </h1>
                 <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/72">
-                  {currentReport.competition || 'Draft'} · {currentTabMeta.mobileLabel}
+                  Match Report · {currentReport.competition || 'Draft'} · {currentTabMeta.mobileLabel}
                 </p>
               </div>
             </div>
@@ -415,7 +415,7 @@ export default function ReportEditor() {
                   Saved
                 </span>
               ) : (
-                'Ready to scout'
+                'Ready for scouting notes'
               )}
             </div>
             {isAdmin && (currentReport.owner_name || currentReport.owner_email) ? (
@@ -437,25 +437,28 @@ export default function ReportEditor() {
               className="h-11 w-11 rounded-full border border-white/20 bg-white/10 p-0.5"
             />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/68">MWOS Match Report</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/68">MWOS Scouting Workspace</p>
               <h1 className="text-xl font-black leading-normal text-white">
                 {currentReport.home_team && currentReport.away_team ? `${currentReport.home_team} vs ${currentReport.away_team}` : 'New Report'}
               </h1>
               <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-white/74">
-                {currentReport.competition || 'Draft'}
+                Match Report · {currentReport.competition || 'Draft'}
               </p>
               {isAdmin && (currentReport.owner_name || currentReport.owner_email) && (
                 <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-white/88">
                   Owner: {currentReport.owner_name || currentReport.owner_email}
                 </p>
               )}
+              <p className="mt-1 text-xs font-semibold text-white/68">
+                Move between match notes, team sheets, reviews and export from one connected scouting flow.
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             {isOffline ? (
               <span className="inline-flex items-center text-xs font-semibold text-white/72">
-                Offline mode · saving locally
+                Offline mode · saving locally in scouting draft storage
               </span>
             ) : draftNotice ? (
               <span className="inline-flex items-center text-xs font-semibold text-white/72">{draftNotice}</span>

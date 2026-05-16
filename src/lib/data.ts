@@ -3,6 +3,14 @@ import type { Player, PlayerReview, Report } from '../store/report';
 import type { AppSettings } from '../store/settings';
 import { createId } from './ids';
 import { assertSupabaseConfigured, supabase } from './supabase';
+import {
+  formatInvitationStatusLabel,
+  normalizeInviteEmail,
+  validateInviteInput,
+  type InviteDeliveryMode,
+  type InviteDeliveryResult,
+  type InviteStatus,
+} from './inviteDomain';
 
 export interface AppRole {
   slug: string;
@@ -64,6 +72,58 @@ interface UserTeamJoinRow {
         is_active: boolean;
       }[]
     | null;
+}
+
+interface StaffInvitationRoleJoinRow {
+  role_id: string;
+  roles:
+    | {
+        id: string;
+        slug: string;
+        label: string;
+      }
+    | {
+        id: string;
+        slug: string;
+        label: string;
+      }[]
+    | null;
+}
+
+interface StaffInvitationTeamJoinRow {
+  team_id: string;
+  teams:
+    | {
+        id: string;
+        slug: string;
+        name: string;
+        is_active: boolean;
+      }
+    | {
+        id: string;
+        slug: string;
+        name: string;
+        is_active: boolean;
+      }[]
+    | null;
+}
+
+interface StaffInvitationRow {
+  id: string;
+  email: string;
+  full_name: string;
+  status: InviteStatus;
+  resolved_user_id: string | null;
+  message_type: 'invite' | 'existing_access_update';
+  last_sent_at: string | null;
+  accepted_at: string | null;
+  cancelled_at: string | null;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+  inviter_user_id: string;
+  staff_invitation_roles: StaffInvitationRoleJoinRow[] | null;
+  staff_invitation_teams: StaffInvitationTeamJoinRow[] | null;
 }
 
 interface ReportRow {
@@ -380,6 +440,64 @@ export interface ClubAccessOverview {
   users: ClubAccessUserRecord[];
 }
 
+export interface StaffInvitationRecord {
+  id: string;
+  email: string;
+  fullName: string;
+  status: InviteStatus;
+  statusLabel: string;
+  roles: AppRole[];
+  teams: AppTeam[];
+  inviterName: string;
+  inviterEmail: string;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+  lastSentAt: string | null;
+  acceptedAt: string | null;
+  cancelledAt: string | null;
+  resolvedUserId: string | null;
+  messageType: 'invite' | 'existing_access_update';
+}
+
+export interface StaffInvitationInput {
+  fullName: string;
+  email: string;
+  roleSlugs: string[];
+  teamIds: string[];
+  deliveryMode?: InviteDeliveryMode;
+}
+
+export interface StaffInvitationDeliveryResponse {
+  ok: boolean;
+  mode: 'new_user' | 'existing_user';
+  invitationId: string;
+  message: string;
+  delivery: InviteDeliveryResult;
+  activationLink?: string;
+  shareLink?: string;
+  deliveryMode?: InviteDeliveryMode;
+}
+
+export interface StaffInvitationActionResponse {
+  ok: boolean;
+  message: string;
+  delivery?: InviteDeliveryResult;
+  activationLink?: string;
+  shareLink?: string;
+}
+
+export interface AcceptInvitationSummary {
+  invitationToken: string;
+  email: string;
+  fullName: string;
+  status: InviteStatus;
+  statusLabel: string;
+  roles: AppRole[];
+  teams: AppTeam[];
+  expiresAt: string;
+}
+
 const DEFAULT_FORMATION = '4-3-3';
 const CLUB_ROLE_PRIORITY = [
   'admin',
@@ -403,6 +521,11 @@ const PLAYER_ATTRIBUTE_FIELDS = [
 export const DEFAULT_SETTINGS: AppSettings = {
   football_api_provider: 'api-football',
   football_api_key: '',
+  email_training_plan_published: true,
+  email_training_td_comment: true,
+  email_training_reminder: true,
+  email_training_schedule_change: true,
+  email_transport_updates: true,
 };
 
 function getDisplayName(email: string | null | undefined) {
@@ -446,6 +569,63 @@ function getPrimaryRoleLabel(roleSlugs: string[], fallbackRole: string | null | 
   return normalizedFallback ? formatRoleLabel(normalizedFallback) : 'Pending';
 }
 
+function toInvitationRoles(rows: StaffInvitationRoleJoinRow[] | null | undefined): AppRole[] {
+  const collected: AppRole[] = [];
+  (rows || []).forEach((row) => {
+    const joined = Array.isArray(row.roles) ? row.roles : row.roles ? [row.roles] : [];
+    joined.forEach((role) => {
+      collected.push({
+        slug: normalizeRoleSlug(role.slug),
+        label: role.label?.trim() || formatRoleLabel(role.slug),
+      });
+    });
+  });
+  const ordered = normalizeRoleList(collected.map((role) => role.slug));
+  return ordered.map((slug) => collected.find((role) => role.slug === slug) || { slug, label: formatRoleLabel(slug) });
+}
+
+function toInvitationTeams(rows: StaffInvitationTeamJoinRow[] | null | undefined): AppTeam[] {
+  const collected: AppTeam[] = [];
+  (rows || []).forEach((row) => {
+    const joined = Array.isArray(row.teams) ? row.teams : row.teams ? [row.teams] : [];
+    joined.forEach((team) => {
+      collected.push({
+        id: team.id,
+        slug: team.slug,
+        name: team.name,
+        is_active: Boolean(team.is_active),
+      });
+    });
+  });
+  return Array.from(new Map(collected.map((team) => [team.id, team])).values()).sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function toStaffInvitationRecord(
+  row: StaffInvitationRow,
+  inviterProfilesById: Map<string, Pick<ProfileRow, 'id' | 'email' | 'name'>>,
+): StaffInvitationRecord {
+  const inviter = inviterProfilesById.get(row.inviter_user_id);
+  return {
+    id: row.id,
+    email: row.email,
+    fullName: row.full_name,
+    status: row.status,
+    statusLabel: formatInvitationStatusLabel(row.status),
+    roles: toInvitationRoles(row.staff_invitation_roles),
+    teams: toInvitationTeams(row.staff_invitation_teams),
+    inviterName: inviter?.name || getDisplayName(inviter?.email),
+    inviterEmail: inviter?.email || '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    expiresAt: row.expires_at,
+    lastSentAt: row.last_sent_at,
+    acceptedAt: row.accepted_at,
+    cancelledAt: row.cancelled_at,
+    resolvedUserId: row.resolved_user_id,
+    messageType: row.message_type,
+  };
+}
+
 export function userHasRole(user: Pick<AppUser, 'roles'> | null | undefined, role: string) {
   const target = normalizeRoleSlug(role);
   if (!target || !user) return false;
@@ -461,7 +641,7 @@ export function canAccessTrainingModule(user: Pick<AppUser, 'roles'> | null | un
 }
 
 export function canAccessTransportModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'driver']);
+  return userHasAnyRole(user, ['admin', 'technical_director', 'driver', 'coach']);
 }
 
 export function canAccessScoutingModule(user: Pick<AppUser, 'roles'> | null | undefined) {
@@ -717,7 +897,7 @@ async function getCurrentAuthUser() {
   return user;
 }
 
-async function getCurrentAppUser() {
+export async function getCurrentAppUser() {
   const user = await getCurrentAuthUser();
   return upsertProfile(user);
 }
@@ -1884,7 +2064,9 @@ export async function fetchUserSettings() {
   const authUser = await getCurrentAuthUser();
   const { data, error } = await supabase
     .from('user_settings')
-    .select('football_api_provider, football_api_key')
+    .select(
+      'football_api_provider, football_api_key, email_training_plan_published, email_training_td_comment, email_training_reminder, email_training_schedule_change, email_transport_updates',
+    )
     .eq('user_id', authUser.id)
     .maybeSingle();
 
@@ -1895,15 +2077,35 @@ export async function fetchUserSettings() {
   return {
     football_api_provider: data?.football_api_provider || DEFAULT_SETTINGS.football_api_provider,
     football_api_key: data?.football_api_key || DEFAULT_SETTINGS.football_api_key,
+    email_training_plan_published:
+      data?.email_training_plan_published ?? DEFAULT_SETTINGS.email_training_plan_published,
+    email_training_td_comment:
+      data?.email_training_td_comment ?? DEFAULT_SETTINGS.email_training_td_comment,
+    email_training_reminder:
+      data?.email_training_reminder ?? DEFAULT_SETTINGS.email_training_reminder,
+    email_training_schedule_change:
+      data?.email_training_schedule_change ?? DEFAULT_SETTINGS.email_training_schedule_change,
+    email_transport_updates:
+      data?.email_transport_updates ?? DEFAULT_SETTINGS.email_transport_updates,
   };
 }
 
-export async function saveUserSettings(settings: AppSettings) {
+export async function saveUserSettings(settings: Partial<AppSettings>) {
   const authUser = await getCurrentAuthUser();
+  const currentSettings = await fetchUserSettings();
+  const nextSettings: AppSettings = {
+    ...currentSettings,
+    ...settings,
+  };
   const payload = {
     user_id: authUser.id,
-    football_api_provider: settings.football_api_provider,
-    football_api_key: settings.football_api_key,
+    football_api_provider: nextSettings.football_api_provider,
+    football_api_key: nextSettings.football_api_key,
+    email_training_plan_published: nextSettings.email_training_plan_published,
+    email_training_td_comment: nextSettings.email_training_td_comment,
+    email_training_reminder: nextSettings.email_training_reminder,
+    email_training_schedule_change: nextSettings.email_training_schedule_change,
+    email_transport_updates: nextSettings.email_transport_updates,
   };
 
   const { error } = await supabase.from('user_settings').upsert(payload);
@@ -1911,7 +2113,7 @@ export async function saveUserSettings(settings: AppSettings) {
     throw error;
   }
 
-  return settings;
+  return nextSettings;
 }
 
 export async function fetchClubAccessOverview(): Promise<ClubAccessOverview> {
@@ -2015,6 +2217,152 @@ export async function fetchClubAccessOverview(): Promise<ClubAccessOverview> {
     teams,
     users,
   };
+}
+
+export async function fetchStaffInvitations(): Promise<StaffInvitationRecord[]> {
+  const authUser = await getCurrentAppUser();
+
+  if (!userHasRole(authUser, 'admin')) {
+    throw new Error('Admin access is required.');
+  }
+
+  const { data, error } = await supabase
+    .from('staff_invitations')
+    .select(`
+      id,
+      email,
+      full_name,
+      status,
+      resolved_user_id,
+      message_type,
+      last_sent_at,
+      accepted_at,
+      cancelled_at,
+      expires_at,
+      created_at,
+      updated_at,
+      inviter_user_id,
+      staff_invitation_roles (
+        role_id,
+        roles (
+          id,
+          slug,
+          label
+        )
+      ),
+      staff_invitation_teams (
+        team_id,
+        teams (
+          id,
+          slug,
+          name,
+          is_active
+        )
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  const invitations = (data || []) as StaffInvitationRow[];
+  const inviterIds = Array.from(new Set(invitations.map((row) => row.inviter_user_id).filter(Boolean)));
+  const inviterProfilesById = new Map<string, Pick<ProfileRow, 'id' | 'email' | 'name'>>();
+
+  if (inviterIds.length > 0) {
+    const { data: inviterProfiles, error: inviterProfilesError } = await supabase
+      .from('profiles')
+      .select('id, email, name')
+      .in('id', inviterIds);
+
+    if (inviterProfilesError) {
+      throw inviterProfilesError;
+    }
+
+    ((inviterProfiles || []) as Array<Pick<ProfileRow, 'id' | 'email' | 'name'>>).forEach((profile) => {
+      inviterProfilesById.set(profile.id, profile);
+    });
+  }
+
+  return invitations.map((row) => toStaffInvitationRecord(row, inviterProfilesById));
+}
+
+export async function createStaffInvitation(input: StaffInvitationInput) {
+  const authUser = await getCurrentAppUser();
+
+  if (!userHasRole(authUser, 'admin')) {
+    throw new Error('Admin access is required.');
+  }
+
+  const payload = validateInviteInput(input);
+  return callFunctionRequest<StaffInvitationDeliveryResponse>(
+    'invite-staff',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...payload,
+        deliveryMode: input.deliveryMode || 'email',
+      }),
+    },
+  );
+}
+
+export async function resendStaffInvitation(invitationId: string) {
+  return callFunctionRequest<StaffInvitationActionResponse>('resend-staff-invite', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ invitationId }),
+  });
+}
+
+export async function cancelStaffInvitation(invitationId: string) {
+  return callFunctionRequest<StaffInvitationActionResponse>('cancel-staff-invite', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ invitationId }),
+  });
+}
+
+export async function issueStaffInvitationLink(invitationId: string) {
+  return callFunctionRequest<{ ok: boolean; message: string; activationLink: string }>('issue-staff-invite-link', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ invitationId }),
+  });
+}
+
+export async function fetchInvitationSummary(invitationToken: string): Promise<AcceptInvitationSummary> {
+  const body = await callFunctionRequest<{ ok: boolean; invitation: AcceptInvitationSummary }>(
+    'accept-staff-invite',
+    {
+      method: 'GET',
+    },
+    {
+      invitation: invitationToken,
+    },
+  );
+
+  return body.invitation;
+}
+
+export async function acceptStaffInvitation(invitationToken: string) {
+  return callFunctionRequest<{ ok: boolean; message: string; roles: string[] }>('accept-staff-invite', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ invitationToken }),
+  });
 }
 
 export async function saveUserClubAccess(userId: string, roleSlugs: string[], teamIds: string[]) {

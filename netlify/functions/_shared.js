@@ -21,6 +21,78 @@ function getSupabaseEnv() {
   return { url, anonKey };
 }
 
+export function getSupabaseUrl() {
+  return process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+}
+
+function getServiceSupabaseEnv() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) {
+    throw new Error('Missing Supabase service role configuration.');
+  }
+
+  return { url, serviceRoleKey };
+}
+
+export function createServiceSupabaseClient() {
+  const { url, serviceRoleKey } = getServiceSupabaseEnv();
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+export function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+export function getPublicAppUrl() {
+  const value =
+    process.env.APP_BASE_URL ||
+    process.env.VITE_APP_URL ||
+    process.env.URL ||
+    process.env.DEPLOY_PRIME_URL ||
+    '';
+
+  return String(value).replace(/\/$/, '');
+}
+
+export async function sendTransactionalEmail({ to, subject, html }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.NOTIFICATION_FROM_EMAIL;
+  const replyTo = process.env.NOTIFICATION_REPLY_TO_EMAIL;
+
+  if (!apiKey || !from) {
+    return { skipped: true, reason: 'Email provider is not configured.' };
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject,
+      html,
+      ...(replyTo ? { reply_to: replyTo } : {}),
+    }),
+  });
+
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(body?.message || `Resend request failed with status ${response.status}.`);
+  }
+
+  return { skipped: false, body };
+}
+
 function getAuthorizedSupabaseClient(event) {
   const authHeader = event.headers.authorization || event.headers.Authorization;
   if (!authHeader) {
@@ -67,17 +139,33 @@ export async function requireAdminUser(event) {
     return auth;
   }
 
-  const { data, error } = await auth.supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', auth.user.id)
-    .maybeSingle();
+  const [rolesResponse, profileResponse] = await Promise.all([
+    auth.supabase
+      .from('user_roles')
+      .select('roles!inner(slug)')
+      .eq('user_id', auth.user.id),
+    auth.supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', auth.user.id)
+      .maybeSingle(),
+  ]);
 
-  if (error) {
-    return { error: json(500, { error: error.message }) };
+  if (rolesResponse.error) {
+    return { error: json(500, { error: rolesResponse.error.message }) };
   }
 
-  if ((data?.role || '').trim().toLowerCase() !== 'admin') {
+  if (profileResponse.error) {
+    return { error: json(500, { error: profileResponse.error.message }) };
+  }
+
+  const roleRows = rolesResponse.data || [];
+  const hasAdminRole = roleRows.some((row) => {
+    const joined = Array.isArray(row.roles) ? row.roles : row.roles ? [row.roles] : [];
+    return joined.some((role) => String(role.slug || '').trim().toLowerCase() === 'admin');
+  });
+
+  if (!hasAdminRole && (profileResponse.data?.role || '').trim().toLowerCase() !== 'admin') {
     return { error: json(403, { error: 'Admin access is required.' }) };
   }
 

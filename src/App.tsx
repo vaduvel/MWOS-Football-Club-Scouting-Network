@@ -4,6 +4,7 @@ import PwaStatusDock from './components/PwaStatusDock';
 import { useAuthStore } from './store/auth';
 import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
+import AcceptInvitation from './pages/AcceptInvitation';
 import ClubHomePage from './pages/ClubHomePage';
 import Dashboard from './pages/Dashboard';
 import PlayersPage from './pages/PlayersPage';
@@ -12,6 +13,7 @@ import SettingsPage from './pages/SettingsPage';
 import TrainingPage from './pages/TrainingPage';
 import TransportPage from './pages/TransportPage';
 import OversightPage from './pages/OversightPage';
+import NotificationsPage from './pages/NotificationsPage';
 import MissingConfigScreen from './components/MissingConfigScreen';
 import { getSessionWithProfile, subscribeToAuthChanges } from './lib/data';
 import {
@@ -211,7 +213,9 @@ export default function App() {
       <Routes>
         <Route path="/login" element={!token ? <Login /> : <Navigate to="/" />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/accept-invite" element={<AcceptInvitation />} />
         <Route path="/" element={<ProtectedRoute><ClubHomePage /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
         <Route path="/training" element={<RoleRoute canAccess={canAccessTrainingModule}><TrainingPage /></RoleRoute>} />
         <Route path="/transport" element={<RoleRoute canAccess={canAccessTransportModule}><TransportPage /></RoleRoute>} />
         <Route path="/scouting" element={<RoleRoute canAccess={canAccessScoutingModule}><Dashboard /></RoleRoute>} />
