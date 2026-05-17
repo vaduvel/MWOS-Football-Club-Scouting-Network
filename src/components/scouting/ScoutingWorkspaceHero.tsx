@@ -5,7 +5,8 @@ type ScoutingWorkspaceHeroProps = {
   hero: HeroMeta;
   search: string;
   onSearchChange: (value: string) => void;
-  onCreateReport: () => void;
+  primaryCtaLabel: string;
+  onPrimaryCta: () => void;
   secondaryCtaLabel: string;
   onSecondaryCta: () => void;
 };
@@ -14,7 +15,8 @@ export default function ScoutingWorkspaceHero({
   hero,
   search,
   onSearchChange,
-  onCreateReport,
+  primaryCtaLabel,
+  onPrimaryCta,
   secondaryCtaLabel,
   onSecondaryCta,
 }: ScoutingWorkspaceHeroProps) {
@@ -57,12 +59,12 @@ export default function ScoutingWorkspaceHero({
                 {secondaryCtaLabel}
               </button>
               <button
-                onClick={onCreateReport}
+                onClick={onPrimaryCta}
                 className="rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-[var(--color-primary)] shadow-[0_16px_32px_rgba(12,16,53,0.22)] transition-all hover:-translate-y-0.5"
               >
                 <span className="inline-flex items-center gap-2">
                   <Plus size={18} />
-                  New Report
+                  {primaryCtaLabel}
                 </span>
               </button>
             </div>

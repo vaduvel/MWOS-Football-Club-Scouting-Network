@@ -2,11 +2,16 @@ import { useEffect, useMemo, useState, type Attributes } from 'react';
 import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
+  canAccessTrainingModule,
+  canAccessTransportModule,
+} from '../lib/data';
+import {
   fetchTrainingNotificationCenter,
   markAllNotificationsRead,
   markNotificationRead,
   type TrainingNotificationItem,
 } from '../lib/trainingData';
+import { useAuthStore } from '../store/auth';
 
 function timeLabel(value: string) {
   const date = new Date(value);
@@ -65,6 +70,7 @@ function NotificationRow({
 
 export default function NotificationCenter() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -103,6 +109,7 @@ export default function NotificationCenter() {
   }, [open]);
 
   const unreadItems = useMemo(() => items.filter((item) => !item.readAt).length, [items]);
+  const canOpenNotificationTarget = canAccessTrainingModule(user) || canAccessTransportModule(user);
 
   const handleOpenItem = async (item: TrainingNotificationItem) => {
     try {
@@ -119,7 +126,7 @@ export default function NotificationCenter() {
       console.error('Failed to mark notification as read.', markError);
     } finally {
       setOpen(false);
-      navigate(item.linkPath);
+      navigate(canOpenNotificationTarget ? item.linkPath : '/oversight');
     }
   };
 

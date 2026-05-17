@@ -1,4 +1,11 @@
-export type ClubHomeViewMode = 'leadership' | 'coach' | 'driver' | 'scout' | 'pending';
+export type ClubHomeViewMode =
+  | 'admin'
+  | 'technical_director'
+  | 'board_observer'
+  | 'coach'
+  | 'driver'
+  | 'scout'
+  | 'pending';
 
 export interface ClubHomeHero {
   eyebrow: string;
@@ -26,14 +33,12 @@ export interface ClubHomeMetricInput {
   pendingInvitations: number;
 }
 
-const LEADERSHIP_ROLES = new Set(['admin', 'technical_director', 'board_observer']);
-
 export function getClubHomeViewMode(roleSlugs: string[]): ClubHomeViewMode {
   const roles = new Set(roleSlugs.map((item) => item.trim().toLowerCase()).filter(Boolean));
 
-  if ([...roles].some((item) => LEADERSHIP_ROLES.has(item))) {
-    return 'leadership';
-  }
+  if (roles.has('admin')) return 'admin';
+  if (roles.has('technical_director')) return 'technical_director';
+  if (roles.has('board_observer')) return 'board_observer';
 
   if (roles.has('coach')) return 'coach';
   if (roles.has('driver')) return 'driver';
@@ -43,16 +48,38 @@ export function getClubHomeViewMode(roleSlugs: string[]): ClubHomeViewMode {
 
 export function buildClubHomeHero(view: ClubHomeViewMode, assignedTeams: number): ClubHomeHero {
   switch (view) {
-    case 'leadership':
+    case 'admin':
       return {
-        eyebrow: 'Leadership Workspace',
-        title: 'Keep the whole club aligned from one surface.',
+        eyebrow: 'Admin Workspace',
+        title: 'Run club operations from one surface.',
         description:
-          'See weekly training coverage, transport readiness, scouting pulse, and staff access without jumping between modules.',
+          'Keep training, transport, scouting pulse, and staff onboarding moving from one operational control point.',
         primaryLabel: 'Open oversight',
         primaryPath: '/oversight',
         secondaryLabel: 'Manage staff access',
         secondaryPath: '/settings',
+      };
+    case 'technical_director':
+      return {
+        eyebrow: 'Technical Director Workspace',
+        title: 'Review the week across every team and guide the coaches.',
+        description:
+          'Stay close to training quality, transport readiness, and club activity, then step into the right workspace when comments or direction are needed.',
+        primaryLabel: 'Review training plans',
+        primaryPath: '/training',
+        secondaryLabel: 'Open oversight',
+        secondaryPath: '/oversight',
+      };
+    case 'board_observer':
+      return {
+        eyebrow: 'Board Briefing',
+        title: 'Stay informed with a clean, read-only club summary.',
+        description:
+          'Review training publication, upcoming transport, scouting pulse, and key alerts without entering operational edit flows.',
+        primaryLabel: 'Open oversight',
+        primaryPath: '/oversight',
+        secondaryLabel: 'Open notifications',
+        secondaryPath: '/notifications',
       };
     case 'coach':
       return {
@@ -107,7 +134,7 @@ export function buildClubHomeMetricCards(
   input: ClubHomeMetricInput,
 ): ClubHomeMetricCard[] {
   switch (view) {
-    case 'leadership':
+    case 'admin':
       return [
         {
           label: 'Active Teams',
@@ -128,6 +155,52 @@ export function buildClubHomeMetricCards(
           label: 'Pending Invites',
           value: String(input.pendingInvitations),
           detail: 'Staff invitations still waiting for activation.',
+        },
+      ];
+    case 'technical_director':
+      return [
+        {
+          label: 'Active Teams',
+          value: String(input.assignedTeams),
+          detail: 'Teams currently visible from the technical view.',
+        },
+        {
+          label: 'Plans This Week',
+          value: String(input.trainingPlansCurrentWeek),
+          detail: 'Training plans ready for review or follow-up.',
+        },
+        {
+          label: 'Upcoming Transport',
+          value: String(input.upcomingTransportPlans),
+          detail: 'Trips still active across the club schedule.',
+        },
+        {
+          label: 'Unread Alerts',
+          value: String(input.unreadNotifications),
+          detail: 'Recent updates that may need technical attention.',
+        },
+      ];
+    case 'board_observer':
+      return [
+        {
+          label: 'Active Teams',
+          value: String(input.assignedTeams),
+          detail: 'Teams currently represented in the club workspace.',
+        },
+        {
+          label: 'Training Published',
+          value: `${input.publishedTrainingPlansCurrentWeek} / ${input.trainingPlansCurrentWeek}`,
+          detail: 'Current-week plans already visible to the wider staff.',
+        },
+        {
+          label: 'Reports This Week',
+          value: String(input.recentReports),
+          detail: 'Scouting reports created in the last 7 days.',
+        },
+        {
+          label: 'Unread Alerts',
+          value: String(input.unreadNotifications),
+          detail: 'Fresh updates waiting in the read-only briefing flow.',
         },
       ];
     case 'coach':

@@ -4,6 +4,7 @@ import {
   Bell,
   Bus,
   CalendarRange,
+  ClipboardList,
   FileText,
   Home,
   Mail,
@@ -22,6 +23,7 @@ import {
   canAccessTrainingModule,
   canAccessTransportModule,
   type AppUser,
+  type StaffAccessEventRecord,
 } from '../lib/data';
 import {
   fetchClubHomeWorkspace,
@@ -29,6 +31,7 @@ import {
   type ClubHomeWorkspace,
 } from '../lib/clubHomeData';
 import type { ClubHomeViewMode } from '../lib/clubHomeDomain';
+import { buildStaffingHealthCards } from '../lib/staffAccessActivityDomain';
 import type { TrainingNotificationItem, TrainingPlanSummary } from '../lib/trainingData';
 import { useAuthStore } from '../store/auth';
 
@@ -93,7 +96,9 @@ const MODULE_META: ModuleCard[] = [
 ];
 
 const MODULE_ORDER: Record<ClubHomeViewMode, string[]> = {
-  leadership: ['oversight', 'training', 'transport', 'scouting', 'players', 'home'],
+  admin: ['oversight', 'training', 'transport', 'scouting', 'players', 'home'],
+  technical_director: ['training', 'oversight', 'transport', 'home', 'scouting', 'players'],
+  board_observer: ['oversight', 'home', 'training', 'transport', 'scouting', 'players'],
   coach: ['training', 'transport', 'oversight', 'scouting', 'players', 'home'],
   driver: ['transport', 'training', 'oversight', 'home', 'scouting', 'players'],
   scout: ['scouting', 'players', 'training', 'oversight', 'transport', 'home'],
@@ -167,7 +172,15 @@ function SectionShell({
   );
 }
 
-function NotificationsFeed({ items, unreadCount }: { items: TrainingNotificationItem[]; unreadCount: number }) {
+function NotificationsFeed({
+  items,
+  unreadCount,
+  interactive = true,
+}: {
+  items: TrainingNotificationItem[];
+  unreadCount: number;
+  interactive?: boolean;
+}) {
   return (
     <SectionShell
       title="Notifications"
@@ -183,10 +196,11 @@ function NotificationsFeed({ items, unreadCount }: { items: TrainingNotification
       <div className="space-y-3">
         {items.length ? (
           items.map((item) => (
-            <Link
+            <div
               key={item.id}
-              to={item.linkPath || '/settings'}
-              className="group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition hover:border-[var(--color-primary)]/22"
+              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+                interactive ? 'hover:border-[var(--color-primary)]/22' : ''
+              }`}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -202,8 +216,14 @@ function NotificationsFeed({ items, unreadCount }: { items: TrainingNotification
                   {item.teamName} · {formatIsoDate(item.createdAt)}
                 </p>
               </div>
-              <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
-            </Link>
+              {interactive ? (
+                <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
+              ) : (
+                <span className="mt-1 shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                  Read-only
+                </span>
+              )}
+            </div>
           ))
         ) : (
           <EmptyState message="No notifications yet. They will appear here as training, transport, and staff updates happen." />
@@ -213,7 +233,7 @@ function NotificationsFeed({ items, unreadCount }: { items: TrainingNotification
   );
 }
 
-function TrainingFeed({ plans }: { plans: TrainingPlanSummary[] }) {
+function TrainingFeed({ plans, interactive = true }: { plans: TrainingPlanSummary[]; interactive?: boolean }) {
   return (
     <SectionShell
       title="Training this week"
@@ -223,10 +243,11 @@ function TrainingFeed({ plans }: { plans: TrainingPlanSummary[] }) {
       <div className="space-y-3">
         {plans.length ? (
           plans.map((plan) => (
-            <Link
+            <div
               key={plan.id}
-              to={`/training?team=${plan.teamId}`}
-              className="group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition hover:border-[var(--color-primary)]/22"
+              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+                interactive ? 'hover:border-[var(--color-primary)]/22' : ''
+              }`}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -242,8 +263,14 @@ function TrainingFeed({ plans }: { plans: TrainingPlanSummary[] }) {
                   Week of {formatIsoDate(plan.weekStart)}
                 </p>
               </div>
-              <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
-            </Link>
+              {interactive ? (
+                <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
+              ) : (
+                <span className="mt-1 shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                  Read-only
+                </span>
+              )}
+            </div>
           ))
         ) : (
           <EmptyState message="No current-week training plans are visible from this account yet." />
@@ -253,7 +280,7 @@ function TrainingFeed({ plans }: { plans: TrainingPlanSummary[] }) {
   );
 }
 
-function TransportFeed({ plans }: { plans: ClubHomeTransportItem[] }) {
+function TransportFeed({ plans, interactive = true }: { plans: ClubHomeTransportItem[]; interactive?: boolean }) {
   return (
     <SectionShell
       title="Upcoming transport"
@@ -263,10 +290,11 @@ function TransportFeed({ plans }: { plans: ClubHomeTransportItem[] }) {
       <div className="space-y-3">
         {plans.length ? (
           plans.map((plan) => (
-            <Link
+            <div
               key={plan.id}
-              to={`/transport?team=${plan.teamId}&plan=${plan.id}`}
-              className="group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition hover:border-[var(--color-primary)]/22"
+              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+                interactive ? 'hover:border-[var(--color-primary)]/22' : ''
+              }`}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -281,8 +309,14 @@ function TransportFeed({ plans }: { plans: ClubHomeTransportItem[] }) {
                 </p>
                 <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">Driver: {plan.driverName}</p>
               </div>
-              <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
-            </Link>
+              {interactive ? (
+                <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
+              ) : (
+                <span className="mt-1 shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                  Read-only
+                </span>
+              )}
+            </div>
           ))
         ) : (
           <EmptyState message="No active transport plans are visible from this account yet." />
@@ -292,7 +326,13 @@ function TransportFeed({ plans }: { plans: ClubHomeTransportItem[] }) {
   );
 }
 
-function ReportsFeed({ items }: { items: ClubHomeWorkspace['recentReports'] }) {
+function ReportsFeed({
+  items,
+  interactive = true,
+}: {
+  items: ClubHomeWorkspace['recentReports'];
+  interactive?: boolean;
+}) {
   return (
     <SectionShell
       title="Recent scouting reports"
@@ -302,10 +342,11 @@ function ReportsFeed({ items }: { items: ClubHomeWorkspace['recentReports'] }) {
       <div className="space-y-3">
         {items.length ? (
           items.map((item) => (
-            <Link
+            <div
               key={item.id}
-              to={`/scouting/report/${item.id}`}
-              className="group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition hover:border-[var(--color-primary)]/22"
+              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+                interactive ? 'hover:border-[var(--color-primary)]/22' : ''
+              }`}
             >
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black text-[var(--color-dark)]">{item.fixture}</p>
@@ -314,8 +355,14 @@ function ReportsFeed({ items }: { items: ClubHomeWorkspace['recentReports'] }) {
                   {formatIsoDate(item.date || item.createdAt)}
                 </p>
               </div>
-              <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
-            </Link>
+              {interactive ? (
+                <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
+              ) : (
+                <span className="mt-1 shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                  Read-only
+                </span>
+              )}
+            </div>
           ))
         ) : (
           <EmptyState message="No recent reports are visible from this account yet." />
@@ -408,6 +455,131 @@ function PendingInvitesFeed({ items }: { items: ClubHomeWorkspace['pendingInvita
   );
 }
 
+function StaffingHealthFeed({ workspace }: { workspace: ClubHomeWorkspace }) {
+  if (!workspace.staffingHealth) {
+    return null;
+  }
+
+  const cards = buildStaffingHealthCards(workspace.staffingHealth);
+
+  return (
+    <SectionShell
+      title="Staffing health"
+      description="Quick signals on onboarding, unassigned accounts, and where staff load is spread across the club."
+      icon={Shield}
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        {cards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4"
+          >
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">{card.label}</p>
+            <p className="mt-2 text-lg font-black text-[var(--color-dark)]">{card.value}</p>
+            <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">{card.detail}</p>
+          </div>
+        ))}
+      </div>
+    </SectionShell>
+  );
+}
+
+function StaffAccessActivityFeed({ items }: { items: StaffAccessEventRecord[] }) {
+  return (
+    <SectionShell
+      title="Recent access activity"
+      description="The latest invite and access changes flowing through the admin workspace."
+      icon={ClipboardList}
+    >
+      <div className="space-y-3">
+        {items.length ? (
+          items.map((item) => (
+            <Link
+              key={item.id}
+              to="/settings"
+              className="group block rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition hover:border-[var(--color-primary)]/22"
+            >
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-black text-[var(--color-dark)]">{item.targetName}</p>
+                    <span
+                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
+                        item.tone === 'warning'
+                          ? 'bg-amber-100 text-amber-700'
+                          : item.tone === 'success'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-white text-[var(--color-dark)]'
+                      }`}
+                    >
+                      {item.title}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.detail}</p>
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                    {item.targetEmail} · {formatIsoDate(item.createdAt)}
+                  </p>
+                </div>
+                <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
+              </div>
+            </Link>
+          ))
+        ) : (
+          <EmptyState message="No recent staff access activity yet." />
+        )}
+      </div>
+    </SectionShell>
+  );
+}
+
+function LeadershipModeCallout({ view }: { view: ClubHomeViewMode }) {
+  if (view === 'technical_director') {
+    return (
+      <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-primary)]">
+          Technical Director Mode
+        </p>
+        <p className="mt-3 text-lg font-black text-[var(--color-dark)]">
+          Club-wide review with comment-oriented follow-up.
+        </p>
+        <p className="mt-3 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+          Use this workspace to review training publication, transport readiness, and club activity across every team, then step into the planning modules when coaches need direction or comments.
+        </p>
+      </section>
+    );
+  }
+
+  if (view === 'board_observer') {
+    return (
+      <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-primary)]">
+          Board Briefing Mode
+        </p>
+        <p className="mt-3 text-lg font-black text-[var(--color-dark)]">
+          Read-only visibility into how the club is moving this week.
+        </p>
+        <p className="mt-3 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+          Everything here is optimized for summary and awareness. You can review the latest club activity without editing plans, staffing, or transport actions.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+      <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-primary)]">
+        Admin Operations Mode
+      </p>
+      <p className="mt-3 text-lg font-black text-[var(--color-dark)]">
+        Full club visibility with operational control.
+      </p>
+      <p className="mt-3 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+        Use this surface to keep staffing, planning, transport, and reporting aligned without switching between disconnected tools.
+      </p>
+    </section>
+  );
+}
+
 function ModuleGrid({
   view,
   user,
@@ -481,6 +653,15 @@ export default function ClubHomePage() {
     return user.teams.map((team) => team.name).join(' · ');
   }, [user]);
 
+  const isAdminView = workspace?.view === 'admin';
+  const isTechnicalDirectorView = workspace?.view === 'technical_director';
+  const isBoardObserverView = workspace?.view === 'board_observer';
+  const isLeadershipView = isAdminView || isTechnicalDirectorView || isBoardObserverView;
+  const canOpenTraining = canAccessTrainingModule(user);
+  const canOpenTransport = canAccessTransportModule(user);
+  const canOpenScouting = canAccessScoutingModule(user);
+  const canOpenNotifications = canOpenTraining || canOpenTransport;
+
   return (
     <div className="min-h-screen bg-[var(--color-light)] md:flex">
       <AppSidebar current="home" user={user} onLogout={() => void logout()} />
@@ -531,23 +712,64 @@ export default function ClubHomePage() {
             <>
               <MetricStrip items={workspace.metrics} />
 
-              {workspace.view === 'leadership' ? (
+              {isLeadershipView ? (
                 <>
+                  <LeadershipModeCallout view={workspace.view} />
+
                   <section className="grid gap-4 xl:grid-cols-2">
                     <AttentionFeed workspace={workspace} />
-                    <NotificationsFeed items={workspace.notifications} unreadCount={workspace.unreadNotificationCount} />
+                    <NotificationsFeed
+                      items={workspace.notifications}
+                      unreadCount={workspace.unreadNotificationCount}
+                      interactive={canOpenNotifications}
+                    />
                   </section>
 
-                  <section className="grid gap-4 xl:grid-cols-3">
-                    <TrainingFeed plans={workspace.trainingPlans} />
-                    <TransportFeed plans={workspace.upcomingTransport} />
-                    <PendingInvitesFeed items={workspace.pendingInvitations} />
-                  </section>
+                  {isAdminView ? (
+                    <>
+                      <section className="grid gap-4 xl:grid-cols-3">
+                        <TrainingFeed plans={workspace.trainingPlans} interactive={canOpenTraining} />
+                        <TransportFeed plans={workspace.upcomingTransport} interactive={canOpenTransport} />
+                        <PendingInvitesFeed items={workspace.pendingInvitations} />
+                      </section>
 
-                  <section className="grid gap-4 xl:grid-cols-2">
-                    <ReportsFeed items={workspace.recentReports} />
-                    <ModuleGrid view={workspace.view} user={user} />
-                  </section>
+                      <section className="grid gap-4 xl:grid-cols-3">
+                        <StaffingHealthFeed workspace={workspace} />
+                        <StaffAccessActivityFeed items={workspace.recentStaffAccessEvents} />
+                        <ReportsFeed items={workspace.recentReports} interactive={canOpenScouting} />
+                      </section>
+
+                      <ModuleGrid view={workspace.view} user={user} />
+                    </>
+                  ) : null}
+
+                  {isTechnicalDirectorView ? (
+                    <>
+                      <section className="grid gap-4 xl:grid-cols-2">
+                        <TrainingFeed plans={workspace.trainingPlans} interactive={canOpenTraining} />
+                        <TransportFeed plans={workspace.upcomingTransport} interactive={canOpenTransport} />
+                      </section>
+
+                      <section className="grid gap-4 xl:grid-cols-2">
+                        <ReportsFeed items={workspace.recentReports} interactive={canOpenScouting} />
+                        <ModuleGrid view={workspace.view} user={user} />
+                      </section>
+                    </>
+                  ) : null}
+
+                  {isBoardObserverView ? (
+                    <>
+                      <section className="grid gap-4 xl:grid-cols-2">
+                        <TrainingFeed plans={workspace.trainingPlans} interactive={canOpenTraining} />
+                        <TransportFeed plans={workspace.upcomingTransport} interactive={canOpenTransport} />
+                      </section>
+
+                      <section className="grid gap-4 xl:grid-cols-2">
+                        <ReportsFeed items={workspace.recentReports} interactive={canOpenScouting} />
+                        <ModuleGrid view={workspace.view} user={user} />
+                      </section>
+                    </>
+                  ) : null}
                 </>
               ) : null}
 

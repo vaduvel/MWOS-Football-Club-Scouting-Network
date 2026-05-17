@@ -1,57 +1,228 @@
-# Scout Report Builder
+# MWOS Club Management
 
-Aplicatia este pregatita acum pentru:
+MWOS Club Management este workspace-ul intern al clubului pentru:
 
-- autentificare si stocare date in Supabase
-- deploy frontend pe Netlify
-- functii Netlify pentru importul de loturi prin API-Football
+- `training planning`
+- `transport coordination`
+- `scouting reports`
+- `leadership oversight`
+- `staff onboarding`
+
+Aplicația rulează cu:
+
+- frontend React + Vite
+- Supabase pentru auth și baza de date
+- Netlify Functions pentru onboarding, notificări și integrări server-side
+
+## Module livrate
+
+- `Club Home`
+  - homepage role-aware pentru admin, technical director, board observer, coach, driver și scout
+- `Training`
+  - plan săptămânal pe echipă
+  - microciclu pe 7 zile
+  - comentarii și notificări
+- `Transport`
+  - planuri de deplasare
+  - comentarii și statusuri operaționale
+- `Scouting`
+  - reports
+  - player hub
+  - reviews
+  - export
+- `Oversight`
+  - leadership workspace
+  - attention rails
+  - invitații, training și transport într-o vedere unificată
+- `Settings`
+  - club roles și team assignments
+  - invite by email
+  - manual invite links
+  - WhatsApp-first onboarding
+  - launch readiness / integration status
+
+## Roluri
+
+- `Admin`
+- `Technical Director`
+- `Coach`
+- `Driver`
+- `Scout`
+- `Board Observer`
+
+Un user poate avea mai multe roluri și mai multe echipe pe același cont.
 
 ## Setup local
 
-1. Instaleaza dependintele:
-   `npm install`
-2. Copiaza variabilele din [.env.example](/Users/vaduvageorge/Desktop/Scout Report Builder/.env.example) intr-un fisier `.env.local`.
-3. Creeaza un proiect Supabase.
-4. Ruleaza SQL-ul din [supabase/schema.sql](/Users/vaduvageorge/Desktop/Scout Report Builder/supabase/schema.sql) in SQL Editor-ul Supabase.
-5. Completeaza:
-   `VITE_APP_URL`
-   `VITE_SUPABASE_URL`
-   `VITE_SUPABASE_ANON_KEY`
-6. Porneste frontend-ul:
-   `npm run dev`
+1. Instalează dependențele:
+   ```bash
+   npm install
+   ```
+2. Copiază variabilele din [`.env.example`](/Users/vaduvageorge/Desktop/Scout%20Report%20Builder/.env.example) în `.env.local`.
+3. Creează sau leagă proiectul Supabase.
+4. Rulează schema din [supabase/schema.sql](/Users/vaduvageorge/Desktop/Scout%20Report%20Builder/supabase/schema.sql) în `SQL Editor`.
+5. Completează minim:
+   - `VITE_APP_URL`
+   - `APP_BASE_URL`
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+6. Pornește aplicația:
+   ```bash
+   npm run dev
+   ```
 
-Observatie: importul de echipe foloseste functii Netlify. In productie merge direct pe Netlify. Local, pentru a testa si functiile, ruleaza proiectul prin `netlify dev` sau seteaza `VITE_NETLIFY_FUNCTIONS_BASE_URL` catre instanta ta de functii.
+## Variabile de mediu
+
+### Client
+
+- `VITE_APP_URL`
+  - URL-ul public al aplicației pentru linkuri de invite și reset
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_NETLIFY_FUNCTIONS_BASE_URL`
+  - implicit `/.netlify/functions`
+
+### Server / Netlify Functions
+
+- `APP_BASE_URL`
+  - fallback server-side pentru linkuri publice
+- `SUPABASE_SERVICE_ROLE_KEY`
+  - necesar pentru onboarding și notificări server-side
+- `GOOGLE_CLOUD_VISION_API_KEY`
+  - OCR pentru rapoarte scrise de mână
+- `GEMINI_API_KEY`
+  - admin AI / leadership insights
+- `RESEND_API_KEY`
+  - doar dacă vrei email delivery real din aplicație
+- `NOTIFICATION_FROM_EMAIL`
+- `NOTIFICATION_REPLY_TO_EMAIL`
+
+## Onboarding staff
+
+Există trei moduri reale de onboarding:
+
+1. `Send Email Invite`
+   - cere email delivery configurat
+2. `Create Share Link`
+   - funcționează fără Resend
+3. `Share on WhatsApp`
+   - funcționează fără Resend
+
+Important:
+
+- dacă `Resend` nu e configurat, aplicația rămâne folosibilă
+- adminul poate invita staff-ul prin `manual link` sau `WhatsApp`
+- `Settings -> Launch Readiness` explică limpede în ce mod operează sistemul
 
 ## Deploy pe Netlify
 
-1. Pune proiectul intr-un repository Git.
-2. In Netlify, conecteaza repository-ul.
-3. Build command:
-   `npm run build`
-4. Publish directory:
-   `dist`
-5. Adauga environment variables in Netlify:
-   `VITE_APP_URL=https://app.exemplu.com`
-   `VITE_SUPABASE_URL`
-   `VITE_SUPABASE_ANON_KEY`
-   `VITE_NETLIFY_FUNCTIONS_BASE_URL=/.netlify/functions`
-6. Deploy.
+1. Conectează repository-ul în Netlify.
+2. Setează:
+   - Build command:
+     ```bash
+     npm run build
+     ```
+   - Publish directory:
+     `dist`
+3. Adaugă environment variables:
+   - `VITE_APP_URL=https://scout-report-builder.netlify.app`
+   - `APP_BASE_URL=https://scout-report-builder.netlify.app`
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - opțional: `GEMINI_API_KEY`
+   - opțional: `RESEND_API_KEY`
+   - opțional: `NOTIFICATION_FROM_EMAIL`
+   - opțional: `NOTIFICATION_REPLY_TO_EMAIL`
 
-Fisierul [netlify.toml](/Users/vaduvageorge/Desktop/Scout Report Builder/netlify.toml) este deja adaugat pentru:
+Fișierul [netlify.toml](/Users/vaduvageorge/Desktop/Scout%20Report%20Builder/netlify.toml) este deja pregătit pentru:
 
 - publish din `dist`
 - functii din `netlify/functions`
-- redirect SPA catre `index.html`
+- SPA redirects
+- API rewrites pentru endpoint-urile admin / onboarding
 
-## Supabase auth
+## Configurare Supabase Auth
 
-Aplicatia foloseste Supabase Auth cu email/parola.
+În `Authentication -> URL Configuration`:
 
-- Daca vrei login imediat dupa sign-up, dezactiveaza `Confirm email` in Supabase Auth settings.
-- Daca lasi confirmarea activa, utilizatorul trebuie sa confirme emailul inainte de login.
-- Pentru recovery/reset password, in `Authentication -> URL Configuration` adauga:
-  `http://127.0.0.1:3001/reset-password`
-- Cand ai domeniul final, adauga si:
-  `https://app.exemplu.com/reset-password`
-  sau URL-ul final pe care va rula aplicatia.
-- `VITE_APP_URL` trebuie sa fie acelasi URL public folosit pentru linkurile de reset.
+- `Site URL`
+  - `https://scout-report-builder.netlify.app`
+
+- `Redirect URLs`
+  - `https://scout-report-builder.netlify.app/accept-invite`
+  - `https://scout-report-builder.netlify.app/reset-password`
+  - `http://127.0.0.1:3005/accept-invite`
+  - `http://127.0.0.1:3005/reset-password`
+  - opțional și `localhost:3005` dacă îl folosești
+
+Fără asta:
+
+- invite links
+- reset password
+
+pot cădea pe URL-uri greșite.
+
+## Verificare înainte de lansare
+
+Rulează:
+
+```bash
+npm run verify
+```
+
+Asta execută:
+
+- `npm test`
+- `npm run lint`
+- `npm run build`
+
+Pentru un snapshot de lansare cu un cont real de admin:
+
+```bash
+npm run smoke:release -- you@example.com your-password
+```
+
+Scriptul verifică:
+
+- login admin
+- roluri
+- launch readiness verdict
+- statusurile AI / email delivery
+- counts pentru invites, training, transport și reports
+
+În aplicație, verifică apoi:
+
+- `Settings -> Launch Readiness`
+- `Settings -> Invite & Alert Delivery`
+- `Settings -> Admin AI Integration`
+- `Settings -> Club Access`
+
+## Starea emailurilor
+
+Fără domeniu verificat în Resend:
+
+- onboardingul merge prin `manual links`
+- onboardingul merge prin `WhatsApp sharing`
+- email delivery automat rămâne opțional
+
+Cu domeniu verificat în Resend:
+
+- poți seta:
+  - `NOTIFICATION_FROM_EMAIL=MWOS Club Management <notifications@your-domain.com>`
+- invitațiile și alertele importante pleacă direct prin email
+
+## Curățare operațională
+
+Adminul poate acum:
+
+- reasigna roluri și echipe
+- revoca accesul fără a șterge userul
+- re-emite linkuri
+- expira invitațiile stale din pending queue
+
+Pentru cleanup final înainte de go-live:
+
+- șterge aliasurile/test users din Supabase Auth
+- expiră sau anulează invite-urile vechi
+- păstrează doar conturile reale ale staff-ului

@@ -7,6 +7,8 @@ import ScoutingWorkspaceActions from '../components/scouting/ScoutingWorkspaceAc
 import ScoutingWorkspaceHero from '../components/scouting/ScoutingWorkspaceHero';
 import ScoutingWorkspaceMetrics from '../components/scouting/ScoutingWorkspaceMetrics';
 import {
+  fetchAdminAiStatus,
+  canCreateScoutingReports,
   deleteReport,
   fetchAdminAiInsights,
   fetchAdminDashboardOverview,
@@ -16,6 +18,7 @@ import {
   sendAdminChatMessage,
   type AdminAiContext,
   type AdminAiInsights,
+  type AdminAiStatus,
   type AdminChatMessage,
   type AdminDashboardOverview,
   type PlayerHubOverview,
@@ -119,6 +122,9 @@ export default function Dashboard() {
   const [insights, setInsights] = useState<AdminAiInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [insightsError, setInsightsError] = useState('');
+  const [adminAiStatus, setAdminAiStatus] = useState<AdminAiStatus | null>(null);
+  const [adminAiStatusLoading, setAdminAiStatusLoading] = useState(false);
+  const [adminAiStatusError, setAdminAiStatusError] = useState('');
   const [chatMessages, setChatMessages] = useState<AdminChatMessage[]>([
     {
       role: 'assistant',
@@ -130,6 +136,9 @@ export default function Dashboard() {
   const [chatError, setChatError] = useState('');
   const navigate = useNavigate();
   const isAdmin = userHasRole(user, 'admin');
+  const isTechnicalDirector = userHasRole(user, 'technical_director');
+  const isLeadership = isAdmin || isTechnicalDirector;
+  const canCreateReports = canCreateScoutingReports(user);
   const reportsThisWeek = reports.filter((report) => {
     const rawDate = report.date || '';
     const parsedDate = rawDate ? new Date(rawDate) : null;
@@ -146,6 +155,7 @@ export default function Dashboard() {
     let isMounted = true;
     setLoading(true);
     setAdminLoadError('');
+    setAdminAiStatusError('');
 
     void (async () => {
       try {
@@ -176,7 +186,41 @@ export default function Dashboard() {
   }, [token, isAdmin]);
 
   useEffect(() => {
-    if (!isAdmin || !adminOverview) {
+    if (!isAdmin || !token) {
+      setAdminAiStatus(null);
+      setAdminAiStatusLoading(false);
+      setAdminAiStatusError('');
+      return;
+    }
+
+    let isMounted = true;
+    setAdminAiStatusLoading(true);
+    setAdminAiStatusError('');
+
+    void (async () => {
+      try {
+        const status = await fetchAdminAiStatus();
+        if (!isMounted) return;
+        setAdminAiStatus(status);
+      } catch (error: any) {
+        if (!isMounted) return;
+        console.error('Failed to load Admin AI status.', error);
+        setAdminAiStatus(null);
+        setAdminAiStatusError(error.message || 'Failed to load Admin AI status.');
+      } finally {
+        if (isMounted) {
+          setAdminAiStatusLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAdmin, token]);
+
+  useEffect(() => {
+    if (!isAdmin || !adminOverview || !adminAiStatus?.configured) {
       setInsights(null);
       setInsightsError('');
       return;
@@ -207,6 +251,7 @@ export default function Dashboard() {
     };
   }, [
     isAdmin,
+    adminAiStatus?.configured,
     adminOverview?.totalReports,
     adminOverview?.reportsLast7Days,
     adminOverview?.topPlayers.length,
@@ -218,7 +263,7 @@ export default function Dashboard() {
       report.home_team.toLowerCase().includes(search.toLowerCase()) ||
       report.away_team.toLowerCase().includes(search.toLowerCase()) ||
       report.competition.toLowerCase().includes(search.toLowerCase()) ||
-      (isAdmin &&
+      (isLeadership &&
         `${report.owner_name || ''} ${report.owner_email || ''}`.toLowerCase().includes(search.toLowerCase())),
   );
 
@@ -253,7 +298,7 @@ export default function Dashboard() {
   };
 
   const handleRefreshInsights = async () => {
-    if (!adminOverview) return;
+    if (!adminOverview || !adminAiStatus?.configured) return;
 
     setInsightsLoading(true);
     setInsightsError('');
@@ -270,6 +315,10 @@ export default function Dashboard() {
 
   const handleSendChat = async (message: string) => {
     if (!adminOverview) return;
+    if (!adminAiStatus?.configured) {
+      setChatError(adminAiStatus?.setupHint || 'Admin AI is not configured yet.');
+      return;
+    }
 
     const nextMessages = [...chatMessages, { role: 'user' as const, content: message }];
     setChatMessages(nextMessages);
@@ -288,19 +337,22 @@ export default function Dashboard() {
     }
   };
 
-  const workspaceHero = buildScoutingWorkspaceHero(isAdmin);
+  const workspaceHero = buildScoutingWorkspaceHero(isLeadership);
   const workspaceMetrics = buildScoutingWorkspaceMetrics({
-    isLeadership: isAdmin,
+    isLeadership,
     totalReports: reports.length,
     reportsThisWeek,
     filteredReports: filteredReports.length,
     trackedPlayers: playerHubOverview?.totalTrackedPlayers || 0,
     shortlistCount: playerHubOverview?.watchlistCount || 0,
-    competitionsTracked: adminOverview?.competitionsTracked || 0,
+    competitionsTracked:
+      adminOverview?.competitionsTracked ||
+      new Set(reports.map((report) => report.competition).filter(Boolean)).size,
   });
   const workspaceActions = buildScoutingWorkspaceActions({
-    isLeadership: isAdmin,
+    isLeadership,
     hasTrackedPlayers: (playerHubOverview?.totalTrackedPlayers || 0) > 0,
+    canCreateReports,
   });
 
   return (
@@ -317,9 +369,10 @@ export default function Dashboard() {
             hero={workspaceHero}
             search={search}
             onSearchChange={setSearch}
-            onCreateReport={() => navigate('/scouting/report/new')}
-            secondaryCtaLabel="Open Player Hub"
-            onSecondaryCta={() => navigate('/players')}
+            primaryCtaLabel={canCreateReports ? 'New Report' : 'Open Player Hub'}
+            onPrimaryCta={() => navigate(canCreateReports ? '/scouting/report/new' : '/players')}
+            secondaryCtaLabel={canCreateReports ? 'Open Player Hub' : 'Open Oversight'}
+            onSecondaryCta={() => navigate(canCreateReports ? '/players' : '/oversight')}
           />
 
           <ScoutingWorkspaceMetrics metrics={workspaceMetrics} />
@@ -331,9 +384,12 @@ export default function Dashboard() {
           )}
 
           {isAdmin && adminOverview && (
-            <AdminDashboardPanel
+          <AdminDashboardPanel
               overview={adminOverview}
               onOpenReport={(reportId) => navigate(`/scouting/report/${reportId}`)}
+              aiStatus={adminAiStatus}
+              aiStatusLoading={adminAiStatusLoading}
+              aiStatusError={adminAiStatusError}
               insights={insights}
               insightsLoading={insightsLoading}
               insightsError={insightsError}
@@ -395,22 +451,24 @@ export default function Dashboard() {
                             {formatDisplayDate(report.date)}
                           </span>
                         </div>
-                        {isAdmin && (report.owner_name || report.owner_email) && (
+                        {isLeadership && (report.owner_name || report.owner_email) && (
                           <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--color-mid)]">
                             {report.owner_name || report.owner_email}
                           </p>
                         )}
                       </div>
                       <div className="flex flex-shrink-0 items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={(event) => void handleDeleteReport(event, report.id!)}
-                          disabled={deletingReportId === report.id}
-                          className="rounded-lg p-2 text-[var(--color-mid)] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                          aria-label="Delete report"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        {canCreateReports ? (
+                          <button
+                            type="button"
+                            onClick={(event) => void handleDeleteReport(event, report.id!)}
+                            disabled={deletingReportId === report.id}
+                            className="rounded-lg p-2 text-[var(--color-mid)] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                            aria-label="Delete report"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        ) : null}
                         <ChevronRight size={18} className="text-[var(--color-mid)]" />
                       </div>
                     </div>
@@ -437,7 +495,7 @@ export default function Dashboard() {
                         <span className={`rounded-md px-2 py-1 text-xs font-bold uppercase tracking-wider ${variant.badge}`}>
                           {report.competition || 'Friendly'}
                         </span>
-                        {isAdmin && (report.owner_name || report.owner_email) && (
+                        {isLeadership && (report.owner_name || report.owner_email) && (
                           <p className="mt-2 truncate text-[11px] font-semibold text-[var(--color-mid)]">
                             Created by {report.owner_name || report.owner_email}
                           </p>
@@ -448,16 +506,18 @@ export default function Dashboard() {
                           <Calendar size={12} className="mr-1" />
                           {formatDisplayDate(report.date)}
                         </div>
-                        <button
-                          type="button"
-                          onClick={(event) => void handleDeleteReport(event, report.id!)}
-                          disabled={deletingReportId === report.id}
-                          className="rounded-lg p-1.5 text-[var(--color-mid)] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                          aria-label="Delete report"
-                          title="Delete report"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {canCreateReports ? (
+                          <button
+                            type="button"
+                            onClick={(event) => void handleDeleteReport(event, report.id!)}
+                            disabled={deletingReportId === report.id}
+                            className="rounded-lg p-1.5 text-[var(--color-mid)] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                            aria-label="Delete report"
+                            title="Delete report"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        ) : null}
                       </div>
                     </div>
 
@@ -479,7 +539,9 @@ export default function Dashboard() {
 
                     <div className="flex items-center justify-between border-t border-[var(--color-mid)]/20 pt-3">
                       <span className="truncate text-xs font-semibold text-[var(--color-mid)]">{report.venue || 'Unknown Venue'}</span>
-                      <span className="text-xs font-bold text-[var(--color-primary)] group-hover:underline">Edit Report &rarr;</span>
+                      <span className="text-xs font-bold text-[var(--color-primary)] group-hover:underline">
+                        {canCreateReports ? 'Edit Report' : 'Open Report'} &rarr;
+                      </span>
                     </div>
                   </div>
                 );

@@ -1,5 +1,5 @@
 import { requireAdminUser, json, createServiceSupabaseClient } from './_shared.js';
-import { fetchInvitationById } from './_staff-invitations.js';
+import { fetchInvitationById, flattenInvitationRoles, flattenInvitationTeams, logStaffAccessEvent } from './_staff-invitations.js';
 
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
@@ -45,6 +45,18 @@ export async function handler(event) {
       .eq('id', invitation.id);
 
     if (updateError) throw updateError;
+
+    await logStaffAccessEvent(serviceSupabase, {
+      actorUserId: auth.user.id,
+      actorName: auth.user.user_metadata?.name || auth.user.user_metadata?.full_name || '',
+      actorEmail: auth.user.email || '',
+      targetUserId: invitation.resolved_user_id || null,
+      targetName: invitation.full_name,
+      targetEmail: invitation.email,
+      actionType: 'invite_cancelled',
+      roles: flattenInvitationRoles(invitation),
+      teams: flattenInvitationTeams(invitation),
+    });
 
     return json(200, { ok: true, message: 'Invitation cancelled.' });
   } catch (error) {

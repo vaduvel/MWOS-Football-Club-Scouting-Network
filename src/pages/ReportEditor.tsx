@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { Suspense, lazy, useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import { useReportStore, type Report } from '../store/report';
@@ -16,16 +16,17 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import MatchReportTab from './tabs/MatchReportTab';
-import TeamSheetsTab from './tabs/TeamSheetsTab';
-import FormationsTab from './tabs/FormationsTab';
-import PlayerReviewsTab from './tabs/PlayerReviewsTab';
-import ExportTab from './tabs/ExportTab';
-import CommentsTab from './tabs/CommentsTab';
-import { fetchReport, saveReport, userHasRole } from '../lib/data';
+const MatchReportTab = lazy(() => import('./tabs/MatchReportTab'));
+const TeamSheetsTab = lazy(() => import('./tabs/TeamSheetsTab'));
+const FormationsTab = lazy(() => import('./tabs/FormationsTab'));
+const PlayerReviewsTab = lazy(() => import('./tabs/PlayerReviewsTab'));
+const ExportTab = lazy(() => import('./tabs/ExportTab'));
+const CommentsTab = lazy(() => import('./tabs/CommentsTab'));
+import { canCreateScoutingReports, fetchReport, saveReport, userHasRole } from '../lib/data';
 import { createId } from '../lib/ids';
 import { emitDraftSync } from '../lib/pwaEvents';
 import { deleteReportDraft, readReportDraft, writeReportDraft } from '../lib/reportDraftStore';
+import { buildReportProgress } from '../lib/reportProgressDomain';
 
 const TABS = [
   { id: 'match', label: 'Match Report', mobileLabel: 'Report', icon: FileText },
@@ -35,6 +36,13 @@ const TABS = [
   { id: 'comments', label: 'Comments', mobileLabel: 'Notes', icon: MessageSquare },
   { id: 'export', label: 'Export PDF', mobileLabel: 'Export', icon: Download },
 ];
+
+const TAB_PROGRESS_KEYS: Partial<Record<(typeof TABS)[number]['id'], 'match_setup' | 'team_sheets' | 'formations' | 'player_reviews'>> = {
+  match: 'match_setup',
+  teams: 'team_sheets',
+  formations: 'formations',
+  reviews: 'player_reviews',
+};
 
 function hasMeaningfulDraftContent(report: ReturnType<typeof useReportStore.getState>['currentReport']) {
   if (!report) {
@@ -110,6 +118,15 @@ async function clearLocalDraft(reportId?: string) {
   }
 }
 
+function ReportTabLoadingState() {
+  return (
+    <div className="rounded-[24px] border border-[var(--color-mid)]/18 bg-white px-5 py-10 text-center shadow-sm">
+      <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-[var(--color-primary)]/18 border-t-[var(--color-primary)]" />
+      <p className="mt-4 text-sm font-semibold text-[var(--color-mid)]">Loading this scouting step…</p>
+    </div>
+  );
+}
+
 export default function ReportEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -126,6 +143,8 @@ export default function ReportEditor() {
   const [mobileTabPickerOpen, setMobileTabPickerOpen] = useState(false);
   const skipDirtyTrackingRef = useRef(false);
   const isAdmin = userHasRole(user, 'admin');
+  const isTechnicalDirector = userHasRole(user, 'technical_director');
+  const canEditReport = canCreateScoutingReports(user);
   const isNewReport = !id || id === 'new';
   const canCreateInitialDraft = hasMeaningfulDraftContent(currentReport);
   const requestedTab = searchParams.get('tab');
@@ -133,6 +152,10 @@ export default function ReportEditor() {
   const currentTabMeta = TABS[activeTabIndex] || TABS[0];
   const canMovePrev = activeTabIndex > 0;
   const canMoveNext = activeTabIndex < TABS.length - 1;
+  const progress = useMemo(
+    () => (currentReport ? buildReportProgress(currentReport) : null),
+    [currentReport],
+  );
 
   useEffect(() => {
     if (!requestedTab || !TABS.some((tab) => tab.id === requestedTab)) {
@@ -264,15 +287,19 @@ export default function ReportEditor() {
   // Track changes
   useEffect(() => {
     if (currentReport) {
+      if (!canEditReport) {
+        return;
+      }
       if (skipDirtyTrackingRef.current) {
         skipDirtyTrackingRef.current = false;
         return;
       }
       setHasUnsavedChanges(true);
     }
-  }, [currentReport]);
+  }, [canEditReport, currentReport]);
 
   const handleSave = useCallback(async () => {
+    if (!canEditReport) return;
     if (!currentReport || !hasUnsavedChanges) return;
     if (!persistedReportId && !hasMeaningfulDraftContent(currentReport)) return;
 
@@ -310,10 +337,11 @@ export default function ReportEditor() {
     } finally {
       setSaving(false);
     }
-  }, [currentReport, hasUnsavedChanges, id, isNewReport, isOffline, navigate, persistedReportId]);
+  }, [canEditReport, currentReport, hasUnsavedChanges, id, isNewReport, isOffline, navigate, persistedReportId]);
 
   // Autosave effect
   useEffect(() => {
+    if (!canEditReport) return;
     if (!hasUnsavedChanges) return;
     if (!persistedReportId && !canCreateInitialDraft) return;
     if (isOffline) return;
@@ -323,9 +351,10 @@ export default function ReportEditor() {
     }, 2000); // 2 seconds debounce
 
     return () => clearTimeout(timeoutId);
-  }, [currentReport, hasUnsavedChanges, handleSave, persistedReportId, canCreateInitialDraft, isOffline]);
+  }, [canEditReport, currentReport, hasUnsavedChanges, handleSave, persistedReportId, canCreateInitialDraft, isOffline]);
 
   useEffect(() => {
+    if (!canEditReport) return;
     if (!currentReport) return;
     if (!hasMeaningfulDraftContent(currentReport)) return;
     if (!hasUnsavedChanges && !isOffline) return;
@@ -340,9 +369,10 @@ export default function ReportEditor() {
     }, 400);
 
     return () => window.clearTimeout(timeoutId);
-  }, [currentReport, hasUnsavedChanges, persistedReportId, isOffline]);
+  }, [canEditReport, currentReport, hasUnsavedChanges, persistedReportId, isOffline]);
 
   useEffect(() => {
+    if (!canEditReport) return;
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!hasUnsavedChanges) return;
       event.preventDefault();
@@ -351,7 +381,7 @@ export default function ReportEditor() {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  }, [canEditReport, hasUnsavedChanges]);
 
   const goToTab = (tabId: string) => {
     setActiveTab(tabId);
@@ -359,6 +389,9 @@ export default function ReportEditor() {
   };
 
   if (!currentReport) return <div className="p-10 text-center font-bold">Loading...</div>;
+
+  const showOwnerMeta = Boolean(currentReport.owner_name || currentReport.owner_email) && (isAdmin || isTechnicalDirector);
+  const readOnlyPreviewTab = !canEditReport && activeTab !== 'export';
 
   return (
     <div className="min-h-screen bg-[var(--color-light)] flex flex-col">
@@ -388,11 +421,11 @@ export default function ReportEditor() {
 
             <button
               onClick={handleSave}
-              disabled={saving || isOffline || !hasUnsavedChanges || (!persistedReportId && !canCreateInitialDraft)}
+              disabled={!canEditReport || saving || isOffline || !hasUnsavedChanges || (!persistedReportId && !canCreateInitialDraft)}
               className="inline-flex h-10 min-w-[84px] flex-shrink-0 items-center justify-center gap-1.5 rounded-2xl bg-white px-3 text-[11px] font-black uppercase tracking-[0.08em] text-[var(--color-primary)] shadow-md transition-all hover:bg-white/92 disabled:opacity-50"
             >
               <Save size={15} />
-              <span>{saving ? '...' : 'Save'}</span>
+              <span>{!canEditReport ? 'Review' : saving ? '...' : 'Save'}</span>
             </button>
           </div>
 
@@ -402,6 +435,8 @@ export default function ReportEditor() {
                 'Offline mode'
               ) : draftNotice ? (
                 draftNotice
+              ) : !canEditReport ? (
+                'Review mode'
               ) : hasUnsavedChanges ? (
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse"></span>
@@ -418,7 +453,7 @@ export default function ReportEditor() {
                 'Ready for scouting notes'
               )}
             </div>
-            {isAdmin && (currentReport.owner_name || currentReport.owner_email) ? (
+            {showOwnerMeta ? (
               <span className="max-w-[42%] truncate text-right">Owner: {currentReport.owner_name || currentReport.owner_email}</span>
             ) : (
               <span>Step {activeTabIndex + 1}/{TABS.length}</span>
@@ -444,7 +479,7 @@ export default function ReportEditor() {
               <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-white/74">
                 Match Report · {currentReport.competition || 'Draft'}
               </p>
-              {isAdmin && (currentReport.owner_name || currentReport.owner_email) && (
+              {showOwnerMeta && (
                 <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-white/88">
                   Owner: {currentReport.owner_name || currentReport.owner_email}
                 </p>
@@ -497,6 +532,8 @@ export default function ReportEditor() {
           {TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+            const progressKey = TAB_PROGRESS_KEYS[tab.id];
+            const progressItem = progress?.items.find((item) => item.key === progressKey);
             return (
               <button
                 key={tab.id}
@@ -511,6 +548,15 @@ export default function ReportEditor() {
                 <span className="text-[9px] md:text-sm font-bold uppercase tracking-[0.08em] md:tracking-wider">
                   {tab.label}
                 </span>
+                {progressItem ? (
+                  <span
+                    className={`mt-1 h-2.5 w-2.5 rounded-full md:ml-auto md:mt-0 ${
+                      progressItem.status === 'complete'
+                        ? 'bg-emerald-500'
+                        : 'bg-amber-400'
+                    }`}
+                  />
+                ) : null}
               </button>
             );
           })}
@@ -519,12 +565,68 @@ export default function ReportEditor() {
         {/* Tab Content */}
         <main className="order-1 flex-1 overflow-y-auto p-3 pb-24 md:order-2 md:p-8">
           <div className="max-w-5xl mx-auto">
-            {activeTab === 'match' && <MatchReportTab />}
-            {activeTab === 'teams' && <TeamSheetsTab />}
-            {activeTab === 'formations' && <FormationsTab />}
-            {activeTab === 'reviews' && <PlayerReviewsTab />}
-            {activeTab === 'comments' && <CommentsTab reportId={persistedReportId} />}
-            {activeTab === 'export' && <ExportTab />}
+            {progress ? (
+              <section className="mb-4 rounded-[24px] border border-[var(--color-mid)]/20 bg-white p-4 shadow-sm md:mb-6 md:p-5">
+                <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">
+                      Report Progress
+                    </p>
+                    <h2 className="mt-2 text-lg font-black text-[var(--color-dark)] md:text-xl">
+                      {progress.completedCount} of {progress.totalCount} core sections ready
+                    </h2>
+                  </div>
+                  <p className="text-sm font-semibold text-[var(--color-mid)]">
+                    Use the status chips below to see what still needs attention before export.
+                  </p>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {progress.items.map((item) => (
+                    <article
+                      key={item.key}
+                      className={`rounded-2xl border p-4 ${
+                        item.status === 'complete'
+                          ? 'border-emerald-200 bg-emerald-50'
+                          : 'border-amber-200 bg-amber-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-black text-[var(--color-dark)]">{item.label}</p>
+                        <span
+                          className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
+                            item.status === 'complete'
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-amber-500 text-white'
+                          }`}
+                        >
+                          {item.status === 'complete' ? 'Ready' : 'Needs attention'}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                        {item.detail}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            <Suspense fallback={<ReportTabLoadingState />}>
+              {readOnlyPreviewTab ? (
+                <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                  Technical Director review mode is active. This report can be inspected and exported here, while editing stays with admins and scouts.
+                </div>
+              ) : null}
+              <div className={readOnlyPreviewTab ? 'pointer-events-none select-none opacity-75' : ''}>
+                {activeTab === 'match' && <MatchReportTab />}
+                {activeTab === 'teams' && <TeamSheetsTab />}
+                {activeTab === 'formations' && <FormationsTab />}
+                {activeTab === 'reviews' && <PlayerReviewsTab />}
+                {activeTab === 'comments' && <CommentsTab reportId={persistedReportId} />}
+                {activeTab === 'export' && <ExportTab />}
+              </div>
+            </Suspense>
           </div>
         </main>
       </div>
@@ -545,6 +647,8 @@ export default function ReportEditor() {
               {TABS.map((tab, index) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
+                const progressKey = TAB_PROGRESS_KEYS[tab.id];
+                const progressItem = progress?.items.find((item) => item.key === progressKey);
 
                 return (
                   <button
@@ -560,7 +664,16 @@ export default function ReportEditor() {
                         <Icon size={15} />
                       </div>
                       <div>
-                        <p className="text-xs font-black uppercase tracking-[0.14em]">Step {index + 1}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-black uppercase tracking-[0.14em]">Step {index + 1}</p>
+                          {progressItem ? (
+                            <span
+                              className={`h-2 w-2 rounded-full ${
+                                progressItem.status === 'complete' ? 'bg-emerald-500' : 'bg-amber-400'
+                              }`}
+                            />
+                          ) : null}
+                        </div>
                         <p className="mt-0.5 text-sm font-bold">{tab.label}</p>
                       </div>
                     </div>

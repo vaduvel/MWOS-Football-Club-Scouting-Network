@@ -88,6 +88,26 @@ function formatTeamSummary(user: AppUser | null) {
   return `${user.teams.length} assigned teams`;
 }
 
+function buildAccessProfileCopy(roleSlug: string) {
+  switch (roleSlug) {
+    case 'admin':
+      return 'Operational access across staffing, planning, transport, and club oversight.';
+    case 'technical_director':
+      return 'Club-wide review access focused on training quality, transport readiness, and leadership visibility.';
+    case 'board_observer':
+      return 'Read-only briefing access across oversight and club notifications.';
+    case 'coach':
+      return 'Your workspace stays centered on planning and team execution.';
+    case 'driver':
+      return 'Your navigation stays focused on transport actions and departure updates.';
+    case 'scout':
+      return 'Your workspace stays focused on reports, player tracking, and football follow-up.';
+    case 'pending':
+    default:
+      return 'Your account is waiting for roles or team assignments.';
+  }
+}
+
 export default function AppSidebar({ current, user, onLogout }: AppSidebarProps) {
   const navigate = useNavigate();
   const items = buildSidebarItems(user);
@@ -160,9 +180,7 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
               Access Profile
             </p>
             <p className="mt-2 text-sm font-semibold text-white/80">
-              {roleSlug === 'pending'
-                ? 'Your account is waiting for roles or team assignments.'
-                : 'Your navigation and dashboards adapt automatically to your club role.'}
+              {buildAccessProfileCopy(roleSlug)}
             </p>
             <button
               onClick={onLogout}

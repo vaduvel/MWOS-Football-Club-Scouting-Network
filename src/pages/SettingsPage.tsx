@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Bell, CheckCircle, Database, Key, Mail, RotateCcw, Save, Settings, ShieldCheck, UserPlus, Users, XCircle } from 'lucide-react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, Bell, Bot, CheckCircle, Database, Key, Mail, RotateCcw, Save, Search, Settings, ShieldCheck, UserPlus, Users, XCircle } from 'lucide-react';
 import AppSidebar from '../components/AppSidebar';
 import {
   cancelStaffInvitation,
   createStaffInvitation,
+  expireStaleStaffInvitations,
+  fetchAdminAiStatus,
+  fetchAdminEmailStatus,
   fetchClubAccessOverview,
+  fetchStaffAccessEvents,
   fetchStaffInvitations,
   fetchUserSettings,
   issueStaffInvitationLink,
@@ -12,7 +16,10 @@ import {
   saveUserClubAccess,
   saveUserSettings,
   userHasRole,
+  type AdminAiStatus,
+  type AdminEmailStatus,
   type ClubAccessOverview,
+  type StaffAccessEventRecord,
   type StaffInvitationRecord,
 } from '../lib/data';
 import {
@@ -22,6 +29,18 @@ import {
   roleRequiresTeam,
   type InviteDeliveryMode,
 } from '../lib/inviteDomain';
+import {
+  buildClubAccessActionLabels,
+  normalizeClubAccessSelection,
+  validateClubAccessSelection,
+} from '../lib/staffAccessDomain';
+import { buildLaunchReadiness } from '../lib/settingsReadinessDomain';
+import {
+  buildStaffOperationsMetrics,
+  filterClubAccessUsers,
+  filterStaffAccessEvents,
+  filterStaffInvitations,
+} from '../lib/staffOperationsDomain';
 import { useAuthStore } from '../store/auth';
 import { useSettingsStore } from '../store/settings';
 
@@ -63,6 +82,7 @@ export default function SettingsPage() {
 
   const [clubAccess, setClubAccess] = useState<ClubAccessOverview | null>(null);
   const [staffInvitations, setStaffInvitations] = useState<StaffInvitationRecord[]>([]);
+  const [staffAccessEvents, setStaffAccessEvents] = useState<StaffAccessEventRecord[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedRoleSlugs, setSelectedRoleSlugs] = useState<string[]>([]);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
@@ -78,6 +98,16 @@ export default function SettingsPage() {
   const [inviteSuccess, setInviteSuccess] = useState('');
   const [invitationActionKey, setInvitationActionKey] = useState('');
   const [activationNotice, setActivationNotice] = useState<ActivationLinkNotice | null>(null);
+  const [staffSearchQuery, setStaffSearchQuery] = useState('');
+  const [staffRoleFilter, setStaffRoleFilter] = useState('all');
+  const [staffTeamFilter, setStaffTeamFilter] = useState('all');
+  const [adminAiStatus, setAdminAiStatus] = useState<AdminAiStatus | null>(null);
+  const [adminAiStatusLoading, setAdminAiStatusLoading] = useState(false);
+  const [adminAiStatusError, setAdminAiStatusError] = useState('');
+  const [adminEmailStatus, setAdminEmailStatus] = useState<AdminEmailStatus | null>(null);
+  const [adminEmailStatusLoading, setAdminEmailStatusLoading] = useState(false);
+  const [adminEmailStatusError, setAdminEmailStatusError] = useState('');
+  const deferredStaffSearchQuery = useDeferredValue(staffSearchQuery);
 
   useEffect(() => {
     let isMounted = true;
@@ -99,9 +129,14 @@ export default function SettingsPage() {
         setNotifyTransportUpdate(settingsData.email_transport_updates);
 
         if (isAdmin) {
-          const [clubAccessResult, invitationResult] = await Promise.allSettled([
+          setAdminAiStatusLoading(true);
+          setAdminEmailStatusLoading(true);
+          const [clubAccessResult, invitationResult, accessEventsResult, adminAiStatusResult, adminEmailStatusResult] = await Promise.allSettled([
             fetchClubAccessOverview(),
             fetchStaffInvitations(),
+            fetchStaffAccessEvents(),
+            fetchAdminAiStatus(),
+            fetchAdminEmailStatus(),
           ]);
 
           if (!isMounted) return;
@@ -119,6 +154,34 @@ export default function SettingsPage() {
           } else {
             setInviteError(invitationResult.reason?.message || 'Failed to load invitations.');
           }
+
+          if (accessEventsResult.status === 'fulfilled') {
+            setStaffAccessEvents(accessEventsResult.value);
+          } else {
+            setAccessError(accessEventsResult.reason?.message || 'Failed to load access activity.');
+          }
+
+          if (adminAiStatusResult.status === 'fulfilled') {
+            setAdminAiStatus(adminAiStatusResult.value);
+            setAdminAiStatusError('');
+          } else {
+            setAdminAiStatus(null);
+            setAdminAiStatusError(adminAiStatusResult.reason?.message || 'Failed to load Admin AI status.');
+          }
+
+          if (adminEmailStatusResult.status === 'fulfilled') {
+            setAdminEmailStatus(adminEmailStatusResult.value);
+            setAdminEmailStatusError('');
+          } else {
+            setAdminEmailStatus(null);
+            setAdminEmailStatusError(adminEmailStatusResult.reason?.message || 'Failed to load invite email status.');
+          }
+        } else {
+          setAdminAiStatus(null);
+          setAdminAiStatusError('');
+          setAdminEmailStatus(null);
+          setAdminEmailStatusError('');
+          setAdminEmailStatusLoading(false);
         }
       } catch (err: any) {
         if (!isMounted) return;
@@ -127,6 +190,8 @@ export default function SettingsPage() {
         if (isMounted) {
           setIsLoading(false);
           setAccessLoading(false);
+          setAdminAiStatusLoading(false);
+          setAdminEmailStatusLoading(false);
         }
       }
     })();
@@ -152,19 +217,77 @@ export default function SettingsPage() {
     setSelectedTeamIds(selectedUser.teams.map((team) => team.id));
   }, [selectedUser]);
 
-  const pendingInvitations = useMemo(
-    () => staffInvitations.filter((invitation) => invitation.status === 'pending'),
-    [staffInvitations],
-  );
-
-  const invitationHistory = useMemo(
-    () => staffInvitations.filter((invitation) => invitation.status !== 'pending'),
-    [staffInvitations],
-  );
-
   const inviteNeedsTeam = useMemo(
     () => inviteRoleSlugs.some((roleSlug) => roleRequiresTeam(roleSlug)),
     [inviteRoleSlugs],
+  );
+
+  const selectedTeamFilterName = useMemo(() => {
+    if (staffTeamFilter === 'all') return 'all';
+    return clubAccess?.teams.find((team) => team.id === staffTeamFilter)?.name || 'all';
+  }, [clubAccess?.teams, staffTeamFilter]);
+
+  const staffOperationsMetrics = useMemo(
+    () =>
+      buildStaffOperationsMetrics({
+        users: clubAccess?.users || [],
+        invitations: staffInvitations,
+        events: staffAccessEvents,
+      }),
+    [clubAccess?.users, staffAccessEvents, staffInvitations],
+  );
+
+  const filteredStaffUsers = useMemo(
+    () =>
+      filterClubAccessUsers(clubAccess?.users || [], {
+        query: deferredStaffSearchQuery,
+        roleSlug: staffRoleFilter,
+        teamName: selectedTeamFilterName,
+      }),
+    [clubAccess?.users, deferredStaffSearchQuery, selectedTeamFilterName, staffRoleFilter],
+  );
+
+  const filteredPendingInvitations = useMemo(
+    () =>
+      filterStaffInvitations(staffInvitations, {
+        query: deferredStaffSearchQuery,
+        roleSlug: staffRoleFilter,
+        teamName: selectedTeamFilterName,
+        statusScope: 'pending',
+      }),
+    [deferredStaffSearchQuery, selectedTeamFilterName, staffRoleFilter, staffInvitations],
+  );
+
+  const filteredInvitationHistory = useMemo(
+    () =>
+      filterStaffInvitations(staffInvitations, {
+        query: deferredStaffSearchQuery,
+        roleSlug: staffRoleFilter,
+        teamName: selectedTeamFilterName,
+        statusScope: 'history',
+      }),
+    [deferredStaffSearchQuery, selectedTeamFilterName, staffRoleFilter, staffInvitations],
+  );
+
+  const filteredStaffAccessEvents = useMemo(
+    () =>
+      filterStaffAccessEvents(staffAccessEvents, {
+        query: deferredStaffSearchQuery,
+        roleSlug: staffRoleFilter,
+        teamName: selectedTeamFilterName,
+        tone: 'all',
+      }),
+    [deferredStaffSearchQuery, selectedTeamFilterName, staffAccessEvents, staffRoleFilter],
+  );
+
+  const selectedUserOutsideFilters = useMemo(
+    () => Boolean(selectedUser && !filteredStaffUsers.some((member) => member.id === selectedUser.id)),
+    [filteredStaffUsers, selectedUser],
+  );
+
+  const clubAccessActionLabels = useMemo(
+    () => buildClubAccessActionLabels({ roleSlugs: selectedRoleSlugs, teamIds: selectedTeamIds }),
+    [selectedRoleSlugs, selectedTeamIds],
   );
 
   const dateTimeFormatter = useMemo(
@@ -192,10 +315,25 @@ export default function SettingsPage() {
     return '';
   }, []);
 
+  const launchReadiness = useMemo(
+    () =>
+      isAdmin && !adminAiStatusLoading && !adminEmailStatusLoading
+        ? buildLaunchReadiness({
+            publicAppUrl,
+            footballApiProvider: localProvider,
+            footballApiKey: localApiKey,
+            adminAiStatus,
+            adminEmailStatus,
+          })
+        : null,
+    [adminAiStatus, adminAiStatusLoading, adminEmailStatus, adminEmailStatusLoading, isAdmin, localApiKey, localProvider, publicAppUrl],
+  );
+
   const refreshClubAccessData = async (preserveSelectedUserId?: string) => {
-    const [clubAccessResult, invitationResult] = await Promise.allSettled([
+    const [clubAccessResult, invitationResult, accessEventsResult] = await Promise.allSettled([
       fetchClubAccessOverview(),
       fetchStaffInvitations(),
+      fetchStaffAccessEvents(),
     ]);
 
     if (clubAccessResult.status === 'fulfilled') {
@@ -217,6 +355,12 @@ export default function SettingsPage() {
       setInviteError('');
     } else {
       setInviteError(invitationResult.reason?.message || 'Failed to refresh invitations.');
+    }
+
+    if (accessEventsResult.status === 'fulfilled') {
+      setStaffAccessEvents(accessEventsResult.value);
+    } else {
+      setAccessError(accessEventsResult.reason?.message || 'Failed to refresh access activity.');
     }
   };
 
@@ -302,14 +446,23 @@ export default function SettingsPage() {
     );
   };
 
-  const handleSaveAccess = async () => {
+  const commitClubAccess = async (nextSelection?: { roleSlugs: string[]; teamIds: string[] }) => {
     if (!selectedUserId) return;
 
     setAccessLoading(true);
     setAccessError('');
     setAccessSuccess(false);
     try {
-      await saveUserClubAccess(selectedUserId, selectedRoleSlugs, selectedTeamIds);
+      const normalizedSelection = validateClubAccessSelection(
+        normalizeClubAccessSelection(
+          nextSelection || {
+            roleSlugs: selectedRoleSlugs,
+            teamIds: selectedTeamIds,
+          },
+        ),
+      );
+
+      await saveUserClubAccess(selectedUserId, normalizedSelection.roleSlugs, normalizedSelection.teamIds);
       await refreshClubAccessData(selectedUserId);
       setAccessSuccess(true);
       setTimeout(() => setAccessSuccess(false), 3000);
@@ -319,6 +472,24 @@ export default function SettingsPage() {
     } finally {
       setAccessLoading(false);
     }
+  };
+
+  const handleSaveAccess = async () => {
+    await commitClubAccess();
+  };
+
+  const handleClearAccess = async () => {
+    if (!selectedUser) return;
+
+    const confirmed = window.confirm(
+      `Remove all club roles and team assignments for ${selectedUser.name}? They will still exist in Authentication, but they will no longer have access until an admin assigns roles again.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await commitClubAccess({ roleSlugs: [], teamIds: [] });
   };
 
   const resetInviteForm = () => {
@@ -475,6 +646,24 @@ export default function SettingsPage() {
     } catch (err: any) {
       console.error('Failed to cancel invitation.', err);
       setInviteError(err.message || 'Failed to cancel invitation.');
+    } finally {
+      setInvitationActionKey('');
+    }
+  };
+
+  const handleExpireStaleInvites = async () => {
+    setInvitationActionKey('expire-stale');
+    setInviteError('');
+    setInviteSuccess('');
+    setActivationNotice(null);
+    try {
+      const response = await expireStaleStaffInvitations();
+      await refreshClubAccessData(selectedUserId);
+      setInviteSuccess(response.message);
+      setTimeout(() => setInviteSuccess(''), 4000);
+    } catch (err: any) {
+      console.error('Failed to expire stale invitations.', err);
+      setInviteError(err.message || 'Failed to expire stale invitations.');
     } finally {
       setInvitationActionKey('');
     }
@@ -720,6 +909,236 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+                {isAdmin && (
+                  <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
+                    <div className="flex items-center gap-2">
+                      <Bot size={16} className="text-[var(--color-primary)]" />
+                      <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
+                        Admin AI Integration
+                      </p>
+                    </div>
+                    <p className="mt-2 text-xs font-semibold leading-6 text-[var(--color-mid)]">
+                      The admin dashboard uses Gemini for leadership insights and chat. This status checks the server-side integration used by Netlify.
+                    </p>
+
+                    <div className="mt-4 rounded-2xl border border-white/70 bg-white px-4 py-4">
+                      {adminAiStatusLoading ? (
+                        <p className="text-sm font-semibold text-[var(--color-mid)]">Checking Admin AI readiness...</p>
+                      ) : adminAiStatusError ? (
+                        <p className="text-sm font-semibold text-red-700">{adminAiStatusError}</p>
+                      ) : adminAiStatus ? (
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
+                                adminAiStatus.configured
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {adminAiStatus.configured ? 'Configured' : 'Needs setup'}
+                            </span>
+                            <span className="rounded-full bg-[var(--color-light)] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-dark)]">
+                              {adminAiStatus.provider} · {adminAiStatus.model}
+                            </span>
+                            {adminAiStatus.configuredEnvVar ? (
+                              <span className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
+                                {adminAiStatus.configuredEnvVar}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <p className="text-sm font-semibold leading-6 text-[var(--color-dark)]/80">
+                            {adminAiStatus.setupHint}
+                          </p>
+
+                          {!adminAiStatus.configured && adminAiStatus.acceptedEnvVars.length > 0 && (
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">
+                              Accepted env vars: {adminAiStatus.acceptedEnvVars.join(' or ')}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm font-semibold text-[var(--color-mid)]">
+                          Admin AI status is unavailable right now.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {isAdmin && (
+                  <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
+                    <div className="flex items-center gap-2">
+                      <Mail size={16} className="text-[var(--color-primary)]" />
+                      <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
+                        Invite & Alert Delivery
+                      </p>
+                    </div>
+                    <p className="mt-2 text-xs font-semibold leading-6 text-[var(--color-mid)]">
+                      This checks whether invite emails and important training/transport alerts can leave the Netlify runtime, or whether the club should keep using manual links and WhatsApp sharing for now.
+                    </p>
+
+                    <div className="mt-4 rounded-2xl border border-white/70 bg-white px-4 py-4">
+                      {adminEmailStatusLoading ? (
+                        <p className="text-sm font-semibold text-[var(--color-mid)]">Checking invite delivery readiness...</p>
+                      ) : adminEmailStatusError ? (
+                        <p className="text-sm font-semibold text-red-700">{adminEmailStatusError}</p>
+                      ) : adminEmailStatus ? (
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
+                                adminEmailStatus.configured
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {adminEmailStatus.configured ? 'Email delivery ready' : 'Manual-link mode'}
+                            </span>
+                            <span className="rounded-full bg-[var(--color-light)] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-dark)]">
+                              {adminEmailStatus.deliveryMode === 'transactional_email' ? 'Transactional email' : 'Manual share fallback'}
+                            </span>
+                          </div>
+
+                          <p className="text-sm font-semibold leading-6 text-[var(--color-dark)]/80">
+                            {adminEmailStatus.setupHint}
+                          </p>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
+                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Sender</p>
+                              <p className="mt-2 text-sm font-semibold text-[var(--color-dark)]">
+                                {adminEmailStatus.sender || 'Not configured yet'}
+                              </p>
+                            </div>
+                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
+                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Public app URL</p>
+                              <p className="mt-2 break-all text-sm font-semibold text-[var(--color-dark)]">
+                                {adminEmailStatus.publicAppUrl || 'Not configured yet'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-semibold text-[var(--color-mid)]">
+                          Delivery status is unavailable right now.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {isAdmin && launchReadiness && (
+                  <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-[var(--color-primary)]" />
+                      <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
+                        Launch Readiness
+                      </p>
+                    </div>
+                    <p className="mt-2 text-xs font-semibold leading-6 text-[var(--color-mid)]">
+                      Use this as the admin truth source before onboarding staff broadly. It combines the public app URL, invite delivery mode, squad import setup and Admin AI readiness into one honest verdict.
+                    </p>
+
+                    <div className="mt-4 rounded-2xl border border-white/70 bg-white px-4 py-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
+                                launchReadiness.tone === 'ready'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {launchReadiness.tone === 'ready' ? 'Operational' : 'Needs attention'}
+                            </span>
+                            {launchReadiness.blockingCount > 0 ? (
+                              <span className="rounded-full bg-red-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-800">
+                                {launchReadiness.blockingCount} blocking
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-3 text-lg font-black text-[var(--color-dark)]">{launchReadiness.headline}</p>
+                          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[var(--color-dark)]/80">
+                            {launchReadiness.detail}
+                          </p>
+                        </div>
+
+                        <div className="grid min-w-[220px] gap-3 sm:grid-cols-3">
+                          {[
+                            { label: 'Ready', value: launchReadiness.readyCount, tone: 'emerald' },
+                            { label: 'Attention', value: launchReadiness.attentionCount, tone: 'amber' },
+                            { label: 'Optional', value: launchReadiness.optionalCount, tone: 'slate' },
+                          ].map((metric) => (
+                            <div key={metric.label} className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3 text-center">
+                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                                {metric.label}
+                              </p>
+                              <p
+                                className={`mt-2 text-2xl font-black ${
+                                  metric.tone === 'emerald'
+                                    ? 'text-emerald-700'
+                                    : metric.tone === 'amber'
+                                      ? 'text-amber-700'
+                                      : 'text-[var(--color-dark)]'
+                                }`}
+                              >
+                                {metric.value}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                        {launchReadiness.items.map((item) => (
+                          <div key={item.id} className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/45 p-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
+                                  item.tone === 'ready'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : item.tone === 'attention'
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : 'bg-slate-100 text-slate-700'
+                                }`}
+                              >
+                                {item.statusLabel}
+                              </span>
+                              {item.blocking ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-800">
+                                  <AlertTriangle size={12} />
+                                  Blocking
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-3 text-sm font-black text-[var(--color-dark)]">{item.label}</p>
+                            <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-dark)]/80">{item.detail}</p>
+                            <p className="mt-3 text-xs font-semibold leading-5 text-[var(--color-mid)]">{item.action}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {launchReadiness.nextSteps.length > 0 ? (
+                        <div className="mt-5 rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/55 p-4">
+                          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                            Next admin steps
+                          </p>
+                          <div className="mt-3 space-y-2">
+                            {launchReadiness.nextSteps.slice(0, 4).map((step) => (
+                              <p key={step} className="text-sm font-semibold leading-6 text-[var(--color-dark)]/80">
+                                {step}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-3 border-t border-[var(--color-mid)]/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     {saveSuccess && (
@@ -846,6 +1265,105 @@ export default function SettingsPage() {
                         )}
                       </div>
                     )}
+
+                    <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
+                      <div className="flex flex-wrap items-start gap-3 lg:flex-nowrap lg:items-end">
+                        <div className="min-w-[220px] flex-1">
+                          <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                            Search staff operations
+                          </label>
+                          <div className="flex items-center gap-3 rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 shadow-sm">
+                            <Search size={16} className="text-[var(--color-mid)]" />
+                            <input
+                              type="text"
+                              value={staffSearchQuery}
+                              onChange={(event) => setStaffSearchQuery(event.target.value)}
+                              placeholder="Search by staff name, email, role, or team"
+                              className="w-full bg-transparent text-sm font-semibold text-[var(--color-dark)] outline-none placeholder:text-[var(--color-mid)]/70"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="w-full sm:w-[220px]">
+                          <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                            Role filter
+                          </label>
+                          <select
+                            value={staffRoleFilter}
+                            onChange={(event) => setStaffRoleFilter(event.target.value)}
+                            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none shadow-sm"
+                          >
+                            <option value="all">All roles</option>
+                            {clubAccess?.roles.map((role) => (
+                              <option key={role.slug} value={role.slug}>
+                                {role.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="w-full sm:w-[220px]">
+                          <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                            Team filter
+                          </label>
+                          <select
+                            value={staffTeamFilter}
+                            onChange={(event) => setStaffTeamFilter(event.target.value)}
+                            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none shadow-sm"
+                          >
+                            <option value="all">All teams</option>
+                            {clubAccess?.teams.map((team) => (
+                              <option key={team.id} value={team.id}>
+                                {team.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                        {[
+                          {
+                            label: 'Active staff',
+                            value: staffOperationsMetrics.activeStaffCount,
+                            description: 'Accounts with at least one assigned club role.',
+                          },
+                          {
+                            label: 'Pending invites',
+                            value: staffOperationsMetrics.pendingInvitationCount,
+                            description: 'Invites still waiting for activation.',
+                          },
+                          {
+                            label: 'Multi-team staff',
+                            value: staffOperationsMetrics.multiTeamStaffCount,
+                            description: 'People covering more than one team.',
+                          },
+                          {
+                            label: 'Recent changes',
+                            value: staffOperationsMetrics.recentChangesCount,
+                            description: 'Access actions recorded in the last 7 days.',
+                          },
+                          {
+                            label: 'Stale invites',
+                            value: staffOperationsMetrics.stalePendingInvitationCount,
+                            description: 'Pending invites that already passed their activation window.',
+                          },
+                        ].map((card) => (
+                          <div
+                            key={card.label}
+                            className="rounded-2xl border border-[var(--color-mid)]/14 bg-white p-4 shadow-[0_10px_24px_rgba(49,39,131,0.05)]"
+                          >
+                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                              {card.label}
+                            </p>
+                            <p className="mt-3 text-3xl font-black text-[var(--color-dark)]">{card.value}</p>
+                            <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                              {card.description}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
                     <div className="grid gap-4 xl:grid-cols-[0.95fr,1.05fr]">
                       <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
@@ -994,12 +1512,36 @@ export default function SettingsPage() {
                         </p>
 
                         <div className="mt-4 space-y-3">
-                          {pendingInvitations.length === 0 ? (
+                          {staffOperationsMetrics.stalePendingInvitationCount > 0 && (
+                            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-black text-amber-900">
+                                    {staffOperationsMetrics.stalePendingInvitationCount} stale invite
+                                    {staffOperationsMetrics.stalePendingInvitationCount === 1 ? '' : 's'} need follow-up
+                                  </p>
+                                  <p className="mt-2 text-sm font-semibold leading-6 text-amber-800">
+                                    These invites are already past their activation window. You can leave them for audit history, or move them out of the pending queue in one safe cleanup action.
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleExpireStaleInvites()}
+                                  disabled={invitationActionKey === 'expire-stale'}
+                                  className="rounded-2xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-bold text-amber-800 shadow-sm disabled:opacity-50"
+                                >
+                                  {invitationActionKey === 'expire-stale' ? 'Cleaning…' : 'Expire stale invites'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {filteredPendingInvitations.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/20 bg-[var(--color-light)]/45 p-4 text-sm font-semibold text-[var(--color-mid)]">
-                              No pending invitations right now.
+                              No pending invitations match the current filters.
                             </div>
                           ) : (
-                            pendingInvitations.map((invitation) => (
+                            filteredPendingInvitations.map((invitation) => (
                               <div
                                 key={invitation.id}
                                 className="rounded-2xl border border-[var(--color-mid)]/16 bg-[var(--color-light)]/35 p-4"
@@ -1094,12 +1636,12 @@ export default function SettingsPage() {
                             Recent Invitation Activity
                           </p>
                           <div className="mt-3 space-y-3">
-                            {invitationHistory.length === 0 ? (
+                            {filteredInvitationHistory.length === 0 ? (
                               <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/20 bg-[var(--color-light)]/45 p-4 text-sm font-semibold text-[var(--color-mid)]">
-                                No completed or cancelled invitations yet.
+                                No invitation history matches the current filters.
                               </div>
                             ) : (
-                              invitationHistory.slice(0, 5).map((invitation) => (
+                              filteredInvitationHistory.slice(0, 5).map((invitation) => (
                                 <div
                                   key={invitation.id}
                                   className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/35 p-3"
@@ -1133,11 +1675,16 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-2">
                           <Users size={16} className="text-[var(--color-primary)]" />
                           <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
-                            Staff Accounts
+                            Staff Accounts ({filteredStaffUsers.length})
                           </p>
                         </div>
                         <div className="mt-4 space-y-2">
-                          {clubAccess?.users.map((member) => {
+                          {filteredStaffUsers.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/20 bg-white/70 p-4 text-sm font-semibold text-[var(--color-mid)]">
+                              No staff accounts match the current filters.
+                            </div>
+                          ) : (
+                            filteredStaffUsers.map((member) => {
                             const active = member.id === selectedUserId;
                             return (
                               <button
@@ -1158,8 +1705,14 @@ export default function SettingsPage() {
                                 </p>
                               </button>
                             );
-                          })}
+                            })
+                          )}
                         </div>
+                        {selectedUserOutsideFilters ? (
+                          <p className="mt-3 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                            The currently selected staff member is outside the active filters. Their access editor stays open on the right so we do not interrupt your work.
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
@@ -1229,26 +1782,91 @@ export default function SettingsPage() {
                               <div>
                                 {accessSuccess && (
                                   <span className="flex items-center text-sm font-bold text-green-600">
-                                    <CheckCircle size={16} className="mr-1" /> Club access updated
+                                    <CheckCircle size={16} className="mr-1" /> {clubAccessActionLabels.successLabel}
                                   </span>
                                 )}
                               </div>
-                              <button
-                                onClick={() => void handleSaveAccess()}
-                                disabled={accessLoading}
-                                className="rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-90 disabled:opacity-50"
-                              >
-                                <span className="inline-flex items-center gap-2">
-                                  <Save size={16} />
-                                  {accessLoading ? 'Saving...' : 'Save Club Access'}
-                                </span>
-                              </button>
+                              <div className="flex flex-col gap-2 sm:flex-row">
+                                <button
+                                  onClick={() => void handleClearAccess()}
+                                  disabled={accessLoading || clubAccessActionLabels.isClearing}
+                                  className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <span className="inline-flex items-center gap-2">
+                                    <XCircle size={16} />
+                                    {clubAccessActionLabels.clearLabel}
+                                  </span>
+                                </button>
+                                <button
+                                  onClick={() => void handleSaveAccess()}
+                                  disabled={accessLoading}
+                                  className="rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-90 disabled:opacity-50"
+                                >
+                                  <span className="inline-flex items-center gap-2">
+                                    <Save size={16} />
+                                    {accessLoading ? 'Saving...' : clubAccessActionLabels.saveLabel}
+                                  </span>
+                                </button>
+                              </div>
                             </div>
+                            <p className="mt-3 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                              Clearing access keeps the staff account in Authentication, but removes all club roles and team assignments until an admin restores them.
+                            </p>
                           </>
                         ) : (
                           <div className="rounded-2xl border border-[var(--color-mid)]/16 bg-[var(--color-light)]/55 p-4 text-sm font-semibold text-[var(--color-mid)]">
                             {accessLoading ? 'Loading club access…' : 'Select a user to manage club access.'}
                           </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-[24px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-[var(--color-primary)]" />
+                        <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
+                          Recent Access Activity
+                        </p>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">
+                        Keep a short audit trail of who changed staff access, invited people, or revoked roles.
+                      </p>
+
+                      <div className="mt-4 space-y-3">
+                        {filteredStaffAccessEvents.length === 0 ? (
+                          <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/20 bg-[var(--color-light)]/45 p-4 text-sm font-semibold text-[var(--color-mid)]">
+                            No access activity matches the current filters.
+                          </div>
+                        ) : (
+                          filteredStaffAccessEvents.slice(0, 8).map((event) => (
+                            <div
+                              key={event.id}
+                              className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/35 p-4"
+                            >
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-black text-[var(--color-dark)]">{event.targetName}</p>
+                                  <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{event.targetEmail}</p>
+                                </div>
+                                <span
+                                  className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] shadow-sm ${
+                                    event.tone === 'warning'
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : event.tone === 'success'
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : 'bg-white text-[var(--color-dark)]'
+                                  }`}
+                                >
+                                  {event.title}
+                                </span>
+                              </div>
+
+                              <p className="mt-3 text-sm font-semibold leading-6 text-[var(--color-dark)]">{event.detail}</p>
+                              <p className="mt-2 text-[11px] font-semibold text-[var(--color-mid)]">
+                                By {event.actorName} · {dateTimeFormatter.format(new Date(event.createdAt))}
+                              </p>
+                            </div>
+                          ))
                         )}
                       </div>
                     </div>
@@ -1277,7 +1895,7 @@ export default function SettingsPage() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-white shadow-md disabled:opacity-50"
             >
               <Save size={16} />
-              {accessLoading ? 'Saving…' : 'Save Access'}
+              {accessLoading ? 'Saving…' : clubAccessActionLabels.saveLabel}
             </button>
           </div>
         ) : (

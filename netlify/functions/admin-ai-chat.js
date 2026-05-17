@@ -22,6 +22,10 @@ export async function handler(event) {
     const result = await generateAdminChatReply(payload?.context || {}, payload?.messages || []);
     return json(200, result);
   } catch (error) {
+    if (error?.code === 'admin_ai_not_configured') {
+      return json(503, { error: error.message || 'Admin AI is not configured yet.', code: error.code });
+    }
+
     return json(500, { error: error.message || 'Failed to generate admin response.' });
   }
 }

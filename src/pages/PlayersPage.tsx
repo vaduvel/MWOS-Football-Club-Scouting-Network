@@ -19,9 +19,9 @@ import {
 import AppSidebar from '../components/AppSidebar';
 import {
   addPlayerToWatchlist,
+  canCreateScoutingReports,
   fetchPlayerHubData,
   removePlayerFromWatchlist,
-  userHasRole,
   type PlayerHubEntry,
   type PlayerHubOverview,
 } from '../lib/data';
@@ -115,7 +115,8 @@ function ComparisonMetricRow({
 export default function PlayersPage() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
-  const isAdmin = userHasRole(user, 'admin');
+  const canCreateReports = canCreateScoutingReports(user);
+  const canManageWatchlist = canCreateReports;
 
   const [overview, setOverview] = useState<PlayerHubOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -205,10 +206,19 @@ export default function PlayersPage() {
       return;
     }
 
-    handleCreateReport();
+    if (canCreateReports) {
+      handleCreateReport();
+      return;
+    }
+
+    navigate('/scouting');
   };
 
   const handleWatchlistToggle = async (entry: PlayerHubEntry) => {
+    if (!canManageWatchlist) {
+      return;
+    }
+
     setUpdatingWatchlistKey(entry.playerKey);
 
     try {
@@ -283,11 +293,11 @@ export default function PlayersPage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleCreateReport('match')}
+                    onClick={() => navigate(canCreateReports ? '/scouting/report/new' : '/scouting')}
                     className="inline-flex h-11 min-w-[92px] items-center justify-center gap-2 rounded-2xl bg-white px-3 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)]"
                   >
                     <Plus size={15} />
-                    Report
+                    {canCreateReports ? 'Report' : 'Scouting'}
                   </button>
                 </div>
 
@@ -312,13 +322,23 @@ export default function PlayersPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleCreateReport('teams')}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white"
-                  >
-                    <Plus size={15} />
-                    Add Player
-                  </button>
+                  {canCreateReports ? (
+                    <button
+                      onClick={() => handleCreateReport('teams')}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white"
+                    >
+                      <Plus size={15} />
+                      Add Player
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => navigate('/oversight')}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white"
+                    >
+                      <ArrowRight size={15} />
+                      Oversight
+                    </button>
+                  )}
                   <button
                     onClick={() => navigate('/scouting')}
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white"
@@ -416,20 +436,32 @@ export default function PlayersPage() {
                       <ArrowRight size={16} />
                       Scouting Workspace
                     </button>
-                    <button
-                      onClick={() => handleCreateReport('teams')}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm transition-all hover:bg-white/16"
-                    >
-                      <Plus size={16} />
-                      Add Player
-                    </button>
-                    <button
-                      onClick={() => handleCreateReport('match')}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-3 py-2.5 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)] transition-opacity hover:opacity-92"
-                    >
-                      <Plus size={16} />
-                      New Report
-                    </button>
+                    {canCreateReports ? (
+                      <>
+                        <button
+                          onClick={() => handleCreateReport('teams')}
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm transition-all hover:bg-white/16"
+                        >
+                          <Plus size={16} />
+                          Add Player
+                        </button>
+                        <button
+                          onClick={() => handleCreateReport('match')}
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-3 py-2.5 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)] transition-opacity hover:opacity-92"
+                        >
+                          <Plus size={16} />
+                          New Report
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => navigate('/oversight')}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-3 py-2.5 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)] transition-opacity hover:opacity-92"
+                      >
+                        <ArrowRight size={16} />
+                        Oversight
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -643,27 +675,42 @@ export default function PlayersPage() {
               </div>
 
               <div className="mt-5 grid gap-3">
-                <button
-                  onClick={() => handleCreateReport('teams')}
-                  className="inline-flex items-center justify-between rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] px-4 py-4 text-left"
-                >
-                  <div>
-                    <p className="text-sm font-black text-[var(--color-dark)]">Add Player</p>
-                    <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Open team sheets and start logging a new squad.</p>
-                  </div>
-                  <Plus size={18} className="text-[var(--color-primary)]" />
-                </button>
+                {canCreateReports ? (
+                  <>
+                    <button
+                      onClick={() => handleCreateReport('teams')}
+                      className="inline-flex items-center justify-between rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] px-4 py-4 text-left"
+                    >
+                      <div>
+                        <p className="text-sm font-black text-[var(--color-dark)]">Add Player</p>
+                        <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Open team sheets and start logging a new squad.</p>
+                      </div>
+                      <Plus size={18} className="text-[var(--color-primary)]" />
+                    </button>
 
-                <button
-                  onClick={() => handleCreateReport('match')}
-                  className="inline-flex items-center justify-between rounded-[22px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] px-4 py-4 text-left"
-                >
-                  <div>
-                    <p className="text-sm font-black text-[var(--color-dark)]">New Report</p>
-                    <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Start a fresh match report for the next fixture.</p>
-                  </div>
-                  <ArrowRight size={18} className="text-[var(--color-accent)]" />
-                </button>
+                    <button
+                      onClick={() => handleCreateReport('match')}
+                      className="inline-flex items-center justify-between rounded-[22px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] px-4 py-4 text-left"
+                    >
+                      <div>
+                        <p className="text-sm font-black text-[var(--color-dark)]">New Report</p>
+                        <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Start a fresh match report for the next fixture.</p>
+                      </div>
+                      <ArrowRight size={18} className="text-[var(--color-accent)]" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => navigate('/oversight')}
+                    className="inline-flex items-center justify-between rounded-[22px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] px-4 py-4 text-left"
+                  >
+                    <div>
+                      <p className="text-sm font-black text-[var(--color-dark)]">Open Oversight</p>
+                      <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Return to the leadership workspace for planning and follow-up.</p>
+                    </div>
+                    <ArrowRight size={18} className="text-[var(--color-accent)]" />
+                  </button>
+                )}
 
                 <button
                   onClick={handleOpenComparison}
@@ -723,17 +770,19 @@ export default function PlayersPage() {
                         </p>
                         <h3 className="mt-2 text-xl font-black text-[var(--color-dark)]">{entry.name}</h3>
                       </div>
-                      <button
-                        onClick={() => void handleWatchlistToggle(entry)}
-                        disabled={updatingWatchlistKey === entry.playerKey}
-                        className={`rounded-full border p-2 transition-colors ${
-                          entry.isWatchlisted
-                            ? 'border-[#d5aa4d]/40 bg-[#d5aa4d]/12 text-[#7c5b11]'
-                            : 'border-[var(--color-mid)]/20 text-[var(--color-mid)] hover:border-[var(--color-primary)]/30 hover:text-[var(--color-primary)]'
-                        }`}
-                      >
-                        <Star size={16} fill={entry.isWatchlisted ? 'currentColor' : 'none'} />
-                      </button>
+                      {canManageWatchlist ? (
+                        <button
+                          onClick={() => void handleWatchlistToggle(entry)}
+                          disabled={updatingWatchlistKey === entry.playerKey}
+                          className={`rounded-full border p-2 transition-colors ${
+                            entry.isWatchlisted
+                              ? 'border-[#d5aa4d]/40 bg-[#d5aa4d]/12 text-[#7c5b11]'
+                              : 'border-[var(--color-mid)]/20 text-[var(--color-mid)] hover:border-[var(--color-primary)]/30 hover:text-[var(--color-primary)]'
+                          }`}
+                        >
+                          <Star size={16} fill={entry.isWatchlisted ? 'currentColor' : 'none'} />
+                        </button>
+                      ) : null}
                     </div>
 
                     <div className="mt-5 flex items-end justify-between">
@@ -923,20 +972,22 @@ export default function PlayersPage() {
                               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Reports</p>
                               <p className="mt-1 text-2xl font-black text-[var(--color-dark)]">{entry.reportCount}</p>
                             </div>
-                            <button
-                              onClick={() => void handleWatchlistToggle(entry)}
-                              disabled={updatingWatchlistKey === entry.playerKey}
-                              className={`col-span-2 rounded-2xl px-4 py-3 text-sm font-black transition-all sm:col-span-1 ${
-                                entry.isWatchlisted
-                                  ? 'bg-[#d5aa4d] text-[#3b2d06] shadow-[0_14px_30px_rgba(213,170,77,0.22)]'
-                                  : 'border border-[var(--color-mid)]/20 bg-white text-[var(--color-primary)] hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5'
-                              }`}
-                            >
-                              <span className="inline-flex items-center gap-2">
-                                <Star size={16} fill={entry.isWatchlisted ? 'currentColor' : 'none'} />
-                                {entry.isWatchlisted ? 'Shortlisted' : 'Add to watchlist'}
-                              </span>
-                            </button>
+                            {canManageWatchlist ? (
+                              <button
+                                onClick={() => void handleWatchlistToggle(entry)}
+                                disabled={updatingWatchlistKey === entry.playerKey}
+                                className={`col-span-2 rounded-2xl px-4 py-3 text-sm font-black transition-all sm:col-span-1 ${
+                                  entry.isWatchlisted
+                                    ? 'bg-[#d5aa4d] text-[#3b2d06] shadow-[0_14px_30px_rgba(213,170,77,0.22)]'
+                                    : 'border border-[var(--color-mid)]/20 bg-white text-[var(--color-primary)] hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5'
+                                }`}
+                              >
+                                <span className="inline-flex items-center gap-2">
+                                  <Star size={16} fill={entry.isWatchlisted ? 'currentColor' : 'none'} />
+                                  {entry.isWatchlisted ? 'Shortlisted' : 'Add to watchlist'}
+                                </span>
+                              </button>
+                            ) : null}
                           </div>
                         </div>
 
@@ -1036,12 +1087,14 @@ export default function PlayersPage() {
                           <h3 className="text-lg font-black text-[var(--color-dark)]">{entry.name}</h3>
                           <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">{entry.clubLabel}</p>
                         </div>
-                        <button
-                          onClick={() => void handleWatchlistToggle(entry)}
-                          className="rounded-full bg-white/80 p-2 text-[#7c5b11] transition-opacity hover:opacity-80"
-                        >
-                          <Star size={15} fill="currentColor" />
-                        </button>
+                        {canManageWatchlist ? (
+                          <button
+                            onClick={() => void handleWatchlistToggle(entry)}
+                            className="rounded-full bg-white/80 p-2 text-[#7c5b11] transition-opacity hover:opacity-80"
+                          >
+                            <Star size={15} fill="currentColor" />
+                          </button>
+                        ) : null}
                       </div>
 
                       <p className="mt-3 text-sm font-semibold text-[var(--color-mid)]">{entry.latestVerdict}</p>

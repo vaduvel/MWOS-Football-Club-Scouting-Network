@@ -11,6 +11,15 @@ import {
   type InviteDeliveryResult,
   type InviteStatus,
 } from './inviteDomain';
+import {
+  buildStaffAccessEventSummary,
+  type StaffAccessEventAction,
+} from './staffAccessActivityDomain';
+import {
+  isRemovingOwnAdminRole,
+  normalizeClubAccessSelection,
+  validateClubAccessSelection,
+} from './staffAccessDomain';
 
 export interface AppRole {
   slug: string;
@@ -124,6 +133,20 @@ interface StaffInvitationRow {
   inviter_user_id: string;
   staff_invitation_roles: StaffInvitationRoleJoinRow[] | null;
   staff_invitation_teams: StaffInvitationTeamJoinRow[] | null;
+}
+
+interface StaffAccessEventRow {
+  id: string;
+  actor_user_id: string | null;
+  actor_name: string;
+  actor_email: string;
+  target_user_id: string | null;
+  target_name: string;
+  target_email: string;
+  action_type: StaffAccessEventAction;
+  role_labels: string[] | null;
+  team_names: string[] | null;
+  created_at: string;
 }
 
 interface ReportRow {
@@ -282,6 +305,24 @@ export interface AdminAiInsights {
   headline: string;
   suggestions: AdminInsightItem[];
   watchouts: string[];
+}
+
+export interface AdminAiStatus {
+  configured: boolean;
+  provider: string;
+  model: string;
+  configuredEnvVar: 'GEMINI_API_KEY' | 'GOOGLE_API_KEY' | null;
+  acceptedEnvVars: string[];
+  setupHint: string;
+}
+
+export interface AdminEmailStatus {
+  configured: boolean;
+  sender: string | null;
+  replyTo: string | null;
+  publicAppUrl: string | null;
+  deliveryMode: 'transactional_email' | 'manual_link_fallback';
+  setupHint: string;
 }
 
 export interface AdminChatMessage {
@@ -460,6 +501,23 @@ export interface StaffInvitationRecord {
   messageType: 'invite' | 'existing_access_update';
 }
 
+export interface StaffAccessEventRecord {
+  id: string;
+  actorUserId: string | null;
+  actorName: string;
+  actorEmail: string;
+  targetUserId: string | null;
+  targetName: string;
+  targetEmail: string;
+  actionType: StaffAccessEventAction;
+  roleLabels: string[];
+  teamNames: string[];
+  title: string;
+  detail: string;
+  tone: 'info' | 'success' | 'warning';
+  createdAt: string;
+}
+
 export interface StaffInvitationInput {
   fullName: string;
   email: string;
@@ -626,6 +684,33 @@ function toStaffInvitationRecord(
   };
 }
 
+function toStaffAccessEventRecord(row: StaffAccessEventRow): StaffAccessEventRecord {
+  const roleLabels = row.role_labels || [];
+  const teamNames = row.team_names || [];
+  const summary = buildStaffAccessEventSummary({
+    actionType: row.action_type,
+    roleLabels,
+    teamNames,
+  });
+
+  return {
+    id: row.id,
+    actorUserId: row.actor_user_id,
+    actorName: row.actor_name,
+    actorEmail: row.actor_email,
+    targetUserId: row.target_user_id,
+    targetName: row.target_name,
+    targetEmail: row.target_email,
+    actionType: row.action_type,
+    roleLabels,
+    teamNames,
+    title: summary.title,
+    detail: summary.detail,
+    tone: summary.tone,
+    createdAt: row.created_at,
+  };
+}
+
 export function userHasRole(user: Pick<AppUser, 'roles'> | null | undefined, role: string) {
   const target = normalizeRoleSlug(role);
   if (!target || !user) return false;
@@ -645,10 +730,14 @@ export function canAccessTransportModule(user: Pick<AppUser, 'roles'> | null | u
 }
 
 export function canAccessScoutingModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'scout']);
+  return userHasAnyRole(user, ['admin', 'technical_director', 'scout']);
 }
 
 export function canAccessPlayerHub(user: Pick<AppUser, 'roles'> | null | undefined) {
+  return userHasAnyRole(user, ['admin', 'technical_director', 'scout']);
+}
+
+export function canCreateScoutingReports(user: Pick<AppUser, 'roles'> | null | undefined) {
   return userHasAnyRole(user, ['admin', 'scout']);
 }
 
@@ -1388,6 +1477,12 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
 }
 
 export async function deleteReport(reportId: string) {
+  const authUser = await getCurrentAppUser();
+
+  if (!canCreateScoutingReports(authUser)) {
+    throw new Error('Scouting authoring access is required.');
+  }
+
   const { error } = await supabase
     .from('reports')
     .delete()
@@ -1465,6 +1560,11 @@ export async function fetchReport(reportId: string) {
 
 export async function saveReport(report: Report) {
   const authUser = await getCurrentAppUser();
+
+  if (!canCreateScoutingReports(authUser)) {
+    throw new Error('Scouting authoring access is required.');
+  }
+
   const reportId = report.id || createId();
   const reportPayload = {
     id: reportId,
@@ -1936,7 +2036,12 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
 }
 
 export async function addPlayerToWatchlist(player: Pick<PlayerHubEntry, 'playerKey' | 'name' | 'clubLabel' | 'latestPlayerId' | 'latestReportId'>) {
-  const authUser = await getCurrentAuthUser();
+  const authUser = await getCurrentAppUser();
+
+  if (!canCreateScoutingReports(authUser)) {
+    throw new Error('Scouting authoring access is required.');
+  }
+
   const payload = {
     user_id: authUser.id,
     player_key: player.playerKey,
@@ -1961,7 +2066,12 @@ export async function addPlayerToWatchlist(player: Pick<PlayerHubEntry, 'playerK
 }
 
 export async function removePlayerFromWatchlist(playerKey: string) {
-  const authUser = await getCurrentAuthUser();
+  const authUser = await getCurrentAppUser();
+
+  if (!canCreateScoutingReports(authUser)) {
+    throw new Error('Scouting authoring access is required.');
+  }
+
   const { error } = await supabase
     .from('watchlist_players')
     .delete()
@@ -2288,6 +2398,58 @@ export async function fetchStaffInvitations(): Promise<StaffInvitationRecord[]> 
   return invitations.map((row) => toStaffInvitationRecord(row, inviterProfilesById));
 }
 
+export async function fetchStaffAccessEvents(): Promise<StaffAccessEventRecord[]> {
+  const authUser = await getCurrentAppUser();
+
+  if (!userHasRole(authUser, 'admin')) {
+    throw new Error('Admin access is required.');
+  }
+
+  const { data, error } = await supabase
+    .from('staff_access_events')
+    .select('id, actor_user_id, actor_name, actor_email, target_user_id, target_name, target_email, action_type, role_labels, team_names, created_at')
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    if (error.code === 'PGRST205' || String(error.message || '').includes('staff_access_events')) {
+      return [];
+    }
+    throw error;
+  }
+
+  return ((data || []) as StaffAccessEventRow[]).map(toStaffAccessEventRecord);
+}
+
+async function recordStaffAccessEvent(input: {
+  actorUser: AppUser;
+  targetUserId: string;
+  targetName: string;
+  targetEmail: string;
+  actionType: StaffAccessEventAction;
+  roleLabels: string[];
+  teamNames: string[];
+}) {
+  const actorName = input.actorUser.name?.trim() || getDisplayName(input.actorUser.email);
+  const actorEmail = input.actorUser.email?.trim() || '';
+
+  const { error } = await supabase.from('staff_access_events').insert({
+    actor_user_id: input.actorUser.id,
+    actor_name: actorName,
+    actor_email: actorEmail,
+    target_user_id: input.targetUserId,
+    target_name: input.targetName,
+    target_email: input.targetEmail,
+    action_type: input.actionType,
+    role_labels: input.roleLabels,
+    team_names: input.teamNames,
+  });
+
+  if (error) {
+    console.warn('Failed to record staff access event.', error);
+  }
+}
+
 export async function createStaffInvitation(input: StaffInvitationInput) {
   const authUser = await getCurrentAppUser();
 
@@ -2328,6 +2490,16 @@ export async function cancelStaffInvitation(invitationId: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ invitationId }),
+  });
+}
+
+export async function expireStaleStaffInvitations() {
+  return callFunctionRequest<{ ok: boolean; message: string; expiredCount: number }>('expire-staff-invites', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({}),
   });
 }
 
@@ -2372,13 +2544,46 @@ export async function saveUserClubAccess(userId: string, roleSlugs: string[], te
     throw new Error('Admin access is required.');
   }
 
-  const normalizedRoleSlugs = normalizeRoleList(roleSlugs);
-  const normalizedTeamIds = Array.from(new Set(teamIds.filter(Boolean)));
+  const {
+    roleSlugs: normalizedRoleSlugs,
+    teamIds: normalizedTeamIds,
+  } = validateClubAccessSelection(normalizeClubAccessSelection({ roleSlugs, teamIds }));
 
-  const { data: roleRows, error: roleLookupError } = await supabase
-    .from('roles')
-    .select('id, slug, label')
-    .in('slug', normalizedRoleSlugs);
+  if (
+    isRemovingOwnAdminRole({
+      actingUserId: authUser.id,
+      targetUserId: userId,
+      actingUserRoles: authUser.roles,
+      nextRoleSlugs: normalizedRoleSlugs,
+    })
+  ) {
+    const { count: adminCount, error: adminCountError } = await supabase
+      .from('user_roles')
+      .select('user_id, roles!inner(slug)', { head: true, count: 'exact' })
+      .eq('roles.slug', 'admin');
+
+    if (adminCountError) {
+      throw adminCountError;
+    }
+
+    if ((adminCount || 0) <= 1) {
+      throw new Error('Assign another admin before removing your own admin access.');
+    }
+  }
+
+  const { data: targetProfile, error: targetProfileError } = await supabase
+    .from('profiles')
+    .select('id, email, name')
+    .eq('id', userId)
+    .single();
+
+  if (targetProfileError) {
+    throw targetProfileError;
+  }
+
+  const { data: roleRows, error: roleLookupError } = normalizedRoleSlugs.length > 0
+    ? await supabase.from('roles').select('id, slug, label').in('slug', normalizedRoleSlugs)
+    : { data: [], error: null };
 
   if (roleLookupError) {
     throw roleLookupError;
@@ -2389,6 +2594,20 @@ export async function saveUserClubAccess(userId: string, roleSlugs: string[], te
 
   if (roleRecords.length !== normalizedRoleSlugs.length) {
     throw new Error('One or more selected roles could not be matched.');
+  }
+
+  const { data: teamRows, error: teamLookupError } = normalizedTeamIds.length > 0
+    ? await supabase.from('teams').select('id, name').in('id', normalizedTeamIds)
+    : { data: [], error: null };
+
+  if (teamLookupError) {
+    throw teamLookupError;
+  }
+
+  const teamRecords = (teamRows || []) as Array<{ id: string; name: string }>;
+
+  if (teamRecords.length !== normalizedTeamIds.length) {
+    throw new Error('One or more selected teams could not be matched.');
   }
 
   const { error: deleteRolesError } = await supabase
@@ -2446,6 +2665,16 @@ export async function saveUserClubAccess(userId: string, roleSlugs: string[], te
   if (profileUpdateError) {
     throw profileUpdateError;
   }
+
+  await recordStaffAccessEvent({
+    actorUser: authUser,
+    targetUserId: userId,
+    targetName: targetProfile.name || getDisplayName(targetProfile.email),
+    targetEmail: targetProfile.email,
+    actionType: normalizedRoleSlugs.length === 0 ? 'access_revoked' : 'access_updated',
+    roleLabels: roleRecords.map((role) => role.label?.trim() || formatRoleLabel(role.slug)),
+    teamNames: teamRecords.map((team) => team.name),
+  });
 }
 
 function buildFunctionUrl(functionName: string, params?: Record<string, string>) {
@@ -2539,7 +2768,13 @@ async function callAuthorizedApiRequest<T>(path: string, init: RequestInit) {
   }
 
   if (!response.ok) {
-    throw new Error(body?.error || `Request failed with status ${response.status}.`);
+    const apiError = new Error(body?.error || `Request failed with status ${response.status}.`) as Error & {
+      code?: string;
+      status?: number;
+    };
+    apiError.code = body?.code;
+    apiError.status = response.status;
+    throw apiError;
   }
 
   return body as T;
@@ -2607,6 +2842,18 @@ export async function fetchAdminAiInsights(context: AdminAiContext) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ context }),
+  });
+}
+
+export async function fetchAdminAiStatus() {
+  return callAuthorizedApiRequest<AdminAiStatus>('/api/admin-ai/status', {
+    method: 'GET',
+  });
+}
+
+export async function fetchAdminEmailStatus() {
+  return callAuthorizedApiRequest<AdminEmailStatus>('/api/admin/email-status', {
+    method: 'GET',
   });
 }
 

@@ -61,6 +61,22 @@ export function getPublicAppUrl() {
   return String(value).replace(/\/$/, '');
 }
 
+export function getEmailRuntimeStatus() {
+  const configured = Boolean(process.env.RESEND_API_KEY && process.env.NOTIFICATION_FROM_EMAIL);
+  const publicAppUrl = getPublicAppUrl() || null;
+
+  return {
+    configured,
+    sender: process.env.NOTIFICATION_FROM_EMAIL || null,
+    replyTo: process.env.NOTIFICATION_REPLY_TO_EMAIL || null,
+    publicAppUrl,
+    deliveryMode: configured ? 'transactional_email' : 'manual_link_fallback',
+    setupHint: configured
+      ? 'Transactional invite and alert emails are ready.'
+      : 'Add RESEND_API_KEY and NOTIFICATION_FROM_EMAIL to the Netlify server environment. Until then, use manual invite links or WhatsApp sharing from Settings.',
+  };
+}
+
 export async function sendTransactionalEmail({ to, subject, html }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.NOTIFICATION_FROM_EMAIL;

@@ -4,6 +4,7 @@ import {
   fetchInvitationByToken,
   flattenInvitationRoles,
   flattenInvitationTeams,
+  logStaffAccessEvent,
 } from './_staff-invitations.js';
 
 export async function handler(event) {
@@ -107,6 +108,18 @@ export async function handler(event) {
       .eq('id', invitation.id);
 
     if (updateError) throw updateError;
+
+    await logStaffAccessEvent(serviceSupabase, {
+      actorUserId: auth.user.id,
+      actorName: auth.user.user_metadata?.name || auth.user.user_metadata?.full_name || invitation.full_name,
+      actorEmail: auth.user.email || invitation.email,
+      targetUserId: auth.user.id,
+      targetName: invitation.full_name,
+      targetEmail: invitation.email,
+      actionType: 'invite_accepted',
+      roles,
+      teams,
+    });
 
     return json(200, { ok: true, message: 'Invitation accepted.', roles: roles.map((role) => role.slug) });
   } catch (error) {

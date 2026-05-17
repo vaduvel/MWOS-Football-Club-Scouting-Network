@@ -40,13 +40,21 @@ describe('scoutingWorkspaceDomain', () => {
     const leadershipActions = buildScoutingWorkspaceActions({
       isLeadership: true,
       hasTrackedPlayers: true,
+      canCreateReports: true,
+    });
+    const reviewActions = buildScoutingWorkspaceActions({
+      isLeadership: true,
+      hasTrackedPlayers: true,
+      canCreateReports: false,
     });
     const scoutActions = buildScoutingWorkspaceActions({
       isLeadership: false,
       hasTrackedPlayers: false,
+      canCreateReports: true,
     });
 
     expect(leadershipActions.map((action) => action.label)).toEqual(['New Report', 'Player Hub', 'Oversight']);
+    expect(reviewActions.map((action) => action.label)).toEqual(['Player Hub', 'Oversight']);
     expect(scoutActions.map((action) => action.label)).toEqual(['New Report', 'Player Hub', 'Training']);
   });
 });

@@ -6,6 +6,7 @@ import {
   fetchExistingUserByEmail,
   fetchRolesAndTeams,
   generateInviteActionLink,
+  logStaffAccessEvent,
   sendExistingUserAccessEmail,
   sendInviteEmail,
 } from './_staff-invitations.js';
@@ -60,6 +61,17 @@ export async function handler(event) {
         roles,
         teams,
       });
+      await logStaffAccessEvent(serviceSupabase, {
+        actorUserId: auth.user.id,
+        actorName: auth.user.user_metadata?.name || auth.user.user_metadata?.full_name || '',
+        actorEmail: auth.user.email || '',
+        targetUserId: existingUser.id,
+        targetName: existingUser.name || fullName,
+        targetEmail: email,
+        actionType: 'invite_applied_existing',
+        roles,
+        teams,
+      });
 
       const delivery =
         deliveryMode === 'email'
@@ -107,6 +119,18 @@ export async function handler(event) {
         .update({ resolved_user_id: authUserId })
         .eq('id', invitation.id);
     }
+
+    await logStaffAccessEvent(serviceSupabase, {
+      actorUserId: auth.user.id,
+      actorName: auth.user.user_metadata?.name || auth.user.user_metadata?.full_name || '',
+      actorEmail: auth.user.email || '',
+      targetUserId: authUserId,
+      targetName: fullName,
+      targetEmail: email,
+      actionType: 'invite_created',
+      roles,
+      teams,
+    });
 
     const delivery =
       deliveryMode === 'email'

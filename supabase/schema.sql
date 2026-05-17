@@ -80,6 +80,30 @@ create table if not exists public.staff_invitation_teams (
   primary key (invitation_id, team_id)
 );
 
+create table if not exists public.staff_access_events (
+  id uuid primary key default gen_random_uuid(),
+  actor_user_id uuid references auth.users (id) on delete set null,
+  actor_name text not null,
+  actor_email text not null,
+  target_user_id uuid references auth.users (id) on delete set null,
+  target_name text not null,
+  target_email text not null,
+  action_type text not null check (
+    action_type in (
+      'access_updated',
+      'access_revoked',
+      'invite_created',
+      'invite_resent',
+      'invite_cancelled',
+      'invite_applied_existing',
+      'invite_accepted'
+    )
+  ),
+  role_labels text[] not null default array[]::text[],
+  team_names text[] not null default array[]::text[],
+  created_at timestamptz not null default timezone('utc', now())
+);
+
 create table if not exists public.training_plans (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references public.teams (id) on delete cascade,
@@ -284,6 +308,8 @@ create index if not exists staff_invitations_status_idx on public.staff_invitati
 create index if not exists staff_invitations_inviter_idx on public.staff_invitations (inviter_user_id);
 create index if not exists staff_invitation_roles_role_id_idx on public.staff_invitation_roles (role_id);
 create index if not exists staff_invitation_teams_team_id_idx on public.staff_invitation_teams (team_id);
+create index if not exists staff_access_events_created_at_idx on public.staff_access_events (created_at desc);
+create index if not exists staff_access_events_target_email_idx on public.staff_access_events (target_email);
 create index if not exists training_plans_team_id_idx on public.training_plans (team_id);
 create index if not exists training_plans_week_start_idx on public.training_plans (week_start);
 create index if not exists training_plan_days_plan_id_idx on public.training_plan_days (plan_id);
@@ -705,6 +731,7 @@ alter table public.user_team_assignments enable row level security;
 alter table public.staff_invitations enable row level security;
 alter table public.staff_invitation_roles enable row level security;
 alter table public.staff_invitation_teams enable row level security;
+alter table public.staff_access_events enable row level security;
 alter table public.training_plans enable row level security;
 alter table public.training_plan_days enable row level security;
 alter table public.training_plan_comments enable row level security;
@@ -898,6 +925,20 @@ with check (
       and public.can_manage_staff_access()
   )
 );
+
+drop policy if exists "staff_access_events_select_admin" on public.staff_access_events;
+create policy "staff_access_events_select_admin"
+on public.staff_access_events
+for select
+to authenticated
+using (public.can_manage_staff_access());
+
+drop policy if exists "staff_access_events_insert_admin" on public.staff_access_events;
+create policy "staff_access_events_insert_admin"
+on public.staff_access_events
+for insert
+to authenticated
+with check (public.can_manage_staff_access());
 
 drop policy if exists "settings_select_own" on public.user_settings;
 create policy "settings_select_own"

@@ -5,6 +5,7 @@ import {
   canAccessScoutingModule,
   canAccessTrainingModule,
   canAccessTransportModule,
+  type StaffAccessEventRecord,
   fetchStaffInvitations,
   getCurrentAppUser,
   userHasAnyRole,
@@ -77,6 +78,8 @@ export interface ClubHomeWorkspace {
   recentReportsCount: number;
   attentionItems: OversightAttentionItem[];
   pendingInvitations: StaffInvitationRecord[];
+  staffingHealth: OversightWorkspace['staffingHealth'];
+  recentStaffAccessEvents: StaffAccessEventRecord[];
   leadership: OversightWorkspace | null;
 }
 
@@ -230,6 +233,8 @@ export async function fetchClubHomeWorkspace(): Promise<ClubHomeWorkspace> {
     recentReportsCount,
     attentionItems,
     pendingInvitations,
+    staffingHealth: leadership?.staffingHealth || null,
+    recentStaffAccessEvents: leadership?.recentStaffAccessEvents || [],
     leadership,
   };
 }

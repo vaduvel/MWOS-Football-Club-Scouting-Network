@@ -106,21 +106,25 @@ export function buildScoutingWorkspaceMetrics(input: {
 export function buildScoutingWorkspaceActions(input: {
   isLeadership: boolean;
   hasTrackedPlayers: boolean;
+  canCreateReports: boolean;
 }): ScoutingWorkspaceAction[] {
-  const actions: ScoutingWorkspaceAction[] = [
-    {
+  const actions: ScoutingWorkspaceAction[] = [];
+
+  if (input.canCreateReports) {
+    actions.push({
       label: 'New Report',
       helper: 'Start a fresh scouting report.',
       path: '/scouting/report/new',
       tone: 'solid',
-    },
-    {
-      label: 'Player Hub',
-      helper: input.hasTrackedPlayers ? 'Compare and shortlist players.' : 'Open tracked player intelligence.',
-      path: '/players',
-      tone: 'soft',
-    },
-  ];
+    });
+  }
+
+  actions.push({
+    label: 'Player Hub',
+    helper: input.hasTrackedPlayers ? 'Compare and shortlist players.' : 'Open tracked player intelligence.',
+    path: '/players',
+    tone: input.canCreateReports ? 'soft' : 'solid',
+  });
 
   if (input.isLeadership) {
     actions.push({

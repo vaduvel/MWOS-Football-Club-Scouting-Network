@@ -20,15 +20,28 @@ import {
   fetchOversightWorkspace,
   type OversightRecentReport,
   type OversightRoleSummary,
+  type OversightStaffingHealth,
   type OversightTransportItem,
   type OversightWorkspace,
 } from '../lib/oversightData';
 import {
+  canManageOversightTransport,
+  canManageStaffAccess,
+  canSeeStaffCoverage,
+  getLeadershipWorkspaceMode,
+  getOversightHeroCopy,
+} from '../lib/leadershipWorkspaceDomain';
+import {
+  type StaffAccessEventRecord,
+  canAccessScoutingModule,
+  canAccessTrainingModule,
+  canAccessTransportModule,
   cancelStaffInvitation,
   resendStaffInvitation,
   userHasAnyRole,
   type StaffInvitationRecord,
 } from '../lib/data';
+import { buildStaffingHealthCards } from '../lib/staffAccessActivityDomain';
 import type { TrainingPlanSummary } from '../lib/trainingData';
 import { changeTransportPlanStatus } from '../lib/transportData';
 import { useAuthStore } from '../store/auth';
@@ -125,7 +138,85 @@ function RoleCoverageCard({ summary }: { summary: OversightRoleSummary }) {
   );
 }
 
-function TrainingFeed({ plans }: { plans: TrainingPlanSummary[] }) {
+function StaffingHealthCard({ summary }: { summary: OversightStaffingHealth }) {
+  const cards = buildStaffingHealthCards(summary);
+
+  return (
+    <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+          <Shield size={22} />
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-[var(--color-dark)]">Staffing health</h2>
+          <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+            A quick read on access coverage, pending onboarding, and how much staff load is spread across teams.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        {cards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/60 p-4"
+          >
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">{card.label}</p>
+            <p className="mt-2 text-lg font-black text-[var(--color-dark)]">{card.value}</p>
+            <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">{card.detail}</p>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function StaffAccessActivityFeed({ items }: { items: StaffAccessEventRecord[] }) {
+  return (
+    <FeedShell
+      title="Recent staff access activity"
+      description="The latest invite, access, and revocation actions from the admin surface."
+      icon={ClipboardList}
+    >
+      <div className="space-y-3">
+        {items.length > 0 ? (
+          items.map((item) => (
+            <div
+              key={item.id}
+              className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-black text-[var(--color-dark)]">{item.targetName}</p>
+                  <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{item.targetEmail}</p>
+                </div>
+                <span
+                  className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] shadow-sm ${
+                    item.tone === 'warning'
+                      ? 'bg-amber-100 text-amber-800'
+                      : item.tone === 'success'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-white text-[var(--color-dark)]'
+                  }`}
+                >
+                  {item.title}
+                </span>
+              </div>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[var(--color-dark)]">{item.detail}</p>
+              <p className="mt-2 text-[11px] font-semibold text-[var(--color-mid)]">
+                By {item.actorName} · {formatIsoDate(item.createdAt)}
+              </p>
+            </div>
+          ))
+        ) : (
+          <EmptyState message="No recent access activity yet." />
+        )}
+      </div>
+    </FeedShell>
+  );
+}
+
+function TrainingFeed({ plans, interactive = true }: { plans: TrainingPlanSummary[]; interactive?: boolean }) {
   return (
     <FeedShell
       title="Current-week training"
@@ -135,10 +226,11 @@ function TrainingFeed({ plans }: { plans: TrainingPlanSummary[] }) {
       <div className="space-y-3">
         {plans.length > 0 ? (
           plans.map((plan) => (
-            <Link
+            <div
               key={plan.id}
-              to={`/training?team=${plan.teamId}`}
-              className="group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition hover:border-[var(--color-primary)]/22"
+              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+                interactive ? 'hover:border-[var(--color-primary)]/22' : ''
+              }`}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -154,8 +246,14 @@ function TrainingFeed({ plans }: { plans: TrainingPlanSummary[] }) {
                   Week of {formatIsoDate(plan.weekStart)}
                 </p>
               </div>
-              <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
-            </Link>
+              {interactive ? (
+                <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
+              ) : (
+                <span className="mt-1 shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                  Read-only
+                </span>
+              )}
+            </div>
           ))
         ) : (
           <EmptyState message="No current-week training plans yet." />
@@ -165,7 +263,7 @@ function TrainingFeed({ plans }: { plans: TrainingPlanSummary[] }) {
   );
 }
 
-function ReportsFeed({ items }: { items: OversightRecentReport[] }) {
+function ReportsFeed({ items, interactive = true }: { items: OversightRecentReport[]; interactive?: boolean }) {
   return (
     <FeedShell
       title="Recent scouting activity"
@@ -175,10 +273,11 @@ function ReportsFeed({ items }: { items: OversightRecentReport[] }) {
       <div className="space-y-3">
         {items.length > 0 ? (
           items.map((item) => (
-            <Link
+            <div
               key={item.id}
-              to={`/scouting/report/${item.id}`}
-              className="group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition hover:border-[var(--color-primary)]/22"
+              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+                interactive ? 'hover:border-[var(--color-primary)]/22' : ''
+              }`}
             >
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black text-[var(--color-dark)]">{item.fixture}</p>
@@ -187,8 +286,14 @@ function ReportsFeed({ items }: { items: OversightRecentReport[] }) {
                   {formatIsoDate(item.date)} · {item.ownerName}
                 </p>
               </div>
-              <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
-            </Link>
+              {interactive ? (
+                <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
+              ) : (
+                <span className="mt-1 shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                  Read-only
+                </span>
+              )}
+            </div>
           ))
         ) : (
           <EmptyState message="No recent scouting reports available yet." />
@@ -272,12 +377,14 @@ function InvitationFeedWithActions({
 function TransportFeedWithActions({
   items,
   canManage,
+  interactive = true,
   busyKey,
   onComplete,
   onCancel,
 }: {
   items: OversightTransportItem[];
   canManage: boolean;
+  interactive?: boolean;
   busyKey: string | null;
   onComplete: (planId: string) => void;
   onCancel: (planId: string) => void;
@@ -311,12 +418,18 @@ function TransportFeedWithActions({
                     Driver: {item.driverName}
                   </p>
                 </div>
-                <Link
-                  to={`/transport?team=${item.teamId}`}
-                  className="mt-1 shrink-0 text-[var(--color-mid)] transition hover:text-[var(--color-primary)]"
-                >
-                  <ArrowRight size={16} />
-                </Link>
+                {interactive ? (
+                  <Link
+                    to={`/transport?team=${item.teamId}`}
+                    className="mt-1 shrink-0 text-[var(--color-mid)] transition hover:text-[var(--color-primary)]"
+                  >
+                    <ArrowRight size={16} />
+                  </Link>
+                ) : (
+                  <span className="mt-1 shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                    Read-only
+                  </span>
+                )}
               </div>
 
               {canManage ? (
@@ -367,6 +480,60 @@ function LeadershipReadOnlyNote() {
   );
 }
 
+function OversightModeNote({ mode }: { mode: ReturnType<typeof getLeadershipWorkspaceMode> }) {
+  if (mode === 'technical_director') {
+    return (
+      <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+            <ClipboardList size={22} />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-[var(--color-dark)]">Technical review mode</h2>
+            <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+              Use this leadership view to review training publication, transport readiness, and activity across all teams, then move into the planning modules when coaches need feedback or direction.
+            </p>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  if (mode === 'board_observer') {
+    return (
+      <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+            <ClipboardList size={22} />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-[var(--color-dark)]">Board briefing mode</h2>
+            <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+              This view stays read-only by design. It surfaces club progress, transport readiness, and recent football activity without exposing staffing or planning controls.
+            </p>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+          <ClipboardList size={22} />
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-[var(--color-dark)]">Admin operations mode</h2>
+          <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+            Staff access, invitation follow-up, and transport interventions stay available here so club operations can be unblocked quickly.
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function OversightPage() {
   const { user, logout } = useAuthStore();
   const [workspace, setWorkspace] = useState<OversightWorkspace | null>(null);
@@ -410,8 +577,15 @@ export default function OversightPage() {
     };
   }, [user]);
 
-  const hasAccess = userHasAnyRole(user, ['admin', 'technical_director', 'board_observer']);
-  const canManageTransport = userHasAnyRole(user, ['admin', 'technical_director']);
+  const leadershipMode = getLeadershipWorkspaceMode(user?.roles || []);
+  const heroCopy = getOversightHeroCopy(leadershipMode);
+  const hasAccess = leadershipMode !== 'none';
+  const canManageTransport = canManageOversightTransport(leadershipMode);
+  const canSeeCoverage = canSeeStaffCoverage(leadershipMode);
+  const canManageAccess = canManageStaffAccess(leadershipMode);
+  const canOpenTraining = canAccessTrainingModule(user);
+  const canOpenTransport = canAccessTransportModule(user);
+  const canOpenScouting = canAccessScoutingModule(user);
 
   async function runAction(actionKey: string, work: () => Promise<string>) {
     setActionError('');
@@ -438,17 +612,17 @@ export default function OversightPage() {
         <div className="mx-auto max-w-7xl space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
             <div className="mwos-ribbon-surface px-5 py-6 text-white md:px-8 md:py-8">
-              <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/68">Leadership Workspace</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/68">{heroCopy.eyebrow}</p>
               <div className="mt-4 flex items-start gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/12 text-white">
                   <Shield size={22} />
                 </div>
                 <div>
                   <h1 className="mwos-display text-[2.2rem] uppercase leading-none tracking-[0.08em] text-white md:text-[3.4rem]">
-                    Oversight
+                    {heroCopy.title}
                   </h1>
                   <p className="mt-3 max-w-3xl text-sm font-semibold leading-7 text-white/82 md:text-base">
-                    One read-first leadership surface for club planning, transport readiness, scouting activity and staff onboarding.
+                    {heroCopy.description}
                   </p>
                   {workspace ? (
                     <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/62">
@@ -496,10 +670,15 @@ export default function OversightPage() {
             <>
               <OversightMetricStrip metrics={workspace.metrics} />
 
+              <OversightModeNote mode={leadershipMode} />
+
               <section className="grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
                 <OversightAttentionList items={workspace.attentionItems} />
-                {workspace.roleSummary ? (
-                  <RoleCoverageCard summary={workspace.roleSummary} />
+                {canSeeCoverage && workspace.roleSummary && workspace.staffingHealth ? (
+                  <div className="grid gap-4">
+                    <RoleCoverageCard summary={workspace.roleSummary} />
+                    <StaffingHealthCard summary={workspace.staffingHealth} />
+                  </div>
                 ) : (
                   <LeadershipReadOnlyNote />
                 )}
@@ -508,10 +687,11 @@ export default function OversightPage() {
               <OversightTeamMatrix teams={workspace.teamSnapshots} />
 
               <section className="grid gap-4 xl:grid-cols-2">
-                <TrainingFeed plans={workspace.currentWeekTrainingPlans} />
+                <TrainingFeed plans={workspace.currentWeekTrainingPlans} interactive={canOpenTraining} />
                 <TransportFeedWithActions
                   items={workspace.upcomingTransport}
                   canManage={canManageTransport}
+                  interactive={canOpenTransport}
                   busyKey={busyKey}
                   onComplete={(planId) =>
                     void runAction(`transport:complete:${planId}`, async () => {
@@ -524,8 +704,8 @@ export default function OversightPage() {
                       return 'Transport plan cancelled from leadership workspace.';
                     })}
                 />
-                <ReportsFeed items={workspace.recentReports} />
-                {workspace.canSeeInvitationFeed ? (
+                <ReportsFeed items={workspace.recentReports} interactive={canOpenScouting} />
+                {canManageAccess && workspace.canSeeInvitationFeed ? (
                   <InvitationFeedWithActions
                     items={workspace.pendingInvitations}
                     busyKey={busyKey}
@@ -540,6 +720,11 @@ export default function OversightPage() {
                         return response.message || 'Invitation cancelled.';
                       })}
                   />
+                ) : (
+                  <LeadershipReadOnlyNote />
+                )}
+                {canManageAccess ? (
+                  <StaffAccessActivityFeed items={workspace.recentStaffAccessEvents} />
                 ) : (
                   <LeadershipReadOnlyNote />
                 )}

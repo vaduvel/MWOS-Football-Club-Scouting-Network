@@ -8,6 +8,12 @@ import {
   updatePassword,
   type AcceptInvitationSummary,
 } from '../lib/data';
+import {
+  getInvitationStatusNotice,
+  mapAcceptInvitationError,
+  parseAcceptInvitationHash,
+  type AcceptInvitationNotice,
+} from '../lib/acceptInvitationDomain';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/auth';
 
@@ -21,7 +27,7 @@ export default function AcceptInvitation() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
+  const [notice, setNotice] = useState<AcceptInvitationNotice | null>(null);
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
 
@@ -51,7 +57,12 @@ export default function AcceptInvitation() {
       }
 
       if (!session) {
+        const hashNotice = typeof window !== 'undefined' ? parseAcceptInvitationHash(window.location.hash) : null;
         setError('This activation session is missing or expired. Open the latest invitation link on this device, or ask an admin to send you a fresh activation link.');
+        if (hashNotice) {
+          setNotice(hashNotice);
+          setError('');
+        }
         setCheckingSession(false);
         return;
       }
@@ -61,16 +72,10 @@ export default function AcceptInvitation() {
         if (!mounted) return;
         setInvitation(summary);
         setReady(summary.status === 'pending');
-        if (summary.status === 'accepted' || summary.status === 'applied_existing') {
-          setInfo('This invitation was already completed. Sign in with your password to enter the club workspace.');
-        } else if (summary.status === 'cancelled') {
-          setInfo('This invitation was cancelled by an admin. Ask for a new invite if you still need access.');
-        } else if (summary.status === 'expired') {
-          setInfo('This invitation expired. Ask an admin to resend it.');
-        }
+        setNotice(getInvitationStatusNotice(summary.status));
       } catch (err: any) {
         if (!mounted) return;
-        setError(err.message || 'Failed to load the invitation.');
+        setError(mapAcceptInvitationError(err.message || 'Failed to load the invitation.'));
       } finally {
         if (mounted) {
           setCheckingSession(false);
@@ -86,7 +91,7 @@ export default function AcceptInvitation() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
-    setInfo('');
+    setNotice(null);
 
     if (password.length < 8) {
       setError('Use at least 8 characters for the new password.');
@@ -105,9 +110,6 @@ export default function AcceptInvitation() {
       const result = await acceptStaffInvitation(invitationToken);
       const authState = await getSessionWithProfile();
       setAuth(authState.user, authState.session);
-      if (result.message) {
-        setInfo(result.message);
-      }
       navigate('/', { replace: true });
     } catch (err: any) {
       setError(err.message || 'Could not activate the invitation.');
@@ -157,9 +159,18 @@ export default function AcceptInvitation() {
                     {error}
                   </div>
                 )}
-                {info && (
-                  <div className="mb-4 rounded-2xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
-                    {info}
+                {notice && (
+                  <div
+                    className={`mb-4 rounded-2xl p-4 text-sm ${
+                      notice.tone === 'success'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : notice.tone === 'warning'
+                          ? 'bg-amber-50 text-amber-800'
+                          : 'bg-[var(--color-light)] text-[var(--color-dark)]'
+                    }`}
+                  >
+                    <p className="font-black">{notice.title}</p>
+                    <p className="mt-1 font-semibold leading-6">{notice.message}</p>
                   </div>
                 )}
 
@@ -220,7 +231,7 @@ export default function AcceptInvitation() {
                       onClick={() => navigate('/login', { replace: true })}
                       className="rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-92"
                     >
-                      {invitation?.status === 'accepted' || invitation?.status === 'applied_existing' ? 'Open Login' : 'Back to Login'}
+                      {notice?.ctaLabel || (invitation?.status === 'accepted' || invitation?.status === 'applied_existing' ? 'Open Login' : 'Back to Login')}
                     </button>
                   </div>
                 )}

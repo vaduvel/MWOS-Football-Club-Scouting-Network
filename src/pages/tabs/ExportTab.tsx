@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useReportStore } from '../../store/report';
 import { Download, FileText, CheckCircle } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 export default function ExportTab() {
   const { currentReport } = useReportStore();
@@ -23,6 +21,11 @@ export default function ExportTab() {
     setExportSuccess(false);
     
     try {
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas'),
+      ]);
+
       // Create a temporary hidden div to render the report for PDF
       const printContainer = document.createElement('div');
       printContainer.style.position = 'absolute';

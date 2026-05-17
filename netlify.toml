@@ -9,6 +9,16 @@ to = "/.netlify/functions/admin-ai-insights"
 status = 200
 
 [[redirects]]
+from = "/api/admin-ai/status"
+to = "/.netlify/functions/admin-ai-status"
+status = 200
+
+[[redirects]]
+from = "/api/admin/email-status"
+to = "/.netlify/functions/admin-email-status"
+status = 200
+
+[[redirects]]
 from = "/api/admin-ai/chat"
 to = "/.netlify/functions/admin-ai-chat"
 status = 200

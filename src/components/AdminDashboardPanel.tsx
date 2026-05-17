@@ -17,6 +17,7 @@ import {
   Users,
 } from 'lucide-react';
 import type {
+  AdminAiStatus,
   AdminAiInsights,
   AdminChatMessage,
   AdminDashboardOverview,
@@ -42,6 +43,9 @@ function formatDisplayDate(value: string) {
 type AdminDashboardPanelProps = {
   overview: AdminDashboardOverview;
   onOpenReport: (reportId: string) => void;
+  aiStatus: AdminAiStatus | null;
+  aiStatusLoading: boolean;
+  aiStatusError: string;
   insights: AdminAiInsights | null;
   insightsLoading: boolean;
   insightsError: string;
@@ -55,6 +59,9 @@ type AdminDashboardPanelProps = {
 export default function AdminDashboardPanel({
   overview,
   onOpenReport,
+  aiStatus,
+  aiStatusLoading,
+  aiStatusError,
   insights,
   insightsLoading,
   insightsError,
@@ -67,6 +74,7 @@ export default function AdminDashboardPanel({
   const [draftMessage, setDraftMessage] = useState('');
   const [showInsightsMobile, setShowInsightsMobile] = useState(true);
   const [showChatMobile, setShowChatMobile] = useState(false);
+  const aiConfigured = Boolean(aiStatus?.configured);
 
   const statCards = [
     {
@@ -173,7 +181,7 @@ export default function AdminDashboardPanel({
               <button
                 type="button"
                 onClick={onRefreshInsights}
-                disabled={insightsLoading}
+                disabled={insightsLoading || !aiConfigured}
                 className="inline-flex items-center gap-2 rounded-2xl border border-[var(--color-primary)]/15 bg-white px-4 py-2 text-sm font-black text-[var(--color-primary)] transition-all hover:bg-[var(--color-primary)]/[0.03] disabled:opacity-50"
               >
                 {insightsLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
@@ -183,7 +191,35 @@ export default function AdminDashboardPanel({
           </div>
 
           <div className={`${showInsightsMobile ? 'block' : 'hidden'} mt-4 rounded-[22px] border border-[var(--color-primary)]/12 bg-white p-5 xl:block`}>
-            {insightsLoading ? (
+            {aiStatusLoading ? (
+              <div className="flex items-center gap-3 text-sm font-semibold text-[var(--color-mid)]">
+                <Loader2 size={18} className="animate-spin" />
+                Checking Admin AI readiness...
+              </div>
+            ) : aiStatusError ? (
+              <div className="rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {aiStatusError}
+              </div>
+            ) : !aiConfigured ? (
+              <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-4">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-2xl bg-amber-100 p-2 text-amber-800">
+                    <AlertTriangle size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-amber-900">Admin AI is not configured yet</p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-amber-900/85">
+                      {aiStatus?.setupHint || 'Add a Gemini server key and redeploy before using AI insights.'}
+                    </p>
+                    {aiStatus?.acceptedEnvVars?.length ? (
+                      <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-amber-800">
+                        Accepted env vars: {aiStatus.acceptedEnvVars.join(' or ')}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : insightsLoading ? (
               <div className="flex items-center gap-3 text-sm font-semibold text-[var(--color-mid)]">
                 <Loader2 size={18} className="animate-spin" />
                 Generating suggestions from the report data...
@@ -301,6 +337,18 @@ export default function AdminDashboardPanel({
               )}
             </div>
 
+            {!aiStatusLoading && !aiConfigured && (
+              <div className="mt-3 rounded-[16px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900/85">
+                {aiStatus?.setupHint || 'Admin AI is not configured yet.'}
+              </div>
+            )}
+
+            {aiStatusError && (
+              <div className="mt-3 rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {aiStatusError}
+              </div>
+            )}
+
             {chatError && (
               <div className="mt-3 rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                 {chatError}
@@ -311,12 +359,17 @@ export default function AdminDashboardPanel({
               <input
                 value={draftMessage}
                 onChange={(event) => setDraftMessage(event.target.value)}
-                placeholder="Ask about top scouts, best players, report quality..."
+                placeholder={
+                  aiConfigured
+                    ? 'Ask about top scouts, best players, report quality...'
+                    : 'Admin AI will unlock here once Gemini is configured'
+                }
+                disabled={!aiConfigured}
                 className="flex-1 rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/12"
               />
               <button
                 type="submit"
-                disabled={chatLoading || !draftMessage.trim()}
+                disabled={chatLoading || !draftMessage.trim() || !aiConfigured}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white transition-all hover:-translate-y-0.5 disabled:opacity-50 sm:self-auto"
               >
                 <Send size={16} />

@@ -13,6 +13,10 @@ import { useNavigate } from 'react-router-dom';
 
 import AppSidebar from '../components/AppSidebar';
 import {
+  canAccessTrainingModule,
+  canAccessTransportModule,
+} from '../lib/data';
+import {
   fetchNotificationWorkspace,
   getFilteredNotificationWorkspaceItems,
 } from '../lib/notificationWorkspaceData';
@@ -186,6 +190,7 @@ export default function NotificationsPage() {
     () => getFilteredNotificationWorkspaceItems(items, filter),
     [items, filter],
   );
+  const canOpenNotificationTarget = canAccessTrainingModule(user) || canAccessTransportModule(user);
 
   async function handleOpen(item: TrainingNotificationItem) {
     try {
@@ -204,7 +209,7 @@ export default function NotificationsPage() {
     } catch (markError) {
       console.error('Failed to mark notification as read.', markError);
     } finally {
-      navigate(item.linkPath);
+      navigate(canOpenNotificationTarget ? item.linkPath : '/oversight');
     }
   }
 

@@ -1,10 +1,12 @@
 import { format, startOfWeek } from 'date-fns';
 
 import {
+  fetchStaffAccessEvents,
   fetchStaffInvitations,
   getCurrentAppUser,
   type AppRole,
   type AppTeam,
+  type StaffAccessEventRecord,
   type StaffInvitationRecord,
   userHasAnyRole,
   userHasRole,
@@ -147,6 +149,13 @@ export interface OversightRoleSummary {
   boardObservers: number;
 }
 
+export interface OversightStaffingHealth {
+  unassignedStaffAccounts: number;
+  multiTeamStaff: number;
+  pendingInvitations: number;
+  recentAccessChanges: number | null;
+}
+
 export interface OversightRecentReport {
   id: string;
   fixture: string;
@@ -178,6 +187,8 @@ export interface OversightWorkspace {
   upcomingTransport: OversightTransportItem[];
   recentReports: OversightRecentReport[];
   pendingInvitations: StaffInvitationRecord[];
+  staffingHealth: OversightStaffingHealth | null;
+  recentStaffAccessEvents: StaffAccessEventRecord[];
   canSeeStaffCoverage: boolean;
   canSeeInvitationFeed: boolean;
 }
@@ -261,6 +272,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
 
   const canSeeStaffCoverage = userHasAnyRole(authUser, ['admin', 'technical_director']);
   const canSeeInvitationFeed = userHasRole(authUser, 'admin');
+  const canSeeAccessActivity = userHasRole(authUser, 'admin');
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -273,6 +285,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
     userRolesResponse,
     assignmentsResponse,
     pendingInvitations,
+    accessEvents,
   ] = await Promise.all([
     supabase.from('profiles').select('id, email, name'),
     supabase.from('teams').select('id, slug, name, is_active').eq('is_active', true).order('sort_order', { ascending: true }),
@@ -301,6 +314,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
       ? supabase.from('user_team_assignments').select('user_id, team_id, teams!inner(id, slug, name, is_active)')
       : Promise.resolve({ data: [], error: null }),
     canSeeInvitationFeed ? fetchStaffInvitations() : Promise.resolve([]),
+    canSeeAccessActivity ? fetchStaffAccessEvents() : Promise.resolve([]),
   ]);
 
   if (profilesResponse.error) throw profilesResponse.error;
@@ -451,6 +465,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
   );
 
   const pendingInviteRecords = (pendingInvitations as StaffInvitationRecord[]).filter((invite) => invite.status === 'pending');
+  const staffAccessEvents = (accessEvents as StaffAccessEventRecord[]) || [];
   const attentionItems = buildOversightAttentionItems({
     teams: teamSnapshots,
     pendingInvitations: canSeeInvitationFeed
@@ -480,6 +495,17 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
     upcomingTransport: upcomingTransport.slice(0, 6),
     recentReports,
     pendingInvitations: pendingInviteRecords.slice(0, 6),
+    staffingHealth: canSeeStaffCoverage
+      ? {
+          unassignedStaffAccounts: profiles.filter((profile) => (roleAssignments.get(profile.id) || []).length === 0).length,
+          multiTeamStaff: Array.from(teamsByUser.values()).filter((assignedTeams) => assignedTeams.length > 1).length,
+          pendingInvitations: pendingInviteRecords.length,
+          recentAccessChanges: canSeeAccessActivity
+            ? staffAccessEvents.filter((event) => new Date(event.createdAt).getTime() >= sevenDaysAgo).length
+            : null,
+        }
+      : null,
+    recentStaffAccessEvents: canSeeAccessActivity ? staffAccessEvents.slice(0, 6) : [],
     canSeeStaffCoverage,
     canSeeInvitationFeed,
   };

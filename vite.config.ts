@@ -2,7 +2,12 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
-import { generateAdminChatReply, generateAdminInsights } from './server/admin-ai.js';
+import {
+  generateAdminChatReply,
+  generateAdminInsights,
+  getAdminAiRuntimeStatus,
+} from './server/admin-ai.js';
+import { getEmailRuntimeStatus } from './netlify/functions/_shared.js';
 
 function readJsonBody(req: NodeJS.ReadableStream) {
   return new Promise<any>((resolve, reject) => {
@@ -51,9 +56,21 @@ export default defineConfig(({ mode }) => {
       {
         name: 'admin-ai-dev-middleware',
         configureServer(server) {
-          if (!env.GEMINI_API_KEY && !env.GOOGLE_API_KEY) {
-            return;
-          }
+          server.middlewares.use('/api/admin-ai/status', async (req, res, next) => {
+            if (req.method !== 'GET') {
+              return next();
+            }
+
+            jsonResponse(res, 200, getAdminAiRuntimeStatus());
+          });
+
+          server.middlewares.use('/api/admin/email-status', async (req, res, next) => {
+            if (req.method !== 'GET') {
+              return next();
+            }
+
+            jsonResponse(res, 200, getEmailRuntimeStatus());
+          });
 
           server.middlewares.use('/api/admin-ai/insights', async (req, res, next) => {
             if (req.method !== 'POST') {
@@ -65,7 +82,11 @@ export default defineConfig(({ mode }) => {
               const result = await generateAdminInsights(body?.context || {});
               jsonResponse(res, 200, result);
             } catch (error: any) {
-              jsonResponse(res, 500, { error: error.message || 'Failed to generate admin insights.' });
+              const statusCode = error?.code === 'admin_ai_not_configured' ? 503 : 500;
+              jsonResponse(res, statusCode, {
+                error: error.message || 'Failed to generate admin insights.',
+                ...(error?.code ? { code: error.code } : {}),
+              });
             }
           });
 
@@ -79,7 +100,11 @@ export default defineConfig(({ mode }) => {
               const result = await generateAdminChatReply(body?.context || {}, body?.messages || []);
               jsonResponse(res, 200, result);
             } catch (error: any) {
-              jsonResponse(res, 500, { error: error.message || 'Failed to generate admin response.' });
+              const statusCode = error?.code === 'admin_ai_not_configured' ? 503 : 500;
+              jsonResponse(res, statusCode, {
+                error: error.message || 'Failed to generate admin response.',
+                ...(error?.code ? { code: error.code } : {}),
+              });
             }
           });
         },

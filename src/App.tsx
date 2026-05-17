@@ -1,25 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import PwaStatusDock from './components/PwaStatusDock';
 import { useAuthStore } from './store/auth';
-import Login from './pages/Login';
-import ResetPassword from './pages/ResetPassword';
-import AcceptInvitation from './pages/AcceptInvitation';
-import ClubHomePage from './pages/ClubHomePage';
-import Dashboard from './pages/Dashboard';
-import PlayersPage from './pages/PlayersPage';
-import ReportEditor from './pages/ReportEditor';
-import SettingsPage from './pages/SettingsPage';
-import TrainingPage from './pages/TrainingPage';
-import TransportPage from './pages/TransportPage';
-import OversightPage from './pages/OversightPage';
-import NotificationsPage from './pages/NotificationsPage';
+const Login = lazy(() => import('./pages/Login'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
+const ClubHomePage = lazy(() => import('./pages/ClubHomePage'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const PlayersPage = lazy(() => import('./pages/PlayersPage'));
+const ReportEditor = lazy(() => import('./pages/ReportEditor'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const TrainingPage = lazy(() => import('./pages/TrainingPage'));
+const TransportPage = lazy(() => import('./pages/TransportPage'));
+const OversightPage = lazy(() => import('./pages/OversightPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 import MissingConfigScreen from './components/MissingConfigScreen';
 import { getSessionWithProfile, subscribeToAuthChanges } from './lib/data';
 import {
   canAccessOversightModule,
   canAccessPlayerHub,
   canAccessScoutingModule,
+  canCreateScoutingReports,
   canAccessTrainingModule,
   canAccessTransportModule,
   getDefaultModulePath,
@@ -36,6 +37,18 @@ type DeferredPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
+
+function RouteLoadingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#f7f8fb,#eef1f7)] px-6">
+      <div className="w-full max-w-md rounded-[28px] border border-[var(--color-primary)]/10 bg-white/96 p-6 text-center shadow-[0_30px_80px_rgba(12,16,53,0.12)]">
+        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">MWOS Club Management</p>
+        <div className="mx-auto mt-4 h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-primary)]/18 border-t-[var(--color-primary)]" />
+        <p className="mt-4 text-sm font-semibold text-[var(--color-dark)]/72">Loading your workspace…</p>
+      </div>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, token } = useAuthStore();
@@ -210,23 +223,25 @@ export default function App() {
         onInstall={() => void handleInstall()}
         onUpdate={handleUpdate}
       />
-      <Routes>
-        <Route path="/login" element={!token ? <Login /> : <Navigate to="/" />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/accept-invite" element={<AcceptInvitation />} />
-        <Route path="/" element={<ProtectedRoute><ClubHomePage /></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-        <Route path="/training" element={<RoleRoute canAccess={canAccessTrainingModule}><TrainingPage /></RoleRoute>} />
-        <Route path="/transport" element={<RoleRoute canAccess={canAccessTransportModule}><TransportPage /></RoleRoute>} />
-        <Route path="/scouting" element={<RoleRoute canAccess={canAccessScoutingModule}><Dashboard /></RoleRoute>} />
-        <Route path="/players" element={<RoleRoute canAccess={canAccessPlayerHub}><PlayersPage /></RoleRoute>} />
-        <Route path="/oversight" element={<RoleRoute canAccess={canAccessOversightModule}><OversightPage /></RoleRoute>} />
-        <Route path="/scouting/report/new" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
-        <Route path="/scouting/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
-        <Route path="/report/new" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
-        <Route path="/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-      </Routes>
+      <Suspense fallback={<RouteLoadingScreen />}>
+        <Routes>
+          <Route path="/login" element={!token ? <Login /> : <Navigate to="/" />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/accept-invite" element={<AcceptInvitation />} />
+          <Route path="/" element={<ProtectedRoute><ClubHomePage /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+          <Route path="/training" element={<RoleRoute canAccess={canAccessTrainingModule}><TrainingPage /></RoleRoute>} />
+          <Route path="/transport" element={<RoleRoute canAccess={canAccessTransportModule}><TransportPage /></RoleRoute>} />
+          <Route path="/scouting" element={<RoleRoute canAccess={canAccessScoutingModule}><Dashboard /></RoleRoute>} />
+          <Route path="/players" element={<RoleRoute canAccess={canAccessPlayerHub}><PlayersPage /></RoleRoute>} />
+          <Route path="/oversight" element={<RoleRoute canAccess={canAccessOversightModule}><OversightPage /></RoleRoute>} />
+          <Route path="/scouting/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
+          <Route path="/scouting/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
+          <Route path="/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
+          <Route path="/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

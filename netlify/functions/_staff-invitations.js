@@ -11,6 +11,15 @@ function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+function getDisplayName(email, fallback = 'Club Staff') {
+  if (fallback && String(fallback).trim()) {
+    return String(fallback).trim();
+  }
+
+  if (!email) return 'Club Staff';
+  return String(email).split('@')[0] || 'Club Staff';
+}
+
 export function generateInvitationToken() {
   return randomBytes(24).toString('hex');
 }
@@ -91,6 +100,34 @@ export async function applyUserAccess(serviceSupabase, userId, roles, teams) {
       .eq('id', userId);
 
     if (profileError) throw profileError;
+  }
+}
+
+export async function logStaffAccessEvent(serviceSupabase, {
+  actorUserId = null,
+  actorName,
+  actorEmail,
+  targetUserId = null,
+  targetName,
+  targetEmail,
+  actionType,
+  roles = [],
+  teams = [],
+}) {
+  const { error } = await serviceSupabase.from('staff_access_events').insert({
+    actor_user_id: actorUserId,
+    actor_name: getDisplayName(actorEmail, actorName),
+    actor_email: actorEmail || '',
+    target_user_id: targetUserId,
+    target_name: getDisplayName(targetEmail, targetName),
+    target_email: targetEmail,
+    action_type: actionType,
+    role_labels: roles.map((role) => role.label).filter(Boolean),
+    team_names: teams.map((team) => team.name).filter(Boolean),
+  });
+
+  if (error) {
+    console.warn('Failed to record staff access event.', error);
   }
 }
 

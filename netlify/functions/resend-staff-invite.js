@@ -5,6 +5,7 @@ import {
   flattenInvitationRoles,
   flattenInvitationTeams,
   generateInviteActionLink,
+  logStaffAccessEvent,
   sendResentInviteEmail,
 } from './_staff-invitations.js';
 
@@ -68,6 +69,18 @@ export async function handler(event) {
         actionLink,
       }),
     );
+
+    await logStaffAccessEvent(serviceSupabase, {
+      actorUserId: auth.user.id,
+      actorName: auth.user.user_metadata?.name || auth.user.user_metadata?.full_name || '',
+      actorEmail: auth.user.email || '',
+      targetUserId: invitation.resolved_user_id || null,
+      targetName: invitation.full_name,
+      targetEmail: invitation.email,
+      actionType: 'invite_resent',
+      roles,
+      teams,
+    });
 
     return json(200, {
       ok: true,
