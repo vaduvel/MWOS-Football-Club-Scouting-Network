@@ -13,8 +13,8 @@ import TrainingWhatsAppShareSheet from '../components/training/TrainingWhatsAppS
 import { userHasAnyRole } from '../lib/data';
 import {
   addTrainingPlanComment,
+  clearTrainingPlanSource,
   createTrainingSourceSignedUrl,
-  downloadTrainingSourceFile,
   fetchTrainingPlanSummaries,
   fetchTrainingTeams,
   fetchTrainingWorkspace,
@@ -104,6 +104,14 @@ function buildImportedSourceCard(source: TrainingPlanSourceDraftInput) {
     previewText: source.previewText,
     extractionStatus: source.extractionStatus || 'draft_generated',
   };
+}
+
+function clearImportMetadata(days: TrainingPlanDay[]) {
+  return days.map((day) => ({
+    ...day,
+    importReviewState: 'ready' as const,
+    importedExcerpt: '',
+  }));
 }
 
 function mergeImportedTrainingDays(currentDays: TrainingPlanDay[], importedDraft: ImportedTrainingDraft): TrainingPlanDay[] {
@@ -487,29 +495,40 @@ export default function TrainingPage() {
     openImportSheet(sourceKind === 'image_import' ? 'image_import' : 'pdf_import');
   };
 
-  const handleRerunExtraction = async () => {
+  const handleClearImport = async () => {
     if (!workspace) return;
 
-    setImporting(true);
-    setImportError('');
     setError('');
+    setWarning('');
+    setImportError('');
 
+    if (draftSource) {
+      setDraftSource(null);
+      setWorkspace({
+        ...workspace,
+        days: clearImportMetadata(workspace.days),
+      });
+      setSuccess('Imported draft cleared. The manual editor is ready again.');
+      return;
+    }
+
+    if (!workspace.planId || !workspace.source) {
+      setWarning('There is no imported source to clear.');
+      return;
+    }
+
+    setImporting(true);
     try {
-      const sourceFile =
-        draftSource?.file ||
-        (workspace.source ? await downloadTrainingSourceFile(workspace.source) : null);
-
-      if (!sourceFile) {
-        setWarning('There is no imported file available to re-run yet.');
-        return;
-      }
-
-      const prepared = await prepareTrainingImportDraft(sourceFile, workspace.weekStart);
-      applyImportedDraft(prepared.draft, prepared.source);
-      setSuccess('Import was refreshed from the original file. Review the draft before publishing.');
-    } catch (rerunError: any) {
-      console.error('Failed to re-run training extraction.', rerunError);
-      setError(rerunError?.message || 'The training source could not be re-processed.');
+      await clearTrainingPlanSource(workspace.planId, workspace.source);
+      setWorkspace({
+        ...workspace,
+        source: null,
+        days: clearImportMetadata(workspace.days),
+      });
+      setSuccess('Imported source cleared. The saved plan is now back to manual editing.');
+    } catch (clearError: any) {
+      console.error('Failed to clear training import.', clearError);
+      setError(clearError?.message || 'The imported source could not be cleared.');
     } finally {
       setImporting(false);
     }
@@ -742,7 +761,7 @@ export default function TrainingPage() {
                   canManage={workspace.canManage}
                   onViewSource={() => void handleViewSource()}
                   onReplaceSource={handleReplaceSource}
-                  onRerunExtraction={() => void handleRerunExtraction()}
+                  onClearSource={() => void handleClearImport()}
                 />
               ) : null}
 

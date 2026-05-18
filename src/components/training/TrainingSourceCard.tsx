@@ -1,4 +1,4 @@
-import { Eye, FilePenLine, FileSearch, RefreshCcw, ScanSearch } from 'lucide-react';
+import { Eye, FilePenLine, FileSearch, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { cn } from '../../lib/utils';
@@ -8,7 +8,7 @@ export default function TrainingSourceCard({
   canManage,
   onViewSource,
   onReplaceSource,
-  onRerunExtraction,
+  onClearSource,
 }: {
   source: {
     sourceKind: string;
@@ -19,7 +19,7 @@ export default function TrainingSourceCard({
   canManage: boolean;
   onViewSource: () => void;
   onReplaceSource: () => void;
-  onRerunExtraction: () => void;
+  onClearSource: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -106,24 +106,23 @@ export default function TrainingSourceCard({
               aria-label="Replace imported training source"
             >
               <FilePenLine size={16} />
-              Replace source
+              Replace / re-scan
             </button>
             <button
               type="button"
-              onClick={onRerunExtraction}
-              className={cn('inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-black sm:w-auto', toneClasses.action)}
-              aria-label="Re-run source extraction"
+              onClick={onClearSource}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-black text-rose-700 sm:w-auto"
+              aria-label="Clear imported training source"
             >
-              <RefreshCcw size={16} />
-              Re-run extraction
+              <Trash2 size={16} />
+              Clear import
             </button>
           </>
         ) : null}
-        <span className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 sm:w-auto">
-          <ScanSearch size={16} />
-          Source stays attached
-        </span>
       </div>
+      <p className="mt-3 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+        The original file stays attached for review until you clear the import.
+      </p>
     </article>
   );
 }

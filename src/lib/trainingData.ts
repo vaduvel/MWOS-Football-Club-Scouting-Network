@@ -765,6 +765,35 @@ export async function downloadTrainingSourceFile(source: TrainingPlanSource) {
   });
 }
 
+export async function clearTrainingPlanSource(planId: string, source?: TrainingPlanSource | null) {
+  await getCurrentAppUser();
+
+  const { error: sourceError } = await supabase
+    .from('training_plan_sources')
+    .delete()
+    .eq('plan_id', planId);
+
+  if (sourceError) {
+    throw sourceError;
+  }
+
+  if (source?.storagePath) {
+    await removeTrainingSourceObject(source.storagePath);
+  }
+
+  const { error: daysError } = await supabase
+    .from('training_plan_days')
+    .update({
+      import_review_state: 'ready',
+      imported_excerpt: null,
+    })
+    .eq('plan_id', planId);
+
+  if (daysError) {
+    throw daysError;
+  }
+}
+
 export async function saveTrainingPlan(
   input: SaveTrainingPlanInput,
   action: 'draft' | 'publish' | 'archive',
