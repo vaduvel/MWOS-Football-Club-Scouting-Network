@@ -29,6 +29,7 @@ import {
 import { prepareTrainingImportDraft } from '../lib/trainingImportClient';
 import type { ImportedTrainingDraft, TrainingImportKind } from '../lib/trainingImportDomain';
 import { buildTrainingWhatsAppMessage } from '../lib/trainingShareDomain';
+import { getTeamVisualTone } from '../lib/teamVisuals';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/auth';
 
@@ -69,19 +70,24 @@ function TeamWeekCard({
   selected,
   onOpen,
 }: TeamWeekCardProps) {
+  const teamTone = getTeamVisualTone(item.teamName);
+
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={`rounded-[24px] border p-4 text-left shadow-[0_14px_34px_rgba(49,39,131,0.05)] transition-all ${
+      className={`relative overflow-hidden rounded-[24px] border p-4 text-left shadow-[0_14px_34px_rgba(49,39,131,0.05)] transition-all ${
         selected
-          ? 'border-[var(--color-primary)]/22 bg-[var(--color-primary)]/5'
+          ? teamTone.cardClass
           : 'border-[var(--color-mid)]/14 bg-white'
       }`}
     >
+      <span className={cn('absolute inset-y-4 left-0 w-1.5 rounded-r-full', teamTone.accentClass)} />
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">{item.teamName}</p>
+        <div className="pl-2">
+          <p className={cn('inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em]', teamTone.badgeClass)}>
+            {item.teamName}
+          </p>
           <h3 className="mt-2 text-lg font-black text-[var(--color-dark)]">
             {item.headline || 'Weekly training plan'}
           </h3>
@@ -255,6 +261,10 @@ export default function TrainingPage() {
   }, [success]);
 
   const selectedDay = workspace?.days[selectedDayIndex] || null;
+  const activeTeamTone = useMemo(
+    () => getTeamVisualTone(workspace?.team.name || teams.find((team) => team.id === teamId)?.name || ''),
+    [teamId, teams, workspace?.team.name],
+  );
   const nextTrainingDay = useMemo(
     () => workspace?.days.find((day) => day.dayType === 'training' && day.startTime) || null,
     [workspace],
@@ -601,15 +611,18 @@ export default function TrainingPage() {
           ) : null}
 
           <section className="grid gap-4 lg:grid-cols-[1.2fr,0.8fr]">
-            <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
+            <article className={cn('rounded-[28px] border bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6', activeTeamTone.cardClass)}>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">
                     Planning scope
                   </p>
-                  <h2 className="mt-2 text-2xl font-black text-[var(--color-dark)]">
-                    {workspace?.team.name || 'Assigned team'}
-                  </h2>
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <span className={cn('h-4 w-4 rounded-full shadow-[0_0_0_5px_rgba(255,255,255,0.9)]', activeTeamTone.accentClass)} />
+                    <h2 className="text-2xl font-black text-[var(--color-dark)]">
+                      {workspace?.team.name || 'Assigned team'}
+                    </h2>
+                  </div>
                   <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">
                     {getTrainingWeekRangeLabel(weekStart)}
                   </p>

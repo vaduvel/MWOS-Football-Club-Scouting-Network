@@ -130,4 +130,27 @@ Recovery Training & Icebath`,
       reviewState: 'ready',
     });
   });
+
+  it('keeps the programme headline and training start from a WhatsApp-style daily message', () => {
+    const draft = buildImportedTrainingDraft({
+      fileName: 'whatsapp-training.jpg',
+      mimeType: 'image/jpeg',
+      extractedText: `Psl training program Thursday
+Departure Total Samora 06:30hrs
+Arrival Ngoni 07:30hrs
+Training starts 08:00hrs
+Ngoni stadium`,
+      weekStart: '2026-05-18',
+    });
+
+    const thursday = draft.days.find((day) => day.weekday === 'Thursday');
+    expect(thursday).toMatchObject({
+      date: '2026-05-21',
+      sessionTitle: 'Psl training program',
+      startTime: '08:00',
+      location: 'Ngoni stadium',
+      reviewState: 'ready',
+    });
+    expect(thursday?.notes).toContain('Departure Total Samora 06:30hrs');
+  });
 });

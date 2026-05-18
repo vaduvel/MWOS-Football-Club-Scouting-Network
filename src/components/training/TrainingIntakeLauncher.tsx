@@ -38,7 +38,7 @@ function IntakeButton({
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] opacity-70">Training intake</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] opacity-70">Add training update</p>
           <h3 className="mt-2 text-balance text-base font-black">{title}</h3>
           <p className="mt-2 text-pretty text-sm font-semibold leading-6 opacity-80">{description}</p>
         </div>
@@ -65,25 +65,25 @@ export default function TrainingIntakeLauncher({
   return (
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       <IntakeButton
+        title="Scan WhatsApp / photo"
+        description="Upload a WhatsApp screenshot or plan photo and convert it into editable day cards."
+        icon={<ScanLine size={20} />}
+        tone="scan"
+        onClick={onScanPhoto}
+      />
+      <IntakeButton
         title="Create manually"
-        description="Start directly in the editor and structure the week from scratch."
+        description="Type the coach plan directly, then share the structured message on WhatsApp."
         icon={<PenSquare size={20} />}
         tone="manual"
         onClick={onCreateManual}
       />
       <IntakeButton
         title="Import PDF"
-        description="Use an existing training document and convert it into an editable draft."
+        description="Use an existing weekly training document and keep the original attached for review."
         icon={<FileText size={20} />}
         tone="pdf"
         onClick={onImportPdf}
-      />
-      <IntakeButton
-        title="Scan photo"
-        description="Snap a handwritten plan and let the app pull it into a phone-ready draft."
-        icon={<ScanLine size={20} />}
-        tone="scan"
-        onClick={onScanPhoto}
       />
     </section>
   );

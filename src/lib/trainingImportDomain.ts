@@ -105,6 +105,19 @@ function parseDateToken(value: string) {
   return `${year}-${month}-${day}`;
 }
 
+function stripScheduleMarkers(line: string) {
+  let cleaned = normalizeWhitespace(line);
+
+  for (const aliases of WEEKDAY_TOKENS) {
+    for (const alias of aliases) {
+      cleaned = cleaned.replace(new RegExp(`\\b${alias}\\b`, 'gi'), ' ');
+    }
+  }
+
+  cleaned = cleaned.replace(/\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b/g, ' ');
+  return normalizeWhitespace(cleaned.replace(/\s+([.,;:])/g, '$1').replace(/[.,;:\-–—]+$/g, ''));
+}
+
 function resolveWeekdayFromIsoDate(value: string) {
   if (!value) return '';
 
@@ -180,6 +193,16 @@ function splitBlockLines(lines: string[]) {
   const contentLines: string[] = [];
 
   for (const line of lines) {
+    const hasWeekdayOrDate = Boolean(findWeekdayName(line) || parseDateToken(line));
+
+    if (hasWeekdayOrDate) {
+      const cleanedHeadline = stripScheduleMarkers(line);
+      if (cleanedHeadline && !parseTimeToken(cleanedHeadline)) {
+        contentLines.push(cleanedHeadline);
+      }
+      continue;
+    }
+
     if (
       /\b(departure|arrival|meeting point|bring|water bottle|ice ?bath|transport|samora|ngoni)\b/i.test(line)
     ) {
@@ -187,11 +210,11 @@ function splitBlockLines(lines: string[]) {
       continue;
     }
 
-    if (/^(venue|location|stadium)\b/i.test(line)) {
+    if (/\b(training starts|start time|kick off training|session starts)\b/i.test(line)) {
       continue;
     }
 
-    if (findWeekdayName(line) || parseDateToken(line)) {
+    if (/^(venue|location|stadium)\b/i.test(line)) {
       continue;
     }
 
@@ -316,19 +339,23 @@ export function buildImportedTrainingDraft(input: {
     }
 
     const current = week[targetIndex]!;
-    const reviewState = classifyImportedTrainingDay(block);
+    const resolvedBlock = {
+      ...block,
+      date: block.date || current.date,
+    };
+    const reviewState = classifyImportedTrainingDay(resolvedBlock);
     week[targetIndex] = {
       ...current,
       dayType: reviewState === 'missing_info' ? current.dayType : 'training',
-      sessionTitle: block.objectives || current.sessionTitle,
-      startTime: block.startTime,
-      endTime: block.endTime,
-      location: block.location,
-      objectives: block.objectives,
-      exercises: block.exercises,
-      notes: block.notes,
+      sessionTitle: resolvedBlock.objectives || current.sessionTitle,
+      startTime: resolvedBlock.startTime,
+      endTime: resolvedBlock.endTime,
+      location: resolvedBlock.location,
+      objectives: resolvedBlock.objectives,
+      exercises: resolvedBlock.exercises,
+      notes: resolvedBlock.notes,
       reviewState,
-      importedExcerpt: block.importedExcerpt,
+      importedExcerpt: resolvedBlock.importedExcerpt,
     };
   }
 

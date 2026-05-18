@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import type { TrainingImportKind } from '../../lib/trainingImportDomain';
 
 function modeLabel(mode: TrainingImportKind) {
-  return mode === 'pdf_import' ? 'Import PDF' : mode === 'image_import' ? 'Scan photo' : 'Create manually';
+  return mode === 'pdf_import' ? 'Import PDF' : mode === 'image_import' ? 'Scan WhatsApp / photo' : 'Create manually';
 }
 
 export default function TrainingImportSheet({
@@ -53,12 +53,12 @@ export default function TrainingImportSheet({
       <section className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-auto rounded-t-[32px] border border-white/10 bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-18px_48px_rgba(15,23,42,0.24)] md:bottom-6 md:left-1/2 md:max-w-xl md:-translate-x-1/2 md:rounded-[32px] md:p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Training intake</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Add training update</p>
             <h2 className="mt-2 text-balance text-xl font-black text-[var(--color-dark)] md:text-2xl">{modeLabel(mode)}</h2>
             <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
               {mode === 'pdf_import'
                 ? 'Upload a training PDF. We will extract readable text first, then build a draft week for review.'
-                : 'Upload or scan a training image. We will OCR the notes and convert them into day cards.'}
+                : 'Upload a WhatsApp screenshot, whiteboard photo, or handwritten plan. We will OCR the notes and convert them into editable day cards.'}
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close import sheet" className="rounded-2xl border border-[var(--color-mid)]/16 p-2 text-[var(--color-mid)]">
@@ -71,7 +71,7 @@ export default function TrainingImportSheet({
             <UploadCloud size={24} />
           </div>
           <p className="mt-4 text-base font-black text-[var(--color-dark)]">
-            {file ? file.name : mode === 'pdf_import' ? 'Choose a PDF file' : 'Choose a photo or scan'}
+            {file ? file.name : mode === 'pdf_import' ? 'Choose a PDF file' : 'Choose a WhatsApp screenshot or photo'}
           </p>
           <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
             {file ? `${(file.size / 1024 / 1024).toFixed(1)} MB ready for import` : 'Tap here to pick the source from your phone or laptop.'}

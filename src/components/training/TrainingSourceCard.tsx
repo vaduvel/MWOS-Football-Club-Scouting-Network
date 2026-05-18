@@ -55,7 +55,7 @@ export default function TrainingSourceCard({
           <h2 className="mt-2 text-balance text-lg font-black text-[var(--color-dark)] md:text-xl">{source.fileName || 'Training source'}</h2>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.14em]">
             <span className={cn('rounded-full px-3 py-1', toneClasses.chip)}>
-              {isImageImport ? 'Photo scan' : 'PDF import'}
+              {isImageImport ? 'WhatsApp / photo scan' : 'PDF import'}
             </span>
             <span className="rounded-full bg-white px-3 py-1 text-[var(--color-mid)]">
               {extractionLabel}
