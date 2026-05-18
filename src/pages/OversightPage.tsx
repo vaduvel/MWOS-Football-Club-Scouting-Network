@@ -46,6 +46,8 @@ import type { TrainingPlanSummary } from '../lib/trainingData';
 import { changeTransportPlanStatus } from '../lib/transportData';
 import { useAuthStore } from '../store/auth';
 
+type FeedTone = 'neutral' | 'training' | 'transport' | 'reports' | 'alerts' | 'staff';
+
 function formatIsoDate(value: string | null | undefined) {
   if (!value) return 'Not scheduled';
 
@@ -68,22 +70,49 @@ function FeedShell({
   title,
   description,
   icon: Icon,
+  tone = 'neutral',
   children,
 }: {
   title: string;
   description: string;
   icon: typeof CalendarRange;
+  tone?: FeedTone;
   children: ReactNode;
 }) {
+  const shellTone =
+    tone === 'training'
+      ? 'mwos-card-tone-training'
+      : tone === 'transport'
+        ? 'mwos-card-tone-transport'
+        : tone === 'reports'
+          ? 'mwos-card-tone-report'
+          : tone === 'alerts'
+            ? 'mwos-card-tone-alert'
+            : tone === 'staff'
+              ? 'mwos-card-tone-staff'
+              : 'border-[var(--color-mid)]/16 bg-white';
+  const iconTone =
+    tone === 'training'
+      ? 'mwos-icon-tone-training'
+      : tone === 'transport'
+        ? 'mwos-icon-tone-transport'
+        : tone === 'reports'
+          ? 'mwos-icon-tone-report'
+          : tone === 'alerts'
+            ? 'mwos-icon-tone-alert'
+            : tone === 'staff'
+              ? 'mwos-icon-tone-staff'
+              : 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]';
+
   return (
-    <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+    <article className={`rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5 ${shellTone}`}>
+      <div className="flex items-start gap-3 md:gap-4">
+        <div className={`flex size-10 items-center justify-center rounded-2xl md:size-12 ${iconTone}`}>
           <Icon size={22} />
         </div>
         <div>
-          <h2 className="text-xl font-black text-[var(--color-dark)]">{title}</h2>
-          <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">{description}</p>
+          <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">{title}</h2>
+          <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">{description}</p>
         </div>
       </div>
       <div className="mt-5">{children}</div>
@@ -110,14 +139,14 @@ function RoleCoverageCard({ summary }: { summary: OversightRoleSummary }) {
   ];
 
   return (
-    <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-accent)]/12 text-[var(--color-accent)]">
+    <article className="mwos-card-tone-staff rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+      <div className="flex items-start gap-3 md:gap-4">
+        <div className="mwos-icon-tone-staff flex size-10 items-center justify-center rounded-2xl md:size-12">
           <Users size={22} />
         </div>
         <div>
-          <h2 className="text-xl font-black text-[var(--color-dark)]">Staff coverage</h2>
-          <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+          <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Staff coverage</h2>
+          <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
             A quick view of role distribution across the club workspace.
           </p>
         </div>
@@ -142,14 +171,14 @@ function StaffingHealthCard({ summary }: { summary: OversightStaffingHealth }) {
   const cards = buildStaffingHealthCards(summary);
 
   return (
-    <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+    <article className="mwos-card-tone-staff rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+      <div className="flex items-start gap-3 md:gap-4">
+        <div className="mwos-icon-tone-staff flex size-10 items-center justify-center rounded-2xl md:size-12">
           <Shield size={22} />
         </div>
         <div>
-          <h2 className="text-xl font-black text-[var(--color-dark)]">Staffing health</h2>
-          <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+          <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Staffing health</h2>
+          <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
             A quick read on access coverage, pending onboarding, and how much staff load is spread across teams.
           </p>
         </div>
@@ -177,6 +206,7 @@ function StaffAccessActivityFeed({ items }: { items: StaffAccessEventRecord[] })
       title="Recent staff access activity"
       description="The latest invite, access, and revocation actions from the admin surface."
       icon={ClipboardList}
+      tone="staff"
     >
       <div className="space-y-3">
         {items.length > 0 ? (
@@ -222,6 +252,7 @@ function TrainingFeed({ plans, interactive = true }: { plans: TrainingPlanSummar
       title="Current-week training"
       description="Published or in-progress weekly plans that leadership can review without entering the editor first."
       icon={CalendarRange}
+      tone="training"
     >
       <div className="space-y-3">
         {plans.length > 0 ? (
@@ -269,6 +300,7 @@ function ReportsFeed({ items, interactive = true }: { items: OversightRecentRepo
       title="Recent scouting activity"
       description="The latest reports produced across the club, so leadership can see where scouting output is active."
       icon={FileText}
+      tone="reports"
     >
       <div className="space-y-3">
         {items.length > 0 ? (
@@ -319,6 +351,7 @@ function InvitationFeedWithActions({
       title="Pending invitations"
       description="A quick admin-only view of staff invites that still need activation or follow-up."
       icon={Mail}
+      tone="staff"
     >
       <div className="space-y-3">
         {items.length > 0 ? (
@@ -394,6 +427,7 @@ function TransportFeedWithActions({
       title="Upcoming transport"
       description="Trips that leadership may need to monitor for timing, destination, and driver coverage."
       icon={Bus}
+      tone="transport"
     >
       <div className="space-y-3">
         {items.length > 0 ? (
@@ -464,14 +498,14 @@ function TransportFeedWithActions({
 
 function LeadershipReadOnlyNote() {
   return (
-    <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+    <article className="mwos-card-tone-report rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+      <div className="flex items-start gap-3 md:gap-4">
+        <div className="mwos-icon-tone-report flex size-10 items-center justify-center rounded-2xl md:size-12">
           <ClipboardList size={22} />
         </div>
         <div>
-          <h2 className="text-xl font-black text-[var(--color-dark)]">Leadership read-only view</h2>
-          <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+          <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Leadership read-only view</h2>
+          <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
             This role can review club readiness, transport and scouting output without touching staffing assignments or invitation handling.
           </p>
         </div>
@@ -483,14 +517,14 @@ function LeadershipReadOnlyNote() {
 function OversightModeNote({ mode }: { mode: ReturnType<typeof getLeadershipWorkspaceMode> }) {
   if (mode === 'technical_director') {
     return (
-      <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+      <article className="mwos-card-tone-training rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+        <div className="flex items-start gap-3 md:gap-4">
+          <div className="mwos-icon-tone-training flex size-10 items-center justify-center rounded-2xl md:size-12">
             <ClipboardList size={22} />
           </div>
           <div>
-            <h2 className="text-xl font-black text-[var(--color-dark)]">Technical review mode</h2>
-            <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+            <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Technical review mode</h2>
+            <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
               Use this leadership view to review training publication, transport readiness, and activity across all teams, then move into the planning modules when coaches need feedback or direction.
             </p>
           </div>
@@ -501,14 +535,14 @@ function OversightModeNote({ mode }: { mode: ReturnType<typeof getLeadershipWork
 
   if (mode === 'board_observer') {
     return (
-      <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+      <article className="mwos-card-tone-alert rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+        <div className="flex items-start gap-3 md:gap-4">
+          <div className="mwos-icon-tone-alert flex size-10 items-center justify-center rounded-2xl md:size-12">
             <ClipboardList size={22} />
           </div>
           <div>
-            <h2 className="text-xl font-black text-[var(--color-dark)]">Board briefing mode</h2>
-            <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+            <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Board briefing mode</h2>
+            <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
               This view stays read-only by design. It surfaces club progress, transport readiness, and recent football activity without exposing staffing or planning controls.
             </p>
           </div>
@@ -518,14 +552,14 @@ function OversightModeNote({ mode }: { mode: ReturnType<typeof getLeadershipWork
   }
 
   return (
-    <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+    <article className="mwos-card-tone-staff rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+      <div className="flex items-start gap-3 md:gap-4">
+        <div className="mwos-icon-tone-staff flex size-10 items-center justify-center rounded-2xl md:size-12">
           <ClipboardList size={22} />
         </div>
         <div>
-          <h2 className="text-xl font-black text-[var(--color-dark)]">Admin operations mode</h2>
-          <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+          <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Admin operations mode</h2>
+          <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
             Staff access, invitation follow-up, and transport interventions stay available here so club operations can be unblocked quickly.
           </p>
         </div>
@@ -608,20 +642,20 @@ export default function OversightPage() {
     <div className="min-h-screen bg-[var(--color-light)] md:flex">
       <AppSidebar current="oversight" user={user} onLogout={() => void logout()} />
 
-      <main className="flex-1 overflow-auto p-4 pb-28 md:p-6">
-        <div className="mx-auto max-w-7xl space-y-6">
+      <main className="flex-1 overflow-auto p-3 pb-28 md:p-6">
+        <div className="mx-auto max-w-7xl space-y-5 md:space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface px-5 py-6 text-white md:px-8 md:py-8">
+            <div className="mwos-ribbon-surface px-4 py-5 text-white md:px-8 md:py-8">
               <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/68">{heroCopy.eyebrow}</p>
               <div className="mt-4 flex items-start gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/12 text-white">
                   <Shield size={22} />
                 </div>
                 <div>
-                  <h1 className="mwos-display text-[2.2rem] uppercase leading-none tracking-[0.08em] text-white md:text-[3.4rem]">
+                  <h1 className="mwos-display text-balance text-[2rem] uppercase leading-none tracking-[0.08em] text-white md:text-[3.4rem]">
                     {heroCopy.title}
                   </h1>
-                  <p className="mt-3 max-w-3xl text-sm font-semibold leading-7 text-white/82 md:text-base">
+                  <p className="mt-3 max-w-3xl text-pretty text-sm font-semibold leading-6 text-white/82 md:text-base md:leading-7">
                     {heroCopy.description}
                   </p>
                   {workspace ? (
@@ -635,7 +669,7 @@ export default function OversightPage() {
           </section>
 
           {!hasAccess ? (
-            <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+            <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
               <p className="text-sm font-semibold text-[var(--color-mid)]">
                 Your account does not currently have oversight access.
               </p>
@@ -643,25 +677,25 @@ export default function OversightPage() {
           ) : null}
 
           {loading ? (
-            <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+            <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
               <p className="text-sm font-semibold text-[var(--color-mid)]">Loading leadership workspace…</p>
             </section>
           ) : null}
 
           {!loading && error ? (
-            <section className="rounded-[28px] border border-red-200 bg-red-50 p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+            <section className="rounded-[28px] border border-red-200 bg-red-50 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
               <p className="text-sm font-semibold text-red-700">{error}</p>
             </section>
           ) : null}
 
           {!loading && !error && actionMessage ? (
-            <section className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+            <section className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
               <p className="text-sm font-semibold text-emerald-700">{actionMessage}</p>
             </section>
           ) : null}
 
           {!loading && !error && actionError ? (
-            <section className="rounded-[28px] border border-red-200 bg-red-50 p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+            <section className="rounded-[28px] border border-red-200 bg-red-50 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
               <p className="text-sm font-semibold text-red-700">{actionError}</p>
             </section>
           ) : null}

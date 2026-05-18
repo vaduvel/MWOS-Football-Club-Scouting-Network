@@ -278,10 +278,10 @@ export default function TransportPage() {
     <div className="min-h-screen bg-[var(--color-light)] md:flex">
       <AppSidebar current="transport" user={user} onLogout={() => void logout()} />
 
-      <main className="flex-1 overflow-auto p-4 pb-28 md:p-6">
-        <div className="mx-auto max-w-7xl space-y-6">
+      <main className="flex-1 overflow-auto p-3 pb-28 md:p-6">
+        <div className="mx-auto max-w-7xl space-y-5 md:space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface px-5 py-6 text-white md:px-8 md:py-8">
+            <div className="mwos-ribbon-surface px-4 py-5 text-white md:px-8 md:py-8">
               <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/68">
                 Club Module
               </p>
@@ -290,10 +290,10 @@ export default function TransportPage() {
                   <Bus size={22} />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="mwos-display text-[2.2rem] uppercase leading-none tracking-[0.08em] text-white md:text-[3.4rem]">
+                  <h1 className="mwos-display text-balance text-[2rem] uppercase leading-none tracking-[0.08em] text-white md:text-[3.4rem]">
                     Transport Plans
                   </h1>
-                  <p className="mt-3 max-w-3xl text-sm font-semibold leading-7 text-white/82 md:text-base">
+                  <p className="mt-3 max-w-3xl text-pretty text-sm font-semibold leading-6 text-white/82 md:text-base md:leading-7">
                     Coordinate departures, keep assigned drivers aligned and surface important travel changes in one place for the whole club.
                   </p>
                 </div>
@@ -319,15 +319,15 @@ export default function TransportPage() {
             </section>
           ) : null}
 
-          <section className="grid gap-4 md:grid-cols-3">
-            <article className="rounded-[22px] border border-[var(--color-mid)]/14 bg-white p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
+          <section className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            <article className="mwos-card-tone-transport rounded-[22px] border p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Active trips</p>
               <p className="mt-3 text-3xl font-black text-[var(--color-dark)]">{activePlansCount}</p>
               <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
                 Published and in-progress transport work that still needs attention.
               </p>
             </article>
-            <article className="rounded-[22px] border border-[var(--color-mid)]/14 bg-white p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
+            <article className="mwos-card-tone-alert col-span-2 rounded-[22px] border p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)] md:col-span-1">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Next departure</p>
               <p className="mt-3 text-xl font-black text-[var(--color-dark)]">
                 {nextTrip ? `${nextTrip.eventDate} · ${nextTrip.departureTime || 'TBD'}` : 'No upcoming trip'}
@@ -336,7 +336,7 @@ export default function TransportPage() {
                 {nextTrip ? `${nextTrip.teamName} · ${nextTrip.destination}` : 'Create or publish the next trip to see it here.'}
               </p>
             </article>
-            <article className="rounded-[22px] border border-[var(--color-mid)]/14 bg-white p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
+            <article className="mwos-card-tone-staff rounded-[22px] border p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Assigned drivers</p>
               <p className="mt-3 text-3xl font-black text-[var(--color-dark)]">{assignedDriversCount}</p>
               <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
@@ -345,9 +345,9 @@ export default function TransportPage() {
             </article>
           </section>
 
-          <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
-            <div className="flex flex-wrap items-end gap-4">
-              <label className="min-w-[220px] flex-1 space-y-2">
+          <section className="mwos-card-tone-report rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
+            <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+              <label className="w-full flex-1 space-y-2 sm:min-w-[220px]">
                 <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Team filter</span>
                 <select
                   value={teamId}
@@ -369,7 +369,7 @@ export default function TransportPage() {
                 </select>
               </label>
 
-              <label className="min-w-[220px] flex-1 space-y-2">
+              <label className="w-full flex-1 space-y-2 sm:min-w-[220px]">
                 <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Status filter</span>
                 <select
                   value={statusFilter}
@@ -389,7 +389,7 @@ export default function TransportPage() {
                 <button
                   type="button"
                   onClick={handleCreateNew}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white sm:w-auto"
                 >
                   <Plus size={16} />
                   New plan
@@ -399,14 +399,14 @@ export default function TransportPage() {
           </section>
 
           {loading ? (
-            <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+            <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
               <div className="inline-flex items-center gap-3 text-sm font-semibold text-[var(--color-mid)]">
                 <Loader2 size={18} className="animate-spin text-[var(--color-primary)]" />
                 Loading transport workspace…
               </div>
             </section>
           ) : (
-            <section className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+            <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
               <div className="space-y-4">
                 <TransportPlanList
                   plans={plans}
@@ -434,7 +434,7 @@ export default function TransportPage() {
                     />
                   </>
                 ) : (
-                  <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+                  <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
                     <div className="inline-flex items-start gap-3 rounded-2xl border border-[var(--color-primary)]/14 bg-[var(--color-primary)]/5 p-4 text-sm font-semibold text-[var(--color-dark)]">
                       <AlertCircle size={18} className="mt-0.5 text-[var(--color-primary)]" />
                       <div>

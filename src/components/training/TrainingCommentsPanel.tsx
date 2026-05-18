@@ -1,17 +1,22 @@
 import { useState } from 'react';
 import { Loader2, MessageSquareText, Send } from 'lucide-react';
 import type { TrainingPlanComment } from '../../lib/trainingData';
+import { cn } from '../../lib/utils';
 
 export default function TrainingCommentsPanel({
   comments,
   canComment,
   isSubmitting,
   onSubmit,
+  selectedDayLabel,
+  dayLabelsById,
 }: {
   comments: TrainingPlanComment[];
   canComment: boolean;
   isSubmitting: boolean;
   onSubmit: (value: string) => Promise<void>;
+  selectedDayLabel?: string | null;
+  dayLabelsById?: Record<string, string>;
 }) {
   const [draft, setDraft] = useState('');
 
@@ -23,9 +28,9 @@ export default function TrainingCommentsPanel({
   };
 
   return (
-    <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
+    <article className="mwos-card-tone-staff rounded-[28px] border p-5 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
       <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+        <div className="mwos-icon-tone-staff flex h-11 w-11 items-center justify-center rounded-2xl">
           <MessageSquareText size={20} />
         </div>
         <div>
@@ -39,13 +44,23 @@ export default function TrainingCommentsPanel({
         </div>
       </div>
 
+      {selectedDayLabel ? (
+        <div className="mt-4 inline-flex items-center rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-dark)]">
+          Current day · {selectedDayLabel}
+        </div>
+      ) : null}
+
       {canComment ? (
-        <div className="mt-5 rounded-[24px] border border-[var(--color-mid)]/14 bg-[var(--color-light)]/65 p-4">
+        <div className="mt-5 rounded-[24px] border border-[var(--color-mid)]/14 bg-white/70 p-4">
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             rows={4}
-            placeholder="Add a comment or question about this week’s plan…"
+            placeholder={
+              selectedDayLabel
+                ? `Add a comment about ${selectedDayLabel.toLowerCase()}...`
+                : 'Add a comment or question about this week’s plan…'
+            }
             className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-3 py-3 text-sm font-semibold leading-6 outline-none focus:border-[var(--color-primary)]"
           />
           <div className="mt-3 flex justify-end">
@@ -67,17 +82,38 @@ export default function TrainingCommentsPanel({
           comments.map((comment) => (
             <div
               key={comment.id}
-              className={`rounded-[24px] border p-4 ${
+              className={cn(
+                'rounded-[24px] border p-4',
                 comment.isAuthor
-                  ? 'border-[var(--color-primary)]/18 bg-[var(--color-primary)]/5'
-                  : 'border-[var(--color-mid)]/14 bg-white'
-              }`}
+                  ? 'mwos-card-tone-training'
+                  : comment.authorRoleLabel.toLowerCase().includes('technical')
+                    ? 'mwos-card-tone-alert'
+                    : 'border-[var(--color-mid)]/14 bg-white',
+              )}
             >
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm font-black text-[var(--color-dark)]">{comment.authorName}</p>
-                <span className="rounded-full bg-[var(--color-light)] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--color-mid)]">
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em]',
+                    comment.authorRoleLabel.toLowerCase().includes('technical')
+                      ? 'mwos-chip-tone-alert'
+                      : comment.isAuthor
+                        ? 'mwos-chip-tone-training'
+                        : 'bg-[var(--color-light)] text-[var(--color-mid)]',
+                  )}
+                >
                   {comment.authorRoleLabel}
                 </span>
+                {comment.dayId ? (
+                  <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--color-mid)]">
+                    {dayLabelsById?.[comment.dayId] || 'Specific day'}
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--color-mid)]">
+                    Whole plan
+                  </span>
+                )}
                 <span className="text-xs font-semibold text-[var(--color-mid)]">
                   {new Intl.DateTimeFormat('en-GB', {
                     day: '2-digit',

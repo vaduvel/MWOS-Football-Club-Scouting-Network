@@ -8,6 +8,7 @@ import { handler as expireStaffInvitesHandler } from './netlify/functions/expire
 import { handler as inviteStaffHandler } from './netlify/functions/invite-staff.js';
 import { handler as issueStaffInviteLinkHandler } from './netlify/functions/issue-staff-invite-link.js';
 import { handler as notifyEmailHandler } from './netlify/functions/notify-email.js';
+import { handler as ocrReportHandler } from './netlify/functions/ocr-report.js';
 import { handler as resendStaffInviteHandler } from './netlify/functions/resend-staff-invite.js';
 import {
   generateAdminChatReply,
@@ -123,6 +124,7 @@ export default defineConfig(({ mode }) => {
             'invite-staff': inviteStaffHandler,
             'issue-staff-invite-link': issueStaffInviteLinkHandler,
             'notify-email': notifyEmailHandler,
+            'ocr-report': ocrReportHandler,
             'resend-staff-invite': resendStaffInviteHandler,
           };
 

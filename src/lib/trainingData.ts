@@ -15,6 +15,7 @@ import {
   type TrainingPlanStatus,
   type TrainingSessionType,
 } from './trainingDomain';
+import type { TrainingImportKind, TrainingImportReviewState } from './trainingImportDomain';
 
 type TrainingPlanRow = {
   id: string;
@@ -64,8 +65,25 @@ type TrainingPlanDayRow = {
   objectives: string | null;
   exercises: string | null;
   notes: string | null;
+  import_review_state: TrainingImportReviewState;
+  imported_excerpt: string | null;
   reminder_sent_at: string | null;
   last_major_change_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type TrainingPlanSourceRow = {
+  id: string;
+  plan_id: string;
+  source_kind: TrainingImportKind;
+  file_name: string | null;
+  mime_type: string | null;
+  storage_path: string | null;
+  preview_text: string | null;
+  extracted_text: string | null;
+  extraction_status: 'draft_generated' | 'reviewed' | 'replaced';
+  created_by: string;
   created_at: string;
   updated_at: string;
 };
@@ -119,7 +137,33 @@ export type TrainingNotificationType =
 export interface TrainingPlanDay extends TrainingDayDraft {
   id?: string;
   planId?: string;
+  importReviewState?: TrainingImportReviewState;
+  importedExcerpt?: string;
   updatedAt?: string;
+}
+
+export interface TrainingPlanSource {
+  id: string;
+  planId: string;
+  sourceKind: TrainingImportKind;
+  fileName: string;
+  mimeType: string;
+  storagePath: string;
+  previewText: string;
+  extractedText: string;
+  extractionStatus: 'draft_generated' | 'reviewed' | 'replaced';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TrainingPlanSourceDraftInput {
+  sourceKind: TrainingImportKind;
+  file: File | null;
+  fileName: string;
+  mimeType: string;
+  previewText: string;
+  extractedText: string;
+  extractionStatus?: 'draft_generated' | 'reviewed' | 'replaced';
 }
 
 export interface TrainingPlanComment {
@@ -154,6 +198,7 @@ export interface TrainingWorkspace {
   headline: string;
   objective: string;
   status: TrainingPlanStatus;
+  source: TrainingPlanSource | null;
   days: TrainingPlanDay[];
   comments: TrainingPlanComment[];
   publishedAt: string | null;
@@ -189,6 +234,7 @@ export interface SaveTrainingPlanInput {
   headline: string;
   objective: string;
   days: TrainingPlanDay[];
+  source?: TrainingPlanSourceDraftInput | null;
 }
 
 export interface TrainingMutationResult {
@@ -207,6 +253,7 @@ interface NotifyTrainingEventPayload {
 }
 
 const NOTIFY_FUNCTION_NAME = 'notify-email';
+const TRAINING_SOURCE_BUCKET = 'training-plan-sources';
 
 function toStringValue(value: string | null | undefined) {
   return value ?? '';
@@ -215,6 +262,11 @@ function toStringValue(value: string | null | undefined) {
 function toNullableText(value: string | null | undefined) {
   const trimmed = (value || '').trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function sanitizeFileName(value: string) {
+  const trimmed = value.trim();
+  return trimmed.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'source';
 }
 
 function toTeamRecord(value: AppTeam) {
@@ -265,6 +317,17 @@ function joinedTeamName(
   return value.name || '';
 }
 
+function joinedTrainingSource(
+  value:
+    | TrainingPlanSourceRow
+    | TrainingPlanSourceRow[]
+    | null
+    | undefined,
+) {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] || null : value;
+}
+
 function getDefaultWeekStart(reference = new Date()) {
   return format(startOfWeek(reference, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 }
@@ -305,8 +368,26 @@ function mapTrainingDay(row: TrainingPlanDayRow): TrainingPlanDay {
     objectives: toStringValue(row.objectives),
     exercises: toStringValue(row.exercises),
     notes: toStringValue(row.notes),
+    importReviewState: row.import_review_state || 'ready',
+    importedExcerpt: toStringValue(row.imported_excerpt),
     reminderSentAt: row.reminder_sent_at,
     lastImportantChangeAt: row.last_major_change_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapTrainingSource(row: TrainingPlanSourceRow): TrainingPlanSource {
+  return {
+    id: row.id,
+    planId: row.plan_id,
+    sourceKind: row.source_kind,
+    fileName: toStringValue(row.file_name),
+    mimeType: toStringValue(row.mime_type),
+    storagePath: toStringValue(row.storage_path),
+    previewText: toStringValue(row.preview_text),
+    extractedText: toStringValue(row.extracted_text),
+    extractionStatus: row.extraction_status,
+    createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
@@ -493,6 +574,7 @@ export async function fetchTrainingWorkspace(teamId: string, weekStart: string):
       headline: '',
       objective: '',
       status: 'draft',
+      source: null,
       days: buildTrainingWeek(normalizedWeekStart),
       comments: [],
       publishedAt: null,
@@ -503,11 +585,11 @@ export async function fetchTrainingWorkspace(teamId: string, weekStart: string):
     };
   }
 
-  const [daysResponse, commentsResponse] = await Promise.all([
+  const [daysResponse, commentsResponse, sourceResponse] = await Promise.all([
     supabase
       .from('training_plan_days')
       .select(
-        'id, plan_id, day_index, weekday_label, calendar_date, day_type, session_title, session_type, start_time, end_time, location, focus_tags, intensity, volume, objectives, exercises, notes, reminder_sent_at, last_major_change_at, created_at, updated_at',
+        'id, plan_id, day_index, weekday_label, calendar_date, day_type, session_title, session_type, start_time, end_time, location, focus_tags, intensity, volume, objectives, exercises, notes, import_review_state, imported_excerpt, reminder_sent_at, last_major_change_at, created_at, updated_at',
       )
       .eq('plan_id', plan.id)
       .order('day_index', { ascending: true }),
@@ -516,6 +598,11 @@ export async function fetchTrainingWorkspace(teamId: string, weekStart: string):
       .select('id, plan_id, day_id, author_id, author_name, author_role_label, content, created_at')
       .eq('plan_id', plan.id)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('training_plan_sources')
+      .select('id, plan_id, source_kind, file_name, mime_type, storage_path, preview_text, extracted_text, extraction_status, created_by, created_at, updated_at')
+      .eq('plan_id', plan.id)
+      .maybeSingle(),
   ]);
 
   if (daysResponse.error) {
@@ -526,6 +613,10 @@ export async function fetchTrainingWorkspace(teamId: string, weekStart: string):
     throw commentsResponse.error;
   }
 
+  if (sourceResponse.error) {
+    throw sourceResponse.error;
+  }
+
   return {
     planId: plan.id,
     team: joinedTeam(plan.teams) || selectedTeam,
@@ -533,6 +624,7 @@ export async function fetchTrainingWorkspace(teamId: string, weekStart: string):
     headline: toStringValue(plan.headline),
     objective: toStringValue(plan.objective),
     status: plan.status,
+    source: sourceResponse.data ? mapTrainingSource(sourceResponse.data as TrainingPlanSourceRow) : null,
     days: ((daysResponse.data || []) as TrainingPlanDayRow[]).map(mapTrainingDay),
     comments: ((commentsResponse.data || []) as TrainingPlanCommentRow[]).map((comment) =>
       mapTrainingComment(comment, user.id),
@@ -568,6 +660,111 @@ function buildScheduleChangeDetail(day: TrainingPlanDay, changedFields: string[]
   return `${day.weekday}: ${fragments.join(' · ')}`;
 }
 
+function buildTrainingSourcePath(planId: string, fileName: string) {
+  const safeName = sanitizeFileName(fileName);
+  return `${planId}/${Date.now()}-${safeName}`;
+}
+
+async function removeTrainingSourceObject(storagePath: string | null | undefined) {
+  if (!storagePath) return;
+
+  const { error } = await supabase.storage
+    .from(TRAINING_SOURCE_BUCKET)
+    .remove([storagePath]);
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function persistTrainingPlanSource(
+  planId: string,
+  createdBy: string,
+  source: TrainingPlanSourceDraftInput | null | undefined,
+  existingSource: TrainingPlanSourceRow | null,
+) {
+  if (!source) {
+    return existingSource ? mapTrainingSource(existingSource) : null;
+  }
+
+  let storagePath = existingSource?.storage_path || null;
+
+  if (source.file) {
+    const nextPath = buildTrainingSourcePath(planId, source.file.name || source.fileName);
+
+    if (storagePath && storagePath !== nextPath) {
+      await removeTrainingSourceObject(storagePath);
+    }
+
+    const { error: uploadError } = await supabase.storage
+      .from(TRAINING_SOURCE_BUCKET)
+      .upload(nextPath, source.file, {
+        upsert: true,
+        contentType: source.file.type || source.mimeType || undefined,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    storagePath = nextPath;
+  }
+
+  const payload = {
+    plan_id: planId,
+    source_kind: source.sourceKind,
+    file_name: toNullableText(source.fileName),
+    mime_type: toNullableText(source.mimeType),
+    storage_path: storagePath,
+    preview_text: toNullableText(source.previewText),
+    extracted_text: toNullableText(source.extractedText),
+    extraction_status: source.extractionStatus || 'draft_generated',
+    created_by: createdBy,
+  };
+
+  const { data, error } = await supabase
+    .from('training_plan_sources')
+    .upsert(payload, { onConflict: 'plan_id' })
+    .select('id, plan_id, source_kind, file_name, mime_type, storage_path, preview_text, extracted_text, extraction_status, created_by, created_at, updated_at')
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapTrainingSource(data as TrainingPlanSourceRow);
+}
+
+export async function createTrainingSourceSignedUrl(storagePath: string, expiresInSeconds = 900) {
+  const { data, error } = await supabase.storage
+    .from(TRAINING_SOURCE_BUCKET)
+    .createSignedUrl(storagePath, expiresInSeconds);
+
+  if (error) {
+    throw error;
+  }
+
+  return data.signedUrl;
+}
+
+export async function downloadTrainingSourceFile(source: TrainingPlanSource) {
+  if (!source.storagePath) {
+    throw new Error('This source file is not stored yet.');
+  }
+
+  const signedUrl = await createTrainingSourceSignedUrl(source.storagePath);
+  const response = await fetch(signedUrl);
+
+  if (!response.ok) {
+    throw new Error('The source file could not be downloaded.');
+  }
+
+  const blob = await response.blob();
+  return new File([blob], source.fileName || 'training-source', {
+    type: source.mimeType || blob.type || 'application/octet-stream',
+  });
+}
+
 export async function saveTrainingPlan(
   input: SaveTrainingPlanInput,
   action: 'draft' | 'publish' | 'archive',
@@ -595,13 +792,25 @@ export async function saveTrainingPlan(
     ? await supabase
         .from('training_plan_days')
         .select(
-          'id, plan_id, day_index, weekday_label, calendar_date, day_type, session_title, session_type, start_time, end_time, location, focus_tags, intensity, volume, objectives, exercises, notes, reminder_sent_at, last_major_change_at, created_at, updated_at',
+          'id, plan_id, day_index, weekday_label, calendar_date, day_type, session_title, session_type, start_time, end_time, location, focus_tags, intensity, volume, objectives, exercises, notes, import_review_state, imported_excerpt, reminder_sent_at, last_major_change_at, created_at, updated_at',
         )
         .eq('plan_id', existingPlan.id)
     : { data: [], error: null };
 
+  const { data: existingSourceData, error: existingSourceError } = existingPlan
+    ? await supabase
+        .from('training_plan_sources')
+        .select('id, plan_id, source_kind, file_name, mime_type, storage_path, preview_text, extracted_text, extraction_status, created_by, created_at, updated_at')
+        .eq('plan_id', existingPlan.id)
+        .maybeSingle()
+    : { data: null, error: null };
+
   if (existingDaysError) {
     throw existingDaysError;
+  }
+
+  if (existingSourceError) {
+    throw existingSourceError;
   }
 
   const existingDays = ((existingDaysData || []) as TrainingPlanDayRow[]).map(mapTrainingDay);
@@ -658,7 +867,11 @@ export async function saveTrainingPlan(
 
   const savedPlan = planResponse.data as TrainingPlanRow;
   const daysPayload = input.days.map((rawDay) => {
-    const day = normalizeTrainingDay(rawDay);
+    const normalizedDay = normalizeTrainingDay(rawDay);
+    const day: TrainingPlanDay = {
+      ...rawDay,
+      ...normalizedDay,
+    };
 
     return {
       plan_id: savedPlan.id,
@@ -677,6 +890,8 @@ export async function saveTrainingPlan(
       objectives: toNullableText(day.objectives),
       exercises: toNullableText(day.exercises),
       notes: toNullableText(day.notes),
+      import_review_state: day.importReviewState || 'ready',
+      imported_excerpt: toNullableText(day.importedExcerpt),
       reminder_sent_at: day.reminderSentAt || null,
       last_major_change_at: day.lastImportantChangeAt || null,
     };
@@ -689,6 +904,13 @@ export async function saveTrainingPlan(
   if (upsertDaysError) {
     throw upsertDaysError;
   }
+
+  await persistTrainingPlanSource(
+    savedPlan.id,
+    authUser.id,
+    input.source,
+    (existingSourceData as TrainingPlanSourceRow | null) || null,
+  );
 
   const warningEvents: NotifyTrainingEventPayload[] = [];
   if (action === 'publish' && (!existingPlan || existingPlan.status === 'draft')) {

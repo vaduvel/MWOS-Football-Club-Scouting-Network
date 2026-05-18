@@ -5,11 +5,14 @@ import {
   Home,
   LogOut,
   Bell,
+  MoreHorizontal,
   Settings,
   Shield,
   Star,
+  X,
   type LucideIcon,
 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AppUser } from '../lib/data';
 import NotificationCenter from './NotificationCenter';
@@ -109,14 +112,76 @@ function buildAccessProfileCopy(roleSlug: string) {
   }
 }
 
+function buildMobilePrimaryKeys(roleSlug: string) {
+  switch (roleSlug) {
+    case 'admin':
+      return ['home', 'training', 'transport', 'oversight'];
+    case 'technical_director':
+      return ['home', 'training', 'oversight', 'transport'];
+    case 'board_observer':
+      return ['home', 'oversight', 'notifications'];
+    case 'coach':
+      return ['home', 'training', 'transport', 'notifications'];
+    case 'driver':
+      return ['home', 'transport', 'notifications'];
+    case 'scout':
+      return ['home', 'scouting', 'players', 'notifications'];
+    case 'pending':
+    default:
+      return ['home', 'settings'];
+  }
+}
+
 export default function AppSidebar({ current, user, onLogout }: AppSidebarProps) {
   const navigate = useNavigate();
   const items = buildSidebarItems(user);
   const baseNavClass =
     'w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all';
   const mobileNavClass =
-    'flex min-w-[62px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-2 text-[9px] font-black uppercase tracking-[0.1em] transition-all';
+    'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-black uppercase tracking-[0.08em] transition-all';
   const roleSlug = getPrimaryRoleSlug(user);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+
+  const { mobileItems, overflowItems } = useMemo(() => {
+    const primaryKeys = buildMobilePrimaryKeys(roleSlug);
+    const itemKeys = new Set(items.map((item) => item.key));
+
+    const resolvedKeys = primaryKeys.filter((key) => itemKeys.has(key as SidebarSection));
+    const currentKey = itemKeys.has(current) ? current : null;
+
+    if (currentKey && !resolvedKeys.includes(currentKey)) {
+      if (resolvedKeys.length >= 4) {
+        resolvedKeys[resolvedKeys.length - 1] = currentKey;
+      } else {
+        resolvedKeys.push(currentKey);
+      }
+    }
+
+    const uniqueKeys = [...new Set(resolvedKeys)];
+    return {
+      mobileItems: uniqueKeys
+        .map((key) => items.find((item) => item.key === key))
+        .filter((item): item is SidebarItem => Boolean(item)),
+      overflowItems: items.filter((item) => !uniqueKeys.includes(item.key)),
+    };
+  }, [current, items, roleSlug]);
+
+  useEffect(() => {
+    setMobileMoreOpen(false);
+  }, [current]);
+
+  useEffect(() => {
+    if (!mobileMoreOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileMoreOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [mobileMoreOpen]);
 
   return (
     <>
@@ -194,20 +259,101 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
         </div>
       </aside>
 
+      {mobileMoreOpen ? (
+        <div className="fixed inset-0 z-[60] md:hidden">
+          <button
+            type="button"
+            aria-label="Close more navigation"
+            onClick={() => setMobileMoreOpen(false)}
+            className="absolute inset-0 bg-[rgba(15,23,42,0.42)]"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="More navigation"
+            className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+5.2rem)] rounded-[28px] border border-[var(--color-mid)]/14 bg-white p-4 text-[var(--color-dark)] shadow-[0_24px_64px_rgba(15,23,42,0.2)]"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
+                  More actions
+                </p>
+                <h2 className="mt-2 text-lg font-black text-[var(--color-dark)]">Open another workspace</h2>
+                <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                  Keep the main phone nav short. The rest of the club surfaces stay here when you need them.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close more navigation"
+                onClick={() => setMobileMoreOpen(false)}
+                className="inline-flex size-10 items-center justify-center rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/75 text-[var(--color-dark)]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              {overflowItems.map((item) => {
+                const Icon = item.icon;
+                const active = current === item.key;
+
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      setMobileMoreOpen(false);
+                      navigate(item.path);
+                    }}
+                    className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                      active
+                        ? 'border-[var(--color-primary)]/22 bg-[var(--color-primary)]/6 text-[var(--color-primary)]'
+                        : 'border-[var(--color-mid)]/14 bg-white text-[var(--color-dark)]'
+                    }`}
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span className="flex size-10 items-center justify-center rounded-2xl bg-[var(--color-light)] text-[var(--color-mid)]">
+                        <Icon size={18} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-black">{item.label}</span>
+                        <span className="mt-0.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-mid)]">
+                          {active ? 'Current view' : 'Open module'}
+                        </span>
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={onLogout}
+                className="mt-2 inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/75 px-4 py-3 text-sm font-black text-[var(--color-dark)]"
+              >
+                <LogOut size={18} />
+                Sign Out
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[rgba(21,18,83,0.96)] px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 text-white shadow-[0_-12px_28px_rgba(12,16,53,0.22)] backdrop-blur-xl md:hidden">
-        <div className="mx-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-[22px] border border-white/10 bg-white/5 p-1">
-          {items.map((item) => {
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1 rounded-[22px] border border-white/10 bg-white/5 p-1">
+          {mobileItems.map((item) => {
             const Icon = item.icon;
             const active = current === item.key;
             return (
-                <button
-                  key={item.key}
-                  onClick={() => navigate(item.path)}
-                  aria-label={item.label}
-                  title={item.label}
-                  className={`${mobileNavClass} ${
-                    active ? 'bg-white text-[var(--color-primary)] shadow-sm' : 'text-white/72'
-                  }`}
+              <button
+                key={item.key}
+                onClick={() => navigate(item.path)}
+                aria-label={item.label}
+                title={item.label}
+                className={`${mobileNavClass} ${
+                  active ? 'bg-white text-[var(--color-primary)] shadow-sm' : 'text-white/72'
+                }`}
               >
                 <Icon size={15} />
                 <span>{item.mobileLabel || item.label}</span>
@@ -216,13 +362,18 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
           })}
 
           <button
-            onClick={onLogout}
-            aria-label="Sign out"
-            title="Sign out"
-            className={`${mobileNavClass} text-white/72`}
+            type="button"
+            onClick={() => setMobileMoreOpen(true)}
+            aria-label="More navigation"
+            title="More navigation"
+            className={`${mobileNavClass} ${
+              overflowItems.some((item) => item.key === current)
+                ? 'bg-white text-[var(--color-primary)] shadow-sm'
+                : 'text-white/72'
+            }`}
           >
-            <LogOut size={15} />
-            <span>Logout</span>
+            <MoreHorizontal size={15} />
+            <span>More</span>
           </button>
         </div>
       </nav>

@@ -154,7 +154,7 @@ export default function NotificationCenter() {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="fixed right-4 top-16 z-[92] inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/14 bg-[rgba(21,18,83,0.94)] text-white shadow-[0_18px_45px_rgba(12,16,53,0.28)] backdrop-blur-xl transition-transform hover:scale-[1.02] md:right-6 md:top-24"
+        className="fixed right-4 top-16 z-[92] hidden h-12 w-12 items-center justify-center rounded-2xl border border-white/14 bg-[rgba(21,18,83,0.94)] text-white shadow-[0_18px_45px_rgba(12,16,53,0.28)] backdrop-blur-xl transition-transform hover:scale-[1.02] md:inline-flex md:right-6 md:top-24"
         aria-label="Open notifications"
       >
         <Bell size={18} />

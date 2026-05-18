@@ -805,8 +805,8 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-[var(--color-light)] flex flex-col md:flex-row">
       <AppSidebar current="settings" user={user} onLogout={() => void logout()} />
 
-      <main className="flex-1 overflow-auto p-4 pb-28 md:p-6">
-        <div className="mx-auto max-w-6xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <main className="flex-1 overflow-auto p-3 pb-28 md:p-6">
+        <div className="mx-auto max-w-6xl space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-6">
           <div className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
             <div className="mwos-ribbon-surface relative overflow-hidden px-4 py-4 text-white md:px-6 md:py-5">
               <div className="flex items-center gap-3 border-b border-white/10 pb-3 md:gap-4 md:pb-4">
@@ -833,7 +833,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[0.85fr,1.15fr]">
+          <div className="grid gap-4 xl:grid-cols-[0.85fr,1.15fr]">
             <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/20 bg-white shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
               <div className="border-b border-[var(--color-mid)]/20 bg-[var(--color-light)]/50 p-4 md:p-5">
                 <h2 className="flex items-center text-base font-black uppercase tracking-wider text-[var(--color-dark)]">
@@ -2192,7 +2192,8 @@ export default function SettingsPage() {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-mid)]/16 bg-white/96 px-4 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] pt-2 shadow-[0_-12px_28px_rgba(15,23,42,0.1)] backdrop-blur-xl md:hidden">
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.95rem)] z-40 px-4 md:hidden">
+        <div className="mx-auto max-w-md rounded-[24px] border border-[var(--color-mid)]/16 bg-white/96 px-4 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] pt-2 shadow-[0_-12px_28px_rgba(15,23,42,0.1)] backdrop-blur-xl">
         {isAdmin ? (
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -2222,6 +2223,7 @@ export default function SettingsPage() {
             {isSaving ? 'Saving…' : 'Save Settings'}
           </button>
         )}
+        </div>
       </div>
     </div>
   );

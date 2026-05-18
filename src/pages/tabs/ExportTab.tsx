@@ -307,7 +307,7 @@ export default function ExportTab() {
         </div>
       )}
 
-      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-30 px-4 md:hidden">
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+9.85rem)] z-30 px-4 md:hidden">
         <button 
           onClick={generatePDF}
           disabled={isExporting}

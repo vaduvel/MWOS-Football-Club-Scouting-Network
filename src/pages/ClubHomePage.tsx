@@ -44,6 +44,8 @@ type ModuleCard = {
   visible: (user: AppUser | null) => boolean;
 };
 
+type SectionTone = 'neutral' | 'training' | 'transport' | 'reports' | 'alerts' | 'staff';
+
 const MODULE_META: ModuleCard[] = [
   {
     key: 'home',
@@ -105,6 +107,62 @@ const MODULE_ORDER: Record<ClubHomeViewMode, string[]> = {
   pending: ['home', 'training', 'transport', 'scouting', 'players', 'oversight'],
 };
 
+const SECTION_TONE_CLASSES: Record<
+  SectionTone,
+  {
+    shell: string;
+    icon: string;
+    accent: string;
+  }
+> = {
+  neutral: {
+    shell: 'border-[var(--color-mid)]/16 bg-white',
+    icon: 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]',
+    accent: 'text-[var(--color-primary)]',
+  },
+  training: {
+    shell: 'border-indigo-200 bg-indigo-50/70',
+    icon: 'bg-indigo-100 text-indigo-700',
+    accent: 'text-indigo-700',
+  },
+  transport: {
+    shell: 'border-teal-200 bg-teal-50/75',
+    icon: 'bg-teal-100 text-teal-700',
+    accent: 'text-teal-700',
+  },
+  reports: {
+    shell: 'border-slate-200 bg-slate-50/85',
+    icon: 'bg-slate-200 text-slate-700',
+    accent: 'text-slate-700',
+  },
+  alerts: {
+    shell: 'border-amber-200 bg-amber-50/80',
+    icon: 'bg-amber-100 text-amber-700',
+    accent: 'text-amber-700',
+  },
+  staff: {
+    shell: 'border-fuchsia-200 bg-fuchsia-50/75',
+    icon: 'bg-fuchsia-100 text-fuchsia-700',
+    accent: 'text-fuchsia-700',
+  },
+};
+
+const MODULE_TONE_CLASSES: Record<
+  string,
+  {
+    shell: string;
+    icon: string;
+    accent: string;
+  }
+> = {
+  home: SECTION_TONE_CLASSES.neutral,
+  training: SECTION_TONE_CLASSES.training,
+  transport: SECTION_TONE_CLASSES.transport,
+  scouting: SECTION_TONE_CLASSES.reports,
+  players: SECTION_TONE_CLASSES.staff,
+  oversight: SECTION_TONE_CLASSES.alerts,
+};
+
 function formatIsoDate(value: string | null | undefined) {
   if (!value) return 'Not scheduled';
   try {
@@ -127,17 +185,24 @@ function EmptyState({ message }: { message: string }) {
 }
 
 function MetricStrip({ items }: { items: ClubHomeWorkspace['metrics'] }) {
+  const toneClasses = [
+    'border-indigo-200 bg-indigo-50/75',
+    'border-teal-200 bg-teal-50/75',
+    'border-amber-200 bg-amber-50/75',
+    'border-slate-200 bg-slate-50/85',
+  ];
+
   return (
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {items.map((item) => (
+    <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      {items.map((item, index) => (
         <article
           key={item.label}
-          className="rounded-[24px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_35px_rgba(49,39,131,0.06)]"
+          className={`rounded-[24px] border p-4 shadow-[0_16px_35px_rgba(49,39,131,0.06)] md:p-5 ${toneClasses[index % toneClasses.length]}`}
         >
           <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">
             {item.label}
           </p>
-          <p className="mt-4 text-4xl font-black text-[var(--color-dark)]">{item.value}</p>
+          <p className="mt-4 text-3xl font-black text-[var(--color-dark)] md:text-4xl">{item.value}</p>
           <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.detail}</p>
         </article>
       ))}
@@ -149,22 +214,26 @@ function SectionShell({
   title,
   description,
   icon: Icon,
+  tone = 'neutral',
   children,
 }: {
   title: string;
   description: string;
   icon: LucideIcon;
+  tone?: SectionTone;
   children: ReactNode;
 }) {
+  const toneClasses = SECTION_TONE_CLASSES[tone];
+
   return (
-    <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+    <article className={`rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5 ${toneClasses.shell}`}>
+      <div className="flex items-start gap-3 md:gap-4">
+        <div className={`flex size-10 items-center justify-center rounded-2xl md:size-12 ${toneClasses.icon}`}>
           <Icon size={22} />
         </div>
         <div>
-          <h2 className="text-xl font-black text-[var(--color-dark)]">{title}</h2>
-          <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">{description}</p>
+          <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">{title}</h2>
+          <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">{description}</p>
         </div>
       </div>
       <div className="mt-5">{children}</div>
@@ -186,6 +255,7 @@ function NotificationsFeed({
       title="Notifications"
       description="Recent app notifications from training, transport, and other club actions that affect your work."
       icon={Bell}
+      tone="alerts"
     >
       <div className="mb-4 flex items-center justify-between rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 px-4 py-3">
         <p className="text-sm font-semibold text-[var(--color-mid)]">Unread updates</p>
@@ -239,6 +309,7 @@ function TrainingFeed({ plans, interactive = true }: { plans: TrainingPlanSummar
       title="Training this week"
       description="Current-week plans visible from your access, ready to review or continue."
       icon={CalendarRange}
+      tone="training"
     >
       <div className="space-y-3">
         {plans.length ? (
@@ -286,6 +357,7 @@ function TransportFeed({ plans, interactive = true }: { plans: ClubHomeTransport
       title="Upcoming transport"
       description="Active trips and departures that are still relevant to your workflow."
       icon={Bus}
+      tone="transport"
     >
       <div className="space-y-3">
         {plans.length ? (
@@ -338,6 +410,7 @@ function ReportsFeed({
       title="Recent scouting reports"
       description="The most recent scouting output visible to this account."
       icon={FileText}
+      tone="reports"
     >
       <div className="space-y-3">
         {items.length ? (
@@ -378,6 +451,7 @@ function AttentionFeed({ workspace }: { workspace: ClubHomeWorkspace }) {
       title="Leadership attention"
       description="The highest-priority club issues surfaced from training, transport, and staff access."
       icon={Shield}
+      tone="alerts"
     >
       <div className="space-y-3">
         {workspace.attentionItems.length ? (
@@ -426,6 +500,7 @@ function PendingInvitesFeed({ items }: { items: ClubHomeWorkspace['pendingInvita
       title="Pending invitations"
       description="Staff invitations still waiting for activation or follow-up."
       icon={Mail}
+      tone="staff"
     >
       <div className="space-y-3">
         {items.length ? (
@@ -467,6 +542,7 @@ function StaffingHealthFeed({ workspace }: { workspace: ClubHomeWorkspace }) {
       title="Staffing health"
       description="Quick signals on onboarding, unassigned accounts, and where staff load is spread across the club."
       icon={Shield}
+      tone="staff"
     >
       <div className="grid gap-3 sm:grid-cols-2">
         {cards.map((card) => (
@@ -490,6 +566,7 @@ function StaffAccessActivityFeed({ items }: { items: StaffAccessEventRecord[] })
       title="Recent access activity"
       description="The latest invite and access changes flowing through the admin workspace."
       icon={ClipboardList}
+      tone="staff"
     >
       <div className="space-y-3">
         {items.length ? (
@@ -535,8 +612,8 @@ function StaffAccessActivityFeed({ items }: { items: StaffAccessEventRecord[] })
 function LeadershipModeCallout({ view }: { view: ClubHomeViewMode }) {
   if (view === 'technical_director') {
     return (
-      <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-primary)]">
+      <section className="rounded-[28px] border border-indigo-200 bg-indigo-50/70 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-indigo-700">
           Technical Director Mode
         </p>
         <p className="mt-3 text-lg font-black text-[var(--color-dark)]">
@@ -551,8 +628,8 @@ function LeadershipModeCallout({ view }: { view: ClubHomeViewMode }) {
 
   if (view === 'board_observer') {
     return (
-      <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-primary)]">
+      <section className="rounded-[28px] border border-amber-200 bg-amber-50/75 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">
           Board Briefing Mode
         </p>
         <p className="mt-3 text-lg font-black text-[var(--color-dark)]">
@@ -566,8 +643,8 @@ function LeadershipModeCallout({ view }: { view: ClubHomeViewMode }) {
   }
 
   return (
-    <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-      <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-primary)]">
+    <section className="rounded-[28px] border border-fuchsia-200 bg-fuchsia-50/65 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+      <p className="text-[11px] font-black uppercase tracking-[0.24em] text-fuchsia-700">
         Admin Operations Mode
       </p>
       <p className="mt-3 text-lg font-black text-[var(--color-dark)]">
@@ -597,20 +674,21 @@ function ModuleGrid({
     <section className="grid gap-4 lg:grid-cols-2">
       {visibleModules.map((module) => {
         const Icon = module.icon;
+        const toneClasses = MODULE_TONE_CLASSES[module.key] || MODULE_TONE_CLASSES.home;
         return (
           <button
             key={module.key}
             onClick={() => navigate(module.path)}
-            className="group rounded-[26px] border border-[var(--color-mid)]/16 bg-white p-6 text-left shadow-[0_18px_45px_rgba(49,39,131,0.06)] transition-all hover:-translate-y-0.5 hover:border-[var(--color-primary)]/28"
+            className={`group rounded-[26px] border p-4 text-left shadow-[0_18px_45px_rgba(49,39,131,0.06)] transition-all hover:-translate-y-0.5 md:p-5 ${toneClasses.shell}`}
           >
             <div className="flex items-start justify-between gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+              <div className={`flex size-10 items-center justify-center rounded-2xl md:size-12 ${toneClasses.icon}`}>
                 <Icon size={22} />
               </div>
-              <ArrowRight size={18} className="mt-1 text-[var(--color-mid)] transition-transform group-hover:translate-x-1" />
+              <ArrowRight size={18} className={`mt-1 transition-transform group-hover:translate-x-1 ${toneClasses.accent}`} />
             </div>
-            <h2 className="mt-5 text-xl font-black text-[var(--color-dark)]">{module.label}</h2>
-            <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">{module.description}</p>
+            <h2 className="mt-5 text-lg font-black text-[var(--color-dark)] md:text-xl">{module.label}</h2>
+            <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">{module.description}</p>
           </button>
         );
       })}
@@ -666,18 +744,18 @@ export default function ClubHomePage() {
     <div className="min-h-screen bg-[var(--color-light)] md:flex">
       <AppSidebar current="home" user={user} onLogout={() => void logout()} />
 
-      <main className="flex-1 overflow-auto p-4 pb-28 md:p-6">
-        <div className="mx-auto max-w-7xl space-y-6">
+      <main className="flex-1 overflow-auto p-3 pb-28 md:p-6">
+        <div className="mx-auto max-w-7xl space-y-5 md:space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface relative overflow-hidden px-5 py-6 text-white md:px-8 md:py-8">
+            <div className="mwos-ribbon-surface relative overflow-hidden px-4 py-5 text-white md:px-8 md:py-8">
               <div className="max-w-4xl">
                 <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/70">
                   MWOS Football Club
                 </p>
-                <h1 className="mt-3 mwos-display text-[2.4rem] uppercase leading-none tracking-[0.08em] text-white md:text-[4rem]">
+                <h1 className="mt-3 mwos-display text-balance text-[2rem] uppercase leading-none tracking-[0.08em] text-white md:text-[4rem]">
                   Club Home
                 </h1>
-                <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-white/82 md:text-base">
+                <p className="mt-4 max-w-3xl text-pretty text-sm font-semibold leading-6 text-white/82 md:text-base md:leading-7">
                   {workspace?.hero.description ||
                     'Your workspace adapts to the teams, roles, and modules currently assigned to your account.'}
                 </p>
@@ -690,6 +768,23 @@ export default function ClubHomePage() {
                     <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/60">
                       {teamsLabel}
                     </p>
+                    <div className="mt-5 grid gap-3 sm:flex sm:flex-wrap">
+                      <Link
+                        to={workspace.hero.primaryPath}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_32px_rgba(15,23,42,0.18)] sm:w-auto"
+                      >
+                        {workspace.hero.primaryLabel}
+                        <ArrowRight size={16} />
+                      </Link>
+                      {workspace.hero.secondaryLabel && workspace.hero.secondaryPath ? (
+                        <Link
+                          to={workspace.hero.secondaryPath}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/18 bg-white/10 px-4 py-3 text-sm font-black text-white sm:w-auto"
+                        >
+                          {workspace.hero.secondaryLabel}
+                        </Link>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -697,13 +792,13 @@ export default function ClubHomePage() {
           </section>
 
           {loading ? (
-            <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+            <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
               <p className="text-sm font-semibold text-[var(--color-mid)]">Loading club home…</p>
             </section>
           ) : null}
 
           {!loading && error ? (
-            <section className="rounded-[28px] border border-red-200 bg-red-50 p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+            <section className="rounded-[28px] border border-red-200 bg-red-50 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
               <p className="text-sm font-semibold text-red-700">{error}</p>
             </section>
           ) : null}

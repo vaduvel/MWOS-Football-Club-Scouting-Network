@@ -639,7 +639,7 @@ export default function ReportEditor() {
             className="fixed inset-0 z-[55] bg-slate-950/30 md:hidden"
             aria-label="Close step picker"
           />
-          <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+4.8rem)] z-[60] rounded-[26px] border border-[var(--color-mid)]/14 bg-white p-2 shadow-[0_20px_60px_rgba(15,23,42,0.18)] md:hidden">
+          <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+9.8rem)] z-[60] rounded-[26px] border border-[var(--color-mid)]/14 bg-white p-2 shadow-[0_20px_60px_rgba(15,23,42,0.18)] md:hidden">
             <div className="px-3 pb-2 pt-1">
               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Report Steps</p>
             </div>
@@ -686,8 +686,8 @@ export default function ReportEditor() {
         </>
       ) : null}
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-mid)]/18 bg-white/96 px-3 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] pt-2 shadow-[0_-12px_28px_rgba(15,23,42,0.12)] backdrop-blur-xl md:hidden">
-        <div className="mx-auto flex max-w-md items-center gap-2 rounded-[22px] border border-[var(--color-mid)]/16 bg-white p-1.5">
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.95rem)] z-40 px-3 md:hidden">
+        <div className="mx-auto flex max-w-md items-center gap-2 rounded-[22px] border border-[var(--color-mid)]/18 bg-white/96 p-1.5 shadow-[0_-12px_28px_rgba(15,23,42,0.12)] backdrop-blur-xl">
           <button
             type="button"
             onClick={() => canMovePrev && goToTab(TABS[activeTabIndex - 1].id)}
