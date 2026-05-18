@@ -271,6 +271,10 @@ function resolveTransportCommentPermission(
 }
 
 function resolveCanCreateTransport(user: Awaited<ReturnType<typeof getCurrentAppUser>>) {
+  return userHasAnyRole(user, ['admin', 'technical_director', 'driver']);
+}
+
+function resolveCanAssignTransportDriver(user: Awaited<ReturnType<typeof getCurrentAppUser>>) {
   return userHasAnyRole(user, ['admin', 'technical_director']);
 }
 
@@ -502,7 +506,7 @@ export async function fetchTransportPlanSummaries(filters: {
 export async function fetchTransportWorkspace(teamId?: string | null, planId?: string | null): Promise<TransportWorkspace | null> {
   const { user, teams } = await resolveTransportTeams();
   const canCreate = resolveCanCreateTransport(user);
-  const canAssignDriver = canCreate;
+  const canAssignDriver = resolveCanAssignTransportDriver(user);
 
   if (!planId) {
     if (!teamId) return null;
@@ -510,10 +514,14 @@ export async function fetchTransportWorkspace(teamId?: string | null, planId?: s
     if (!selectedTeam || !canCreate) return null;
 
     const draft = buildTransportDraft();
+    const driverUserId = !canAssignDriver && userHasRole(user, 'driver') ? user.id : '';
+    const driverName = driverUserId ? user.name || getDisplayName(user.email) : '';
+
     return {
       ...draft,
+      driverUserId,
       team: selectedTeam,
-      driverName: '',
+      driverName,
       comments: [],
       publishedAt: null,
       updatedAt: null,
@@ -594,7 +602,7 @@ export async function saveTransportPlan(
 ): Promise<TransportMutationResult> {
   const authUser = await getCurrentAppUser();
   const canCreate = resolveCanCreateTransport(authUser);
-  const canAssignDriver = canCreate;
+  const canAssignDriver = resolveCanAssignTransportDriver(authUser);
 
   const existingPlan = input.id
     ? await supabase
@@ -618,11 +626,11 @@ export async function saveTransportPlan(
   }
 
   if (!currentPlan && !canCreate) {
-    throw new Error('Only admin or technical staff can create a new transport plan.');
+    throw new Error('Only admin, technical staff or drivers can create a new transport plan.');
   }
 
-  if ((action === 'publish' || action === 'cancel') && !canCreate) {
-    throw new Error('Only admin or technical staff can publish or cancel transport plans.');
+  if ((action === 'publish' || action === 'cancel') && !canManageExisting) {
+    throw new Error('You do not have permission to publish or cancel this transport plan.');
   }
 
   const normalized = normalizeTransportPlan({
@@ -642,7 +650,11 @@ export async function saveTransportPlan(
 
   const teamId = currentPlan && !canCreate ? currentPlan.team_id : input.teamId;
   const effectiveDriverUserId =
-    currentPlan && !canAssignDriver ? toStringValue(currentPlan.driver_user_id) : normalized.driverUserId;
+    !canAssignDriver && userHasRole(authUser, 'driver')
+      ? authUser.id
+      : currentPlan && !canAssignDriver
+        ? toStringValue(currentPlan.driver_user_id)
+        : normalized.driverUserId;
 
   const validationMode = action === 'draft' ? 'draft' : 'publish';
   const errors = validateTransportPlan(

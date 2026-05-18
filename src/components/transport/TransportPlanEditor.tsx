@@ -182,19 +182,25 @@ export default function TransportPlanEditor({
 
         <label className="space-y-2 md:col-span-2">
           <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Assigned driver</span>
-          <select
-            value={workspace.driverUserId}
-            onChange={(event) => onChange('driverUserId', event.target.value)}
-            disabled={!workspace.canManage || !workspace.canAssignDriver}
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
-          >
-            <option value="">Select driver</option>
-            {drivers.map((driver) => (
-              <option key={driver.userId} value={driver.userId}>
-                {driver.name}{driver.teamNames.length ? ` · ${driver.teamNames.join(', ')}` : ''}
-              </option>
-            ))}
-          </select>
+          {workspace.canAssignDriver ? (
+            <select
+              value={workspace.driverUserId}
+              onChange={(event) => onChange('driverUserId', event.target.value)}
+              disabled={!workspace.canManage}
+              className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+            >
+              <option value="">Select driver</option>
+              {drivers.map((driver) => (
+                <option key={driver.userId} value={driver.userId}>
+                  {driver.name}{driver.teamNames.length ? ` · ${driver.teamNames.join(', ')}` : ''}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)]">
+              {workspace.driverName || 'You will be assigned automatically'}
+            </div>
+          )}
         </label>
 
         {!workspace.canAssignDriver && workspace.canManage ? (

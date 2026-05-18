@@ -550,7 +550,8 @@ stable
 as $$
   select
     public.is_admin()
-    or public.has_role('technical_director');
+    or public.has_role('technical_director')
+    or (public.has_role('driver') and public.belongs_to_team(target_team_id));
 $$;
 
 create or replace function public.can_view_transport_plan(target_plan_id uuid)
@@ -1388,20 +1389,38 @@ drop policy if exists "reports_insert_own" on public.reports;
 create policy "reports_insert_own"
 on public.reports
 for insert
-with check (auth.uid() = user_id);
+with check (
+  auth.uid() = user_id
+  and (
+    public.is_admin()
+    or public.has_any_role(array['technical_director', 'scout'])
+  )
+);
 
 drop policy if exists "reports_update_own" on public.reports;
 create policy "reports_update_own"
 on public.reports
 for update
-using (auth.uid() = user_id or public.is_admin())
-with check (auth.uid() = user_id or public.is_admin());
+using (
+  public.is_admin()
+  or public.has_role('technical_director')
+  or (auth.uid() = user_id and public.has_role('scout'))
+)
+with check (
+  public.is_admin()
+  or public.has_role('technical_director')
+  or (auth.uid() = user_id and public.has_role('scout'))
+);
 
 drop policy if exists "reports_delete_own" on public.reports;
 create policy "reports_delete_own"
 on public.reports
 for delete
-using (auth.uid() = user_id or public.is_admin());
+using (
+  public.is_admin()
+  or public.has_role('technical_director')
+  or (auth.uid() = user_id and public.has_role('scout'))
+);
 
 drop policy if exists "players_select_own" on public.players;
 create policy "players_select_own"
