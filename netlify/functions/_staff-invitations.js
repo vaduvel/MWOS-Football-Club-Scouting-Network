@@ -310,8 +310,8 @@ export function buildSupabaseInviteActionLink({ hashedToken, redirectTo }) {
   return `${supabaseUrl}/auth/v1/verify?${query.toString()}`;
 }
 
-export function buildInviteLink(invitationToken, actionLink) {
-  const publicUrl = getPublicAppUrl();
+export function buildInviteLink(invitationToken, actionLink, publicAppUrl = getPublicAppUrl()) {
+  const publicUrl = publicAppUrl || getPublicAppUrl();
   const acceptPath = `${publicUrl}/accept-invite?invitation=${encodeURIComponent(invitationToken)}`;
 
   if (!actionLink) {
@@ -346,14 +346,14 @@ function buildInvitationEmailHtml({ heading, intro, fullName, roleLabels, teamNa
   `;
 }
 
-export async function sendInviteEmail({ email, fullName, roles, teams, invitationToken, actionLink }) {
+export async function sendInviteEmail({ email, fullName, roles, teams, invitationToken, actionLink, publicAppUrl }) {
   const html = buildInvitationEmailHtml({
     heading: 'You have been invited to MWOS Club Management',
     intro: 'Open the invitation to set your password and activate your club access.',
     fullName,
     roleLabels: roles.map((role) => role.label),
     teamNames: teams.map((team) => team.name),
-    actionHref: buildInviteLink(invitationToken, actionLink),
+    actionHref: buildInviteLink(invitationToken, actionLink, publicAppUrl),
     actionLabel: 'Activate Account',
   });
 
@@ -386,8 +386,8 @@ export async function attemptEmailDelivery(sendOperation) {
   }
 }
 
-export async function sendExistingUserAccessEmail({ email, fullName, roles, teams }) {
-  const publicUrl = getPublicAppUrl();
+export async function sendExistingUserAccessEmail({ email, fullName, roles, teams, publicAppUrl }) {
+  const publicUrl = publicAppUrl || getPublicAppUrl();
   const html = buildInvitationEmailHtml({
     heading: 'Your MWOS Club Management access was updated',
     intro: 'Your club access is ready. Sign in to see the new modules and teams assigned to you.',
@@ -405,14 +405,14 @@ export async function sendExistingUserAccessEmail({ email, fullName, roles, team
   });
 }
 
-export async function sendResentInviteEmail({ email, fullName, roles, teams, invitationToken, actionLink }) {
+export async function sendResentInviteEmail({ email, fullName, roles, teams, invitationToken, actionLink, publicAppUrl }) {
   const html = buildInvitationEmailHtml({
     heading: 'Your invitation was re-sent',
     intro: 'Use the link below to finish setting up your MWOS Club Management access.',
     fullName,
     roleLabels: roles.map((role) => role.label),
     teamNames: teams.map((team) => team.name),
-    actionHref: buildInviteLink(invitationToken, actionLink),
+    actionHref: buildInviteLink(invitationToken, actionLink, publicAppUrl),
     actionLabel: 'Finish Setup',
   });
 
@@ -423,9 +423,10 @@ export async function sendResentInviteEmail({ email, fullName, roles, teams, inv
   });
 }
 
-export async function generateInviteActionLink({ email, fullName, invitationToken }) {
+export async function generateInviteActionLink({ email, fullName, invitationToken, publicAppUrl }) {
   const serviceSupabase = createServiceSupabaseClient();
-  const redirectTo = `${getPublicAppUrl()}/accept-invite?invitation=${encodeURIComponent(invitationToken)}`;
+  const resolvedPublicAppUrl = publicAppUrl || getPublicAppUrl();
+  const redirectTo = `${resolvedPublicAppUrl}/accept-invite?invitation=${encodeURIComponent(invitationToken)}`;
   const { data, error } = await serviceSupabase.auth.admin.generateLink({
     type: 'invite',
     email,

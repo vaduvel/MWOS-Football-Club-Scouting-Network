@@ -5,6 +5,7 @@ import {
   cancelStaffInvitation,
   createStaffInvitation,
   expireStaleStaffInvitations,
+  fetchAdminAppRuntimeStatus,
   fetchAdminAiStatus,
   fetchAdminEmailStatus,
   fetchClubAccessOverview,
@@ -17,6 +18,7 @@ import {
   saveUserSettings,
   userHasRole,
   type AdminAiStatus,
+  type AdminAppRuntimeStatus,
   type AdminEmailStatus,
   type ClubAccessOverview,
   type StaffAccessEventRecord,
@@ -29,6 +31,7 @@ import {
   roleRequiresTeam,
   type InviteDeliveryMode,
 } from '../lib/inviteDomain';
+import { buildAppRuntimeSummary, formatRuntimeContextLabel } from '../lib/appRuntimeDomain';
 import {
   buildClubAccessActionLabels,
   normalizeClubAccessSelection,
@@ -36,6 +39,7 @@ import {
 } from '../lib/staffAccessDomain';
 import { buildLaunchReadiness } from '../lib/settingsReadinessDomain';
 import {
+  buildStaffMaintenanceSummary,
   buildStaffOperationsMetrics,
   filterClubAccessUsers,
   filterStaffAccessEvents,
@@ -104,6 +108,9 @@ export default function SettingsPage() {
   const [adminAiStatus, setAdminAiStatus] = useState<AdminAiStatus | null>(null);
   const [adminAiStatusLoading, setAdminAiStatusLoading] = useState(false);
   const [adminAiStatusError, setAdminAiStatusError] = useState('');
+  const [adminAppRuntimeStatus, setAdminAppRuntimeStatus] = useState<AdminAppRuntimeStatus | null>(null);
+  const [adminAppRuntimeStatusLoading, setAdminAppRuntimeStatusLoading] = useState(false);
+  const [adminAppRuntimeStatusError, setAdminAppRuntimeStatusError] = useState('');
   const [adminEmailStatus, setAdminEmailStatus] = useState<AdminEmailStatus | null>(null);
   const [adminEmailStatusLoading, setAdminEmailStatusLoading] = useState(false);
   const [adminEmailStatusError, setAdminEmailStatusError] = useState('');
@@ -130,12 +137,14 @@ export default function SettingsPage() {
 
         if (isAdmin) {
           setAdminAiStatusLoading(true);
+          setAdminAppRuntimeStatusLoading(true);
           setAdminEmailStatusLoading(true);
-          const [clubAccessResult, invitationResult, accessEventsResult, adminAiStatusResult, adminEmailStatusResult] = await Promise.allSettled([
+          const [clubAccessResult, invitationResult, accessEventsResult, adminAiStatusResult, adminAppRuntimeStatusResult, adminEmailStatusResult] = await Promise.allSettled([
             fetchClubAccessOverview(),
             fetchStaffInvitations(),
             fetchStaffAccessEvents(),
             fetchAdminAiStatus(),
+            fetchAdminAppRuntimeStatus(),
             fetchAdminEmailStatus(),
           ]);
 
@@ -169,6 +178,14 @@ export default function SettingsPage() {
             setAdminAiStatusError(adminAiStatusResult.reason?.message || 'Failed to load Admin AI status.');
           }
 
+          if (adminAppRuntimeStatusResult.status === 'fulfilled') {
+            setAdminAppRuntimeStatus(adminAppRuntimeStatusResult.value);
+            setAdminAppRuntimeStatusError('');
+          } else {
+            setAdminAppRuntimeStatus(null);
+            setAdminAppRuntimeStatusError(adminAppRuntimeStatusResult.reason?.message || 'Failed to load runtime status.');
+          }
+
           if (adminEmailStatusResult.status === 'fulfilled') {
             setAdminEmailStatus(adminEmailStatusResult.value);
             setAdminEmailStatusError('');
@@ -179,6 +196,9 @@ export default function SettingsPage() {
         } else {
           setAdminAiStatus(null);
           setAdminAiStatusError('');
+          setAdminAppRuntimeStatus(null);
+          setAdminAppRuntimeStatusError('');
+          setAdminAppRuntimeStatusLoading(false);
           setAdminEmailStatus(null);
           setAdminEmailStatusError('');
           setAdminEmailStatusLoading(false);
@@ -191,6 +211,7 @@ export default function SettingsPage() {
           setIsLoading(false);
           setAccessLoading(false);
           setAdminAiStatusLoading(false);
+          setAdminAppRuntimeStatusLoading(false);
           setAdminEmailStatusLoading(false);
         }
       }
@@ -237,6 +258,15 @@ export default function SettingsPage() {
     [clubAccess?.users, staffAccessEvents, staffInvitations],
   );
 
+  const staffMaintenanceSummary = useMemo(
+    () =>
+      buildStaffMaintenanceSummary({
+        users: clubAccess?.users || [],
+        invitations: staffInvitations,
+      }),
+    [clubAccess?.users, staffInvitations],
+  );
+
   const filteredStaffUsers = useMemo(
     () =>
       filterClubAccessUsers(clubAccess?.users || [], {
@@ -280,6 +310,16 @@ export default function SettingsPage() {
     [deferredStaffSearchQuery, selectedTeamFilterName, staffAccessEvents, staffRoleFilter],
   );
 
+  const likelyTestUserIds = useMemo(
+    () => new Set(staffMaintenanceSummary.likelyTestUsers.map((member) => member.id)),
+    [staffMaintenanceSummary.likelyTestUsers],
+  );
+
+  const likelyTestInvitationIds = useMemo(
+    () => new Set(staffMaintenanceSummary.likelyTestInvitations.map((invitation) => invitation.id)),
+    [staffMaintenanceSummary.likelyTestInvitations],
+  );
+
   const selectedUserOutsideFilters = useMemo(
     () => Boolean(selectedUser && !filteredStaffUsers.some((member) => member.id === selectedUser.id)),
     [filteredStaffUsers, selectedUser],
@@ -303,6 +343,11 @@ export default function SettingsPage() {
   );
 
   const publicAppUrl = useMemo(() => {
+    const runtimeAppUrl = adminAppRuntimeStatus?.publicAppUrl?.trim();
+    if (runtimeAppUrl && runtimeAppUrl.length > 0) {
+      return runtimeAppUrl.replace(/\/$/, '');
+    }
+
     const explicitAppUrl = import.meta.env.VITE_APP_URL?.trim();
     if (explicitAppUrl && explicitAppUrl.length > 0) {
       return explicitAppUrl.replace(/\/$/, '');
@@ -313,7 +358,12 @@ export default function SettingsPage() {
     }
 
     return '';
-  }, []);
+  }, [adminAppRuntimeStatus?.publicAppUrl]);
+
+  const appRuntimeSummary = useMemo(
+    () => buildAppRuntimeSummary(adminAppRuntimeStatus),
+    [adminAppRuntimeStatus],
+  );
 
   const launchReadiness = useMemo(
     () =>
@@ -970,6 +1020,104 @@ export default function SettingsPage() {
                 {isAdmin && (
                   <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
                     <div className="flex items-center gap-2">
+                      <Database size={16} className="text-[var(--color-primary)]" />
+                      <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
+                        Deployment Runtime
+                      </p>
+                    </div>
+                    <p className="mt-2 text-xs font-semibold leading-6 text-[var(--color-mid)]">
+                      This shows which runtime the current admin surface is talking to, which branch/build it belongs to, and whether public invite/reset links are aligned with that deployment.
+                    </p>
+
+                    <div className="mt-4 rounded-2xl border border-white/70 bg-white px-4 py-4">
+                      {adminAppRuntimeStatusLoading ? (
+                        <p className="text-sm font-semibold text-[var(--color-mid)]">Checking deployment runtime...</p>
+                      ) : adminAppRuntimeStatusError ? (
+                        <p className="text-sm font-semibold text-red-700">{adminAppRuntimeStatusError}</p>
+                      ) : adminAppRuntimeStatus ? (
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
+                                appRuntimeSummary.tone === 'ready'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {appRuntimeSummary.tone === 'ready' ? 'Runtime aligned' : 'Needs review'}
+                            </span>
+                            <span className="rounded-full bg-[var(--color-light)] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-dark)]">
+                              {formatRuntimeContextLabel(adminAppRuntimeStatus.context)}
+                            </span>
+                            {adminAppRuntimeStatus.branch ? (
+                              <span className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
+                                {adminAppRuntimeStatus.branch}
+                              </span>
+                            ) : null}
+                            {adminAppRuntimeStatus.branchMatchesRelease === false && adminAppRuntimeStatus.releaseBranch ? (
+                              <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-amber-800">
+                                Release branch: {adminAppRuntimeStatus.releaseBranch}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <div>
+                            <p className="text-base font-black text-[var(--color-dark)]">{appRuntimeSummary.headline}</p>
+                            <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-dark)]/80">
+                              {appRuntimeSummary.detail}
+                            </p>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
+                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Configured public app URL</p>
+                              <p className="mt-2 break-all text-sm font-semibold text-[var(--color-dark)]">
+                                {adminAppRuntimeStatus.publicAppUrl || 'Not configured yet'}
+                              </p>
+                            </div>
+                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
+                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Recommended URL for this runtime</p>
+                              <p className="mt-2 break-all text-sm font-semibold text-[var(--color-dark)]">
+                                {adminAppRuntimeStatus.recommendedPublicUrl || 'Not detected'}
+                              </p>
+                            </div>
+                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
+                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Site URL</p>
+                              <p className="mt-2 break-all text-sm font-semibold text-[var(--color-dark)]">
+                                {adminAppRuntimeStatus.siteUrl || 'Not exposed in this runtime'}
+                              </p>
+                            </div>
+                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
+                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Preview / deploy URL</p>
+                              <p className="mt-2 break-all text-sm font-semibold text-[var(--color-dark)]">
+                                {adminAppRuntimeStatus.deployPrimeUrl || 'Not applicable'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--color-mid)]">
+                            <span>Branch: {adminAppRuntimeStatus.branch || 'Unknown'}</span>
+                            <span>•</span>
+                            <span>Commit: {adminAppRuntimeStatus.commitRef?.slice(0, 8) || 'Unknown'}</span>
+                            <span>•</span>
+                            <span>
+                              Public URL match:{' '}
+                              {adminAppRuntimeStatus.matchesRecommendedPublicUrl ? 'yes' : 'no'}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-semibold text-[var(--color-mid)]">
+                          Runtime status is unavailable right now.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {isAdmin && (
+                  <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
+                    <div className="flex items-center gap-2">
                       <Mail size={16} className="text-[var(--color-primary)]" />
                       <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
                         Invite & Alert Delivery
@@ -1365,6 +1513,150 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
+                    <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle size={16} className="text-[var(--color-primary)]" />
+                        <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
+                          Maintenance & Cleanup
+                        </p>
+                      </div>
+                      <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                        This is the admin cleanup lane before live rollout. It surfaces stale pending invites and records that look like QA smoke data, but keeps destructive cleanup deliberate and outside one-click flows.
+                      </p>
+
+                      <div className="mt-4 grid gap-3 md:grid-cols-3">
+                        {[
+                          {
+                            label: 'Stale pending invites',
+                            value: staffOperationsMetrics.stalePendingInvitationCount,
+                            description: 'Invites that already passed their activation window.',
+                          },
+                          {
+                            label: 'Likely test invites',
+                            value: staffMaintenanceSummary.likelyTestInvitationCount,
+                            description: 'Pending or historical invite records that look like QA or smoke data.',
+                          },
+                          {
+                            label: 'Likely test accounts',
+                            value: staffMaintenanceSummary.likelyTestUserCount,
+                            description: 'Staff accounts that probably came from QA aliases or demo naming.',
+                          },
+                        ].map((card) => (
+                          <div
+                            key={card.label}
+                            className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/35 p-4"
+                          >
+                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                              {card.label}
+                            </p>
+                            <p className="mt-3 text-3xl font-black text-[var(--color-dark)]">{card.value}</p>
+                            <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                              {card.description}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr,1.1fr]">
+                        <div className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/35 p-4">
+                          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                            Cleanup playbook
+                          </p>
+                          <div className="mt-3 space-y-3 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                            <p>
+                              1. Expire stale invites first. That removes them from the live pending queue without deleting audit history.
+                            </p>
+                            <p>
+                              2. Review likely test invites and likely test accounts below before launch day, especially `+qa`, `+invite`, `+slice` or `Smoke` entries.
+                            </p>
+                            <p>
+                              3. Keep destructive cleanup deliberate. Real deletions should happen only once the club confirms which records are safe to remove.
+                            </p>
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void handleExpireStaleInvites()}
+                              disabled={
+                                invitationActionKey === 'expire-stale' ||
+                                staffOperationsMetrics.stalePendingInvitationCount === 0
+                              }
+                              className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-800 shadow-sm disabled:opacity-50"
+                            >
+                              {invitationActionKey === 'expire-stale' ? 'Cleaning…' : 'Expire stale invites now'}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/35 p-4">
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                              Likely test invites
+                            </p>
+                            <div className="mt-3 space-y-3">
+                              {staffMaintenanceSummary.likelyTestInvitations.length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/20 bg-white/70 p-4 text-sm font-semibold text-[var(--color-mid)]">
+                                  No likely test invites detected right now.
+                                </div>
+                              ) : (
+                                staffMaintenanceSummary.likelyTestInvitations.slice(0, 5).map((invitation) => (
+                                  <div
+                                    key={invitation.id}
+                                    className="rounded-2xl border border-[var(--color-mid)]/14 bg-white/80 p-3"
+                                  >
+                                    <p className="text-sm font-black text-[var(--color-dark)]">{invitation.name}</p>
+                                    <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{invitation.email}</p>
+                                    <p className="mt-2 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
+                                      {invitation.reasonLabels.join(' · ')}
+                                    </p>
+                                    <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                                      {(invitation.roleLabels.length > 0 ? invitation.roleLabels.join(' · ') : 'No roles') +
+                                        (invitation.teamNames.length > 0 ? ` · ${invitation.teamNames.join(' · ')}` : '')}
+                                    </p>
+                                    {invitation.updatedAt ? (
+                                      <p className="mt-1 text-[11px] font-semibold text-[var(--color-mid)]">
+                                        Updated {dateTimeFormatter.format(new Date(invitation.updatedAt))}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/35 p-4">
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                              Likely test accounts
+                            </p>
+                            <div className="mt-3 space-y-3">
+                              {staffMaintenanceSummary.likelyTestUsers.length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/20 bg-white/70 p-4 text-sm font-semibold text-[var(--color-mid)]">
+                                  No likely test staff accounts detected right now.
+                                </div>
+                              ) : (
+                                staffMaintenanceSummary.likelyTestUsers.slice(0, 5).map((member) => (
+                                  <div
+                                    key={member.id}
+                                    className="rounded-2xl border border-[var(--color-mid)]/14 bg-white/80 p-3"
+                                  >
+                                    <p className="text-sm font-black text-[var(--color-dark)]">{member.name}</p>
+                                    <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{member.email}</p>
+                                    <p className="mt-2 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
+                                      {member.reasonLabels.join(' · ')}
+                                    </p>
+                                    <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                                      {(member.roleLabels.length > 0 ? member.roleLabels.join(' · ') : 'No roles') +
+                                        (member.teamNames.length > 0 ? ` · ${member.teamNames.join(' · ')}` : '')}
+                                    </p>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid gap-4 xl:grid-cols-[0.95fr,1.05fr]">
                       <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
                         <div className="flex items-center gap-2">
@@ -1550,6 +1842,11 @@ export default function SettingsPage() {
                                   <div>
                                     <p className="text-sm font-black text-[var(--color-dark)]">{invitation.fullName}</p>
                                     <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{invitation.email}</p>
+                                    {likelyTestInvitationIds.has(invitation.id) ? (
+                                      <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-amber-800">
+                                        Likely QA data
+                                      </span>
+                                    ) : null}
                                   </div>
                                   <span className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">
                                     {invitation.statusLabel}
@@ -1696,7 +1993,14 @@ export default function SettingsPage() {
                                     : 'border-transparent bg-white/65 hover:border-[var(--color-primary)]/15'
                                 }`}
                               >
-                                <p className="text-sm font-black text-[var(--color-dark)]">{member.name}</p>
+                                <div className="flex items-start justify-between gap-3">
+                                  <p className="text-sm font-black text-[var(--color-dark)]">{member.name}</p>
+                                  {likelyTestUserIds.has(member.id) ? (
+                                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-amber-800">
+                                      Likely QA data
+                                    </span>
+                                  ) : null}
+                                </div>
                                 <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{member.email}</p>
                                 <p className="mt-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
                                   {member.roles.length > 0
@@ -1723,6 +2027,16 @@ export default function SettingsPage() {
                             <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
                               Legacy profile role: {selectedUser.legacyRole}
                             </p>
+                            {likelyTestUserIds.has(selectedUser.id) ? (
+                              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                                <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-800">
+                                  Likely QA / smoke account
+                                </p>
+                                <p className="mt-2 text-sm font-semibold leading-6 text-amber-800">
+                                  This account looks like test data based on its name or email alias. Keep it out of live rollout unless the club explicitly wants to keep it.
+                                </p>
+                              </div>
+                            ) : null}
 
                             <div className="mt-5">
                               <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">

@@ -22,33 +22,34 @@
 
 - [x] Build a launch-readiness domain model with test coverage.
 - [x] Surface a launch-readiness verdict in `Settings`.
-- [ ] Add any small UI polish found during review.
-- [ ] Re-verify with `npm test`, `npm run lint`, `npm run build`.
+- [x] Add any small UI polish found during review.
+- [x] Re-verify with `npm test`, `npm run lint`, `npm run build`.
 
 ## Slice 9: Production Operations & Cleanup
 
 **Purpose:** Reduce support burden by giving admins safe ways to manage stale onboarding records and clean test residue before live rollout.
 
-- [ ] Add a lightweight admin cleanup/maintenance plan.
-- [ ] Add safe visibility for stale pending invites and test-only accounts/data.
-- [ ] Expose non-destructive actions first; keep destructive cleanup deliberate and explicit.
-- [ ] Add tests for any new domain logic.
-- [ ] Re-verify with `npm test`, `npm run lint`, `npm run build`.
+- [x] Add a lightweight admin cleanup/maintenance plan.
+- [x] Add safe visibility for stale pending invites and test-only accounts/data.
+- [x] Expose non-destructive actions first; keep destructive cleanup deliberate and explicit.
+- [x] Add tests for any new domain logic.
+- [x] Re-verify with `npm test`, `npm run lint`, `npm run build`.
 
 ## Slice 10: Final Deploy Readiness
 
 **Purpose:** Make the branch easy to move into production once final QA is done.
 
-- [ ] Confirm Netlify branch preview matches `feat/club-management`.
-- [ ] Confirm Supabase Auth URL config matches production/public URLs.
-- [ ] Confirm email sender mode:
+- [x] Confirm Netlify branch preview matches `feat/club-management`.
+- [x] Confirm Supabase Auth URL config matches production/public URLs.
+- [x] Confirm email sender mode:
   - manual-link fallback is acceptable now
   - Resend domain flow remains documented for later
-- [ ] Confirm key runtime statuses from inside the app:
+- [x] Confirm key runtime statuses from inside the app:
   - Invite & Alert Delivery
   - Admin AI
   - Team import provider
   - Public app URL
+  - Deployment Runtime / branch-vs-public-link alignment
 
 ## Slice 11: Final QA Pass
 
@@ -89,6 +90,14 @@
   - driver
   - scout
 
+### Progress notes
+
+- `2026-05-17`: runtime/deploy status is now surfaced inside `Settings`, not just inferred from env vars.
+- `2026-05-17`: added `npm run smoke:roles` to verify the six supported QA role accounts against expected home/leadership modes and module exposure.
+- `2026-05-17`: `npm run smoke:release -- <admin-email> <password>` now includes runtime URL status in the output snapshot.
+- `2026-05-18`: created a stable Netlify preview alias at `https://club-management-preview--scout-report-builder.netlify.app` and added `/accept-invite` + `/reset-password` redirect URLs for that branch preview in Supabase Auth config.
+- `2026-05-18`: invite, resend and manual-link flows are now request-aware, so branch preview actions can generate preview-safe onboarding URLs instead of always falling back to the production app URL.
+
 ## Slice 12: Release & Post-Launch Hygiene
 
 **Purpose:** Move from feature branch to production with minimal ambiguity.
@@ -104,9 +113,9 @@
 
 ## Commands to keep green
 
-- [ ] `npm test`
-- [ ] `npm run lint`
-- [ ] `npm run build`
+- [x] `npm test`
+- [x] `npm run lint`
+- [x] `npm run build`
 
 ## Self-prompts for autonomous execution
 

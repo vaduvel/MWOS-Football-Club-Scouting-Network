@@ -86,6 +86,8 @@ Un user poate avea mai multe roluri și mai multe echipe pe același cont.
 
 - `APP_BASE_URL`
   - fallback server-side pentru linkuri publice
+- `RELEASE_BRANCH`
+  - opțional; folosit de runtime status pentru a compara buildul curent cu branchul de release urmărit
 - `SUPABASE_SERVICE_ROLE_KEY`
   - necesar pentru onboarding și notificări server-side
 - `GOOGLE_CLOUD_VISION_API_KEY`
@@ -142,6 +144,10 @@ Fișierul [netlify.toml](/Users/vaduvageorge/Desktop/Scout%20Report%20Builder/ne
 - SPA redirects
 - API rewrites pentru endpoint-urile admin / onboarding
 
+Preview stabil de branch pentru `feat/club-management`:
+
+- [club-management-preview--scout-report-builder.netlify.app](https://club-management-preview--scout-report-builder.netlify.app)
+
 ## Configurare Supabase Auth
 
 În `Authentication -> URL Configuration`:
@@ -150,6 +156,8 @@ Fișierul [netlify.toml](/Users/vaduvageorge/Desktop/Scout%20Report%20Builder/ne
   - `https://scout-report-builder.netlify.app`
 
 - `Redirect URLs`
+  - `https://club-management-preview--scout-report-builder.netlify.app/accept-invite`
+  - `https://club-management-preview--scout-report-builder.netlify.app/reset-password`
   - `https://scout-report-builder.netlify.app/accept-invite`
   - `https://scout-report-builder.netlify.app/reset-password`
   - `http://127.0.0.1:3005/accept-invite`
@@ -194,9 +202,42 @@ Scriptul verifică:
 În aplicație, verifică apoi:
 
 - `Settings -> Launch Readiness`
+- `Settings -> Deployment Runtime`
 - `Settings -> Invite & Alert Delivery`
 - `Settings -> Admin AI Integration`
 - `Settings -> Club Access`
+
+Pentru o verificare rapidă a role surface-urilor de QA:
+
+```bash
+npm run smoke:roles
+```
+
+Scriptul confirmă pentru conturile QA standard:
+
+- `admin`
+- `technical_director`
+- `board_observer`
+- `coach`
+- `driver`
+- `scout`
+
+și validează:
+
+- `Club Home` mode
+- `Leadership` mode
+- expunerea modulelor principale pe rol
+
+Pentru snapshotul complet de lansare:
+
+```bash
+npm run smoke:final -- you@example.com your-password
+```
+
+Acesta combină:
+
+- `smoke:release`
+- `smoke:roles`
 
 ## Starea emailurilor
 
@@ -226,3 +267,23 @@ Pentru cleanup final înainte de go-live:
 - șterge aliasurile/test users din Supabase Auth
 - expiră sau anulează invite-urile vechi
 - păstrează doar conturile reale ale staff-ului
+
+Dry-run pentru cleanup de QA data:
+
+```bash
+npm run cleanup:test-data
+```
+
+Aplicare explicită:
+
+```bash
+npm run cleanup:test-data -- --apply --invitations
+npm run cleanup:test-data -- --apply --users
+npm run cleanup:test-data -- --apply --users --invitations
+```
+
+Scriptul este intenționat sigur:
+
+- implicit doar raportează
+- nu șterge nimic fără `--apply`
+- nu șterge users dacă nu îi ceri explicit `--users`

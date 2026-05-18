@@ -27,6 +27,18 @@ describe('staff invitation action links', () => {
     );
   });
 
+  it('can build a preview-specific accept-invite link when a request-scoped app URL is provided', () => {
+    expect(
+      buildInviteLink(
+        'preview-token',
+        '',
+        'https://club-management-preview--scout-report-builder.netlify.app',
+      ),
+    ).toBe(
+      'https://club-management-preview--scout-report-builder.netlify.app/accept-invite?invitation=preview-token',
+    );
+  });
+
   it('rebuilds the Supabase verify link with the provided redirect', () => {
     const result = buildSupabaseInviteActionLink({
       hashedToken: 'hash123',

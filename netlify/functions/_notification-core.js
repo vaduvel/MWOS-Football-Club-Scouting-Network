@@ -287,23 +287,124 @@ async function fetchTransportPlans(serviceSupabase, planIds) {
   return new Map((data || []).map((plan) => [plan.id, plan]));
 }
 
+const NOTIFICATION_SELECT =
+  'id, recipient_user_id, type, title, message, link_path, team_id, training_plan_id, training_day_id, email_enabled, email_sent_at, event_key';
+
+function isOnConflictConstraintGap(error) {
+  return String(error?.message || '').includes('no unique or exclusion constraint matching the ON CONFLICT specification');
+}
+
 async function insertNotifications(serviceSupabase, rows) {
   if (rows.length === 0) return [];
 
+  const dedupedRows = [];
+  const keyedRows = new Map();
+
+  rows.forEach((row) => {
+    if (row.event_key) {
+      keyedRows.set(`${row.recipient_user_id}::${row.event_key}`, row);
+      return;
+    }
+
+    dedupedRows.push(row);
+  });
+
+  dedupedRows.push(...keyedRows.values());
+
   const { data, error } = await serviceSupabase
     .from('app_notifications')
-    .upsert(rows, {
+    .upsert(dedupedRows, {
       onConflict: 'recipient_user_id,event_key',
     })
-    .select(
-      'id, recipient_user_id, type, title, message, link_path, team_id, training_plan_id, training_day_id, email_enabled, email_sent_at, event_key',
-    );
+    .select(NOTIFICATION_SELECT);
 
-  if (error) {
+  if (!error) {
+    return data || [];
+  }
+
+  if (!isOnConflictConstraintGap(error)) {
     throw error;
   }
 
-  return data || [];
+  const rowsWithEventKey = dedupedRows.filter((row) => row.event_key);
+  const existingByKey = new Map();
+
+  if (rowsWithEventKey.length > 0) {
+    const recipientIds = Array.from(new Set(rowsWithEventKey.map((row) => row.recipient_user_id)));
+    const eventKeys = Array.from(new Set(rowsWithEventKey.map((row) => row.event_key)));
+    const { data: existingRows, error: existingError } = await serviceSupabase
+      .from('app_notifications')
+      .select('id, recipient_user_id, event_key')
+      .in('recipient_user_id', recipientIds)
+      .in('event_key', eventKeys);
+
+    if (existingError) {
+      throw existingError;
+    }
+
+    (existingRows || []).forEach((row) => {
+      existingByKey.set(`${row.recipient_user_id}::${row.event_key}`, row.id);
+    });
+  }
+
+  const rowsToInsert = [];
+  const rowsToUpdate = [];
+
+  dedupedRows.forEach((row) => {
+    if (row.event_key) {
+      const existingId = existingByKey.get(`${row.recipient_user_id}::${row.event_key}`);
+      if (existingId) {
+        rowsToUpdate.push({ id: existingId, ...row });
+        return;
+      }
+    }
+
+    rowsToInsert.push(row);
+  });
+
+  const persistedRows = [];
+
+  if (rowsToInsert.length > 0) {
+    const { data: insertedRows, error: insertError } = await serviceSupabase
+      .from('app_notifications')
+      .insert(rowsToInsert)
+      .select(NOTIFICATION_SELECT);
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    persistedRows.push(...(insertedRows || []));
+  }
+
+  for (const row of rowsToUpdate) {
+    const { data: updatedRow, error: updateError } = await serviceSupabase
+      .from('app_notifications')
+      .update({
+        type: row.type,
+        title: row.title,
+        message: row.message,
+        link_path: row.link_path,
+        team_id: row.team_id,
+        training_plan_id: row.training_plan_id,
+        training_day_id: row.training_day_id,
+        email_enabled: row.email_enabled,
+        event_key: row.event_key,
+      })
+      .eq('id', row.id)
+      .select(NOTIFICATION_SELECT)
+      .single();
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    if (updatedRow) {
+      persistedRows.push(updatedRow);
+    }
+  }
+
+  return persistedRows;
 }
 
 async function deliverEmails(serviceSupabase, usersById, notifications) {
@@ -395,8 +496,8 @@ export async function emitTrainingEvents(serviceSupabase, actorUserId, actorFall
           message: buildMessage(event.type, actor.name, team.name, event.detail || ''),
           link_path: event.linkPath,
           team_id: event.teamId,
-          training_plan_id: event.planId || null,
-          training_day_id: event.dayId || null,
+          training_plan_id: event.type === 'transport_plan_updated' ? null : event.planId || null,
+          training_day_id: event.type === 'transport_plan_updated' ? null : event.dayId || null,
           event_key: event.eventKey || `${event.type}:${event.planId || event.dayId || event.teamId}`,
           email_enabled: true,
         });

@@ -156,6 +156,8 @@ site_url = "https://scout-report-builder.netlify.app"
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = [
+  "https://club-management-preview--scout-report-builder.netlify.app/accept-invite",
+  "https://club-management-preview--scout-report-builder.netlify.app/reset-password",
   "https://scout-report-builder.netlify.app/accept-invite",
   "https://scout-report-builder.netlify.app/reset-password",
   "http://127.0.0.1:3005/accept-invite",

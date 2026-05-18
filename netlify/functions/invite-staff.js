@@ -45,6 +45,7 @@ export async function handler(event) {
   if (roleSlugs.length === 0) return badRequest('Select at least one role.');
 
   try {
+    const publicAppUrl = getPublicAppUrl(event);
     const serviceSupabase = createServiceSupabaseClient();
     const { roles, teams } = await fetchRolesAndTeams(serviceSupabase, Array.from(new Set(roleSlugs)), Array.from(new Set(teamIds)));
     const existingUser = await fetchExistingUserByEmail(serviceSupabase, email);
@@ -81,6 +82,7 @@ export async function handler(event) {
                 fullName,
                 roles,
                 teams,
+                publicAppUrl,
               }),
             )
           : {
@@ -95,7 +97,7 @@ export async function handler(event) {
         message: 'Existing user access updated successfully.',
         delivery,
         deliveryMode,
-        ...(deliveryMode !== 'email' ? { shareLink: `${getPublicAppUrl()}/login` } : {}),
+        ...(deliveryMode !== 'email' ? { shareLink: `${publicAppUrl}/login` } : {}),
       });
     }
 
@@ -111,6 +113,7 @@ export async function handler(event) {
       email,
       fullName,
       invitationToken: invitation.invitation_token,
+      publicAppUrl,
     });
 
     if (authUserId) {
@@ -142,6 +145,7 @@ export async function handler(event) {
               teams,
               invitationToken: invitation.invitation_token,
               actionLink,
+              publicAppUrl,
             }),
           )
         : {

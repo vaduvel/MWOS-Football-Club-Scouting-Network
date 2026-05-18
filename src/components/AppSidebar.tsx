@@ -34,37 +34,38 @@ type AppSidebarProps = {
 type SidebarItem = {
   key: SidebarSection;
   label: string;
+  mobileLabel?: string;
   path: string;
   icon: LucideIcon;
 };
 
 function buildSidebarItems(user: AppUser | null): SidebarItem[] {
   const items: SidebarItem[] = [
-    { key: 'home', label: 'Club Home', path: '/', icon: Home },
-    { key: 'notifications', label: 'Notifications', path: '/notifications', icon: Bell },
+    { key: 'home', label: 'Club Home', mobileLabel: 'Home', path: '/', icon: Home },
+    { key: 'notifications', label: 'Notifications', mobileLabel: 'Alerts', path: '/notifications', icon: Bell },
   ];
 
   if (canAccessTrainingModule(user)) {
-    items.push({ key: 'training', label: 'Training', path: '/training', icon: CalendarRange });
+    items.push({ key: 'training', label: 'Training', mobileLabel: 'Train', path: '/training', icon: CalendarRange });
   }
 
   if (canAccessTransportModule(user)) {
-    items.push({ key: 'transport', label: 'Transport', path: '/transport', icon: Bus });
+    items.push({ key: 'transport', label: 'Transport', mobileLabel: 'Trips', path: '/transport', icon: Bus });
   }
 
   if (canAccessScoutingModule(user)) {
-    items.push({ key: 'scouting', label: 'Scouting', path: '/scouting', icon: FileText });
+    items.push({ key: 'scouting', label: 'Scouting', mobileLabel: 'Scout', path: '/scouting', icon: FileText });
   }
 
   if (canAccessPlayerHub(user)) {
-    items.push({ key: 'players', label: 'Player Hub', path: '/players', icon: Star });
+    items.push({ key: 'players', label: 'Player Hub', mobileLabel: 'Players', path: '/players', icon: Star });
   }
 
   if (canAccessOversightModule(user)) {
-    items.push({ key: 'oversight', label: 'Oversight', path: '/oversight', icon: Shield });
+    items.push({ key: 'oversight', label: 'Oversight', mobileLabel: 'Lead', path: '/oversight', icon: Shield });
   }
 
-  items.push({ key: 'settings', label: 'Settings', path: '/settings', icon: Settings });
+  items.push({ key: 'settings', label: 'Settings', mobileLabel: 'Prefs', path: '/settings', icon: Settings });
 
   return items;
 }
@@ -114,7 +115,7 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
   const baseNavClass =
     'w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all';
   const mobileNavClass =
-    'flex min-w-[74px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[8px] font-black uppercase tracking-[0.12em] transition-all';
+    'flex min-w-[62px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-2 text-[9px] font-black uppercase tracking-[0.1em] transition-all';
   const roleSlug = getPrimaryRoleSlug(user);
 
   return (
@@ -199,25 +200,29 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
             const Icon = item.icon;
             const active = current === item.key;
             return (
-              <button
-                key={item.key}
-                onClick={() => navigate(item.path)}
-                className={`${mobileNavClass} ${
-                  active ? 'bg-white text-[var(--color-primary)] shadow-sm' : 'text-white/72'
-                }`}
+                <button
+                  key={item.key}
+                  onClick={() => navigate(item.path)}
+                  aria-label={item.label}
+                  title={item.label}
+                  className={`${mobileNavClass} ${
+                    active ? 'bg-white text-[var(--color-primary)] shadow-sm' : 'text-white/72'
+                  }`}
               >
                 <Icon size={15} />
-                <span>{item.label}</span>
+                <span>{item.mobileLabel || item.label}</span>
               </button>
             );
           })}
 
           <button
             onClick={onLogout}
+            aria-label="Sign out"
+            title="Sign out"
             className={`${mobileNavClass} text-white/72`}
           >
             <LogOut size={15} />
-            <span>Account</span>
+            <span>Logout</span>
           </button>
         </div>
       </nav>

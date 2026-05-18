@@ -1,4 +1,4 @@
-import { getEmailRuntimeStatus, json, requireAdminUser } from './_shared.js';
+import { getAppRuntimeStatus, json, requireAdminUser } from './_shared.js';
 
 export async function handler(event) {
   if (event.httpMethod !== 'GET') {
@@ -10,5 +10,5 @@ export async function handler(event) {
     return auth.error;
   }
 
-  return json(200, getEmailRuntimeStatus(event));
+  return json(200, getAppRuntimeStatus(event));
 }

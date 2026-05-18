@@ -1,4 +1,4 @@
-import { createServiceSupabaseClient, json, requireAdminUser } from './_shared.js';
+import { createServiceSupabaseClient, getPublicAppUrl, json, requireAdminUser } from './_shared.js';
 import { fetchInvitationById, generateInviteActionLink } from './_staff-invitations.js';
 
 export async function handler(event) {
@@ -24,6 +24,7 @@ export async function handler(event) {
   }
 
   try {
+    const publicAppUrl = getPublicAppUrl(event);
     const serviceSupabase = createServiceSupabaseClient();
     const invitation = await fetchInvitationById(serviceSupabase, invitationId);
 
@@ -39,6 +40,7 @@ export async function handler(event) {
       email: invitation.email,
       fullName: invitation.full_name,
       invitationToken: invitation.invitation_token,
+      publicAppUrl,
     });
 
     return json(200, {

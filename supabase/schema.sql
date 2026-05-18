@@ -324,7 +324,7 @@ create index if not exists transport_plan_comments_plan_id_idx on public.transpo
 create index if not exists transport_plan_comments_author_id_idx on public.transport_plan_comments (author_id);
 create index if not exists app_notifications_recipient_idx on public.app_notifications (recipient_user_id, created_at desc);
 drop index if exists public.app_notifications_event_key_idx;
-create unique index app_notifications_event_key_idx on public.app_notifications (recipient_user_id, event_key) where event_key is not null;
+create unique index if not exists app_notifications_event_key_idx on public.app_notifications (recipient_user_id, event_key);
 
 insert into public.roles (slug, label, description)
 values

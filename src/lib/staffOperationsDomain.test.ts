@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildStaffMaintenanceSummary,
   buildStaffOperationsMetrics,
   filterClubAccessUsers,
   filterStaffAccessEvents,
@@ -35,6 +36,13 @@ const users = [
     roles: [],
     teams: [],
   },
+  {
+    id: 'user-4',
+    name: 'QA Driver Smoke',
+    email: 'danielvaduva994+qa-driver@gmail.com',
+    roles: [{ slug: 'driver', label: 'Driver' }],
+    teams: [{ id: 'team-1', slug: 'first-team', name: 'First Team', is_active: true }],
+  },
 ] as const;
 
 const invitations = [
@@ -59,6 +67,17 @@ const invitations = [
     createdAt: '2026-05-10T08:00:00.000Z',
     updatedAt: '2026-05-11T08:00:00.000Z',
     expiresAt: '2026-05-17T08:00:00.000Z',
+  },
+  {
+    id: 'invite-3',
+    fullName: 'Invite Smoke',
+    email: 'danielvaduva994+slice65@gmail.com',
+    status: 'pending',
+    roles: [{ slug: 'coach', label: 'Coach' }],
+    teams: [{ id: 'team-1', slug: 'first-team', name: 'First Team', is_active: true }],
+    createdAt: '2026-05-17T07:00:00.000Z',
+    updatedAt: '2026-05-17T09:00:00.000Z',
+    expiresAt: '2026-05-24T07:00:00.000Z',
   },
 ] as const;
 
@@ -156,11 +175,49 @@ describe('buildStaffOperationsMetrics', () => {
         { nowIso: '2026-05-17T12:00:00.000Z' },
       ),
     ).toEqual({
-      activeStaffCount: 2,
-      pendingInvitationCount: 1,
+      activeStaffCount: 3,
+      pendingInvitationCount: 2,
       stalePendingInvitationCount: 1,
       multiTeamStaffCount: 1,
       recentChangesCount: 1,
+    });
+  });
+});
+
+describe('buildStaffMaintenanceSummary', () => {
+  it('flags likely test accounts and invitations without deleting anything', () => {
+    expect(
+      buildStaffMaintenanceSummary({
+        users,
+        invitations,
+      }),
+    ).toEqual({
+      likelyTestUserCount: 1,
+      likelyTestInvitationCount: 1,
+      likelyTestUsers: [
+        {
+          id: 'user-4',
+          source: 'user',
+          name: 'QA Driver Smoke',
+          email: 'danielvaduva994+qa-driver@gmail.com',
+          reasonLabels: ['Test alias in email', 'QA marker in name', 'Smoke marker in name'],
+          roleLabels: ['Driver'],
+          teamNames: ['First Team'],
+        },
+      ],
+      likelyTestInvitations: [
+        {
+          id: 'invite-3',
+          source: 'invitation',
+          name: 'Invite Smoke',
+          email: 'danielvaduva994+slice65@gmail.com',
+          reasonLabels: ['Test alias in email', 'Smoke marker in name'],
+          roleLabels: ['Coach'],
+          teamNames: ['First Team'],
+          statusLabel: 'pending',
+          updatedAt: '2026-05-17T09:00:00.000Z',
+        },
+      ],
     });
   });
 });

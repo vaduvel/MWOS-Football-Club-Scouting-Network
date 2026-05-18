@@ -54,6 +54,37 @@ type EventFilterInput = RoleTeamFilterInput & {
   tone: 'all' | 'info' | 'success' | 'warning';
 };
 
+export interface LikelyTestDataRecord {
+  id: string;
+  source: 'user' | 'invitation';
+  name: string;
+  email: string;
+  reasonLabels: string[];
+  roleLabels: string[];
+  teamNames: string[];
+  statusLabel?: string;
+  updatedAt?: string;
+}
+
+export interface StaffMaintenanceSummary {
+  likelyTestUserCount: number;
+  likelyTestInvitationCount: number;
+  likelyTestUsers: LikelyTestDataRecord[];
+  likelyTestInvitations: LikelyTestDataRecord[];
+}
+
+const TEST_EMAIL_MARKERS = [
+  { regex: /\+(qa|invite|slice|hardening|smoke|test|demo)/i, label: 'Test alias in email' },
+  { regex: /@(example\.com|mailinator\.com|yopmail\.com|tempmail\.[a-z.]+)$/i, label: 'Temporary or demo mailbox' },
+] as const;
+
+const TEST_NAME_MARKERS = [
+  { regex: /\bqa\b/i, label: 'QA marker in name' },
+  { regex: /\bsmoke\b/i, label: 'Smoke marker in name' },
+  { regex: /\btest\b/i, label: 'Test marker in name' },
+  { regex: /\bdemo\b/i, label: 'Demo marker in name' },
+] as const;
+
 function normalizeValue(value: string | null | undefined) {
   return (value || '').trim().toLowerCase();
 }
@@ -80,6 +111,15 @@ function matchesTeam(teamName: string, teams: ReadonlyArray<MinimalTeam | { name
   if (!teamName || teamName === 'all') return true;
   const normalizedTeam = normalizeToken(teamName);
   return teams.some((team) => normalizeToken(team.name) === normalizedTeam);
+}
+
+function getLikelyTestReasons(input: { name: string; email: string }) {
+  const reasons = [
+    ...TEST_EMAIL_MARKERS.filter(({ regex }) => regex.test(input.email)).map(({ label }) => label),
+    ...TEST_NAME_MARKERS.filter(({ regex }) => regex.test(input.name)).map(({ label }) => label),
+  ];
+
+  return Array.from(new Set(reasons));
 }
 
 export function filterClubAccessUsers<T extends MinimalClubUser>(users: readonly T[], filters: RoleTeamFilterInput) {
@@ -175,5 +215,55 @@ export function buildStaffOperationsMetrics(
     }).length,
     multiTeamStaffCount: input.users.filter((user) => user.teams.length > 1).length,
     recentChangesCount: input.events.filter((event) => new Date(event.createdAt).getTime() >= sevenDaysAgo).length,
+  };
+}
+
+export function buildStaffMaintenanceSummary(input: {
+  users: readonly MinimalClubUser[];
+  invitations: readonly MinimalInvitation[];
+}): StaffMaintenanceSummary {
+  const likelyTestUsers: LikelyTestDataRecord[] = input.users
+    .map((user) => {
+      const reasonLabels = getLikelyTestReasons({ name: user.name, email: user.email });
+      if (reasonLabels.length === 0) return null;
+      return {
+        id: user.id,
+        source: 'user' as const,
+        name: user.name,
+        email: user.email,
+        reasonLabels,
+        roleLabels: user.roles.map((role) => role.label),
+        teamNames: user.teams.map((team) => team.name),
+      };
+    })
+    .filter(Boolean) as LikelyTestDataRecord[];
+  likelyTestUsers
+    .sort((left, right) => left.email.localeCompare(right.email));
+
+  const likelyTestInvitations: LikelyTestDataRecord[] = input.invitations
+    .map((invitation) => {
+      const reasonLabels = getLikelyTestReasons({ name: invitation.fullName, email: invitation.email });
+      if (reasonLabels.length === 0) return null;
+      return {
+        id: invitation.id,
+        source: 'invitation' as const,
+        name: invitation.fullName,
+        email: invitation.email,
+        reasonLabels,
+        roleLabels: invitation.roles.map((role) => role.label),
+        teamNames: invitation.teams.map((team) => team.name),
+        statusLabel: invitation.status,
+        updatedAt: invitation.updatedAt,
+      };
+    })
+    .filter(Boolean) as LikelyTestDataRecord[];
+  likelyTestInvitations
+    .sort((left, right) => left.email.localeCompare(right.email));
+
+  return {
+    likelyTestUserCount: likelyTestUsers.length,
+    likelyTestInvitationCount: likelyTestInvitations.length,
+    likelyTestUsers,
+    likelyTestInvitations,
   };
 }

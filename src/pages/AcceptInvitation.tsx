@@ -192,8 +192,9 @@ export default function AcceptInvitation() {
                 {ready ? (
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">New Password</label>
+                      <label htmlFor="invite-password" className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">New Password</label>
                       <input
+                        id="invite-password"
                         required
                         type="password"
                         value={password}
@@ -204,8 +205,9 @@ export default function AcceptInvitation() {
                     </div>
 
                     <div>
-                      <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Confirm Password</label>
+                      <label htmlFor="invite-confirm-password" className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Confirm Password</label>
                       <input
+                        id="invite-confirm-password"
                         required
                         type="password"
                         value={confirmPassword}

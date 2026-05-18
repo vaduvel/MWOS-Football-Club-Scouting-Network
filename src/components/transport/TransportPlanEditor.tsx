@@ -1,6 +1,7 @@
 import { AlertCircle, Ban, CheckCircle2, Loader2, Save, Send, Truck } from 'lucide-react';
 import type { AppTeam } from '../../lib/data';
 import type { TransportDriverOption, TransportWorkspace } from '../../lib/transportData';
+import { normalizeTransportDate, normalizeTransportTime } from '../../lib/transportDomain';
 
 type SaveAction = 'draft' | 'publish' | 'complete' | 'cancel';
 
@@ -20,6 +21,18 @@ export default function TransportPlanEditor({
   onAction: (action: SaveAction) => void;
 }) {
   const isPublished = ['published', 'updated', 'completed'].includes(workspace.status);
+  const normalizeTimeField = (field: 'departureTime' | 'arrivalTargetTime') => {
+    const normalized = normalizeTransportTime(workspace[field]);
+    if (normalized !== workspace[field]) {
+      onChange(field, normalized);
+    }
+  };
+  const normalizeDateField = () => {
+    const normalized = normalizeTransportDate(workspace.eventDate);
+    if (normalized !== workspace.eventDate) {
+      onChange('eventDate', normalized);
+    }
+  };
 
   return (
     <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
@@ -94,10 +107,17 @@ export default function TransportPlanEditor({
         <label className="space-y-2">
           <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Event date</span>
           <input
-            type="date"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            name="eventDate"
+            aria-label="Event date"
             value={workspace.eventDate}
             onChange={(event) => onChange('eventDate', event.target.value)}
+            onBlur={normalizeDateField}
             disabled={!workspace.canManage}
+            maxLength={10}
+            placeholder="YYYY-MM-DD"
             className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
           />
         </label>
@@ -105,10 +125,17 @@ export default function TransportPlanEditor({
         <label className="space-y-2">
           <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Departure time</span>
           <input
-            type="time"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            name="departureTime"
+            aria-label="Departure time"
             value={workspace.departureTime}
             onChange={(event) => onChange('departureTime', event.target.value)}
+            onBlur={() => normalizeTimeField('departureTime')}
             disabled={!workspace.canManage}
+            maxLength={5}
+            placeholder="HH:MM"
             className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
           />
         </label>
@@ -116,10 +143,17 @@ export default function TransportPlanEditor({
         <label className="space-y-2">
           <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Arrival target</span>
           <input
-            type="time"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            name="arrivalTargetTime"
+            aria-label="Arrival target"
             value={workspace.arrivalTargetTime}
             onChange={(event) => onChange('arrivalTargetTime', event.target.value)}
+            onBlur={() => normalizeTimeField('arrivalTargetTime')}
             disabled={!workspace.canManage}
+            maxLength={5}
+            placeholder="HH:MM"
             className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
           />
         </label>

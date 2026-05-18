@@ -1,7 +1,7 @@
 {
-  "name": "MWOS Scouting Network",
-  "short_name": "MWOS Scout",
-  "description": "Mobile-first scouting workflow for match reports, player tracking and academy follow-up.",
+  "name": "MWOS Club Management",
+  "short_name": "MWOS Club",
+  "description": "Mobile-first club operations workspace for training, transport, scouting, and staff onboarding.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#edf2f4",

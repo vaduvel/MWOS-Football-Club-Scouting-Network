@@ -1,4 +1,4 @@
-import { requireAdminUser, json, createServiceSupabaseClient } from './_shared.js';
+import { requireAdminUser, json, createServiceSupabaseClient, getPublicAppUrl } from './_shared.js';
 import {
   attemptEmailDelivery,
   fetchInvitationById,
@@ -32,6 +32,7 @@ export async function handler(event) {
   }
 
   try {
+    const publicAppUrl = getPublicAppUrl(event);
     const serviceSupabase = createServiceSupabaseClient();
     const invitation = await fetchInvitationById(serviceSupabase, invitationId);
 
@@ -49,6 +50,7 @@ export async function handler(event) {
       email: invitation.email,
       fullName: invitation.full_name,
       invitationToken: invitation.invitation_token,
+      publicAppUrl,
     });
 
     const nowIso = new Date().toISOString();
@@ -67,6 +69,7 @@ export async function handler(event) {
         teams,
         invitationToken: invitation.invitation_token,
         actionLink,
+        publicAppUrl,
       }),
     );
 

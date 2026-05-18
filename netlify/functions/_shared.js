@@ -50,20 +50,56 @@ export function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
-export function getPublicAppUrl() {
-  const value =
-    process.env.APP_BASE_URL ||
-    process.env.VITE_APP_URL ||
-    process.env.URL ||
-    process.env.DEPLOY_PRIME_URL ||
-    '';
-
-  return String(value).replace(/\/$/, '');
+function getHeader(event, name) {
+  if (!event?.headers) return '';
+  return (
+    event.headers[name] ||
+    event.headers[name.toLowerCase()] ||
+    event.headers[name.toUpperCase()] ||
+    ''
+  );
 }
 
-export function getEmailRuntimeStatus() {
+function getRequestOrigin(event) {
+  const explicitOrigin = String(getHeader(event, 'origin') || '').trim();
+  if (explicitOrigin) {
+    return explicitOrigin.replace(/\/$/, '');
+  }
+
+  const proto = String(getHeader(event, 'x-forwarded-proto') || '').trim();
+  const host = String(getHeader(event, 'x-forwarded-host') || getHeader(event, 'host') || '').trim();
+
+  if (!host) return '';
+
+  const normalizedProto = proto || 'https';
+  return `${normalizedProto}://${host}`.replace(/\/$/, '');
+}
+
+export function getPublicAppUrl(event) {
+  const configuredUrl = normalizeRuntimeUrl(
+    process.env.APP_BASE_URL ||
+      process.env.VITE_APP_URL ||
+      process.env.URL ||
+      process.env.DEPLOY_PRIME_URL ||
+      '',
+  );
+  const requestOrigin = normalizeRuntimeUrl(getRequestOrigin(event));
+  const context = getRuntimeContext();
+
+  if ((context === 'branch-deploy' || context === 'deploy-preview') && requestOrigin) {
+    return requestOrigin;
+  }
+
+  if (!configuredUrl && requestOrigin) {
+    return requestOrigin;
+  }
+
+  return configuredUrl || requestOrigin || '';
+}
+
+export function getEmailRuntimeStatus(event) {
   const configured = Boolean(process.env.RESEND_API_KEY && process.env.NOTIFICATION_FROM_EMAIL);
-  const publicAppUrl = getPublicAppUrl() || null;
+  const publicAppUrl = getPublicAppUrl(event) || null;
 
   return {
     configured,
@@ -74,6 +110,76 @@ export function getEmailRuntimeStatus() {
     setupHint: configured
       ? 'Transactional invite and alert emails are ready.'
       : 'Add RESEND_API_KEY and NOTIFICATION_FROM_EMAIL to the Netlify server environment. Until then, use manual invite links or WhatsApp sharing from Settings.',
+  };
+}
+
+function normalizeRuntimeUrl(value) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return null;
+  return trimmed.replace(/\/$/, '');
+}
+
+function getRuntimeContext() {
+  if (process.env.CONTEXT) {
+    return String(process.env.CONTEXT).trim().toLowerCase();
+  }
+
+  if (process.env.NETLIFY_LOCAL === 'true') {
+    return 'local';
+  }
+
+  return 'unknown';
+}
+
+export function getAppRuntimeStatus(event) {
+  const context = getRuntimeContext();
+  const branch = String(process.env.BRANCH || process.env.HEAD || '').trim() || null;
+  const commitRef = String(process.env.COMMIT_REF || '').trim() || null;
+  const siteUrl = normalizeRuntimeUrl(process.env.URL);
+  const deployPrimeUrl = normalizeRuntimeUrl(process.env.DEPLOY_PRIME_URL);
+  const publicAppUrl = normalizeRuntimeUrl(getPublicAppUrl(event));
+  const releaseBranch = String(process.env.RELEASE_BRANCH || 'feat/club-management').trim() || null;
+  const branchMatchesRelease = branch && releaseBranch ? branch === releaseBranch : null;
+
+  const recommendedPublicUrl =
+    context === 'branch-deploy' || context === 'deploy-preview'
+      ? deployPrimeUrl || siteUrl || publicAppUrl
+      : siteUrl || publicAppUrl;
+
+  const matchesRecommendedPublicUrl = Boolean(
+    publicAppUrl && recommendedPublicUrl && publicAppUrl === recommendedPublicUrl,
+  );
+
+  let setupHint = 'Runtime URL alignment looks good for this deployment.';
+
+  if (!publicAppUrl) {
+    setupHint = 'Set APP_BASE_URL or VITE_APP_URL so invite and reset links point to a real app URL.';
+  } else if (context === 'local') {
+    setupHint = 'Local runtime is fine for development, but live invite links should be verified again on the public Netlify URL.';
+  } else if (
+    (context === 'branch-deploy' || context === 'deploy-preview') &&
+    recommendedPublicUrl &&
+    !matchesRecommendedPublicUrl
+  ) {
+    setupHint =
+      'This preview deployment is still generating public links for a different URL. If you want to test invite or reset flows here, align APP_BASE_URL / VITE_APP_URL with the preview URL.';
+  } else if (context === 'production' && siteUrl && publicAppUrl !== siteUrl) {
+    setupHint =
+      'Production is live, but the configured public app URL does not match the deployed site URL. Align APP_BASE_URL / VITE_APP_URL before broad staff rollout.';
+  }
+
+  return {
+    context,
+    branch,
+    commitRef,
+    siteUrl,
+    deployPrimeUrl,
+    publicAppUrl,
+    recommendedPublicUrl,
+    releaseBranch,
+    branchMatchesRelease,
+    matchesRecommendedPublicUrl,
+    setupHint,
   };
 }
 

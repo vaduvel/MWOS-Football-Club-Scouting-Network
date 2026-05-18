@@ -325,6 +325,20 @@ export interface AdminEmailStatus {
   setupHint: string;
 }
 
+export interface AdminAppRuntimeStatus {
+  context: string;
+  branch: string | null;
+  commitRef: string | null;
+  siteUrl: string | null;
+  deployPrimeUrl: string | null;
+  publicAppUrl: string | null;
+  recommendedPublicUrl: string | null;
+  releaseBranch: string | null;
+  branchMatchesRelease: boolean | null;
+  matchesRecommendedPublicUrl: boolean;
+  setupHint: string;
+}
+
 export interface AdminChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -2853,6 +2867,12 @@ export async function fetchAdminAiStatus() {
 
 export async function fetchAdminEmailStatus() {
   return callAuthorizedApiRequest<AdminEmailStatus>('/api/admin/email-status', {
+    method: 'GET',
+  });
+}
+
+export async function fetchAdminAppRuntimeStatus() {
+  return callAuthorizedApiRequest<AdminAppRuntimeStatus>('/api/admin/runtime-status', {
     method: 'GET',
   });
 }

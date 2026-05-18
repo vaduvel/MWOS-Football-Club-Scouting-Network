@@ -8,7 +8,7 @@ type MwosIdentityProps = {
 };
 
 export default function MwosIdentity({
-  subtitle = 'Scouting Network',
+  subtitle = 'Club Management',
   compact = false,
   showBadge = false,
   className = '',

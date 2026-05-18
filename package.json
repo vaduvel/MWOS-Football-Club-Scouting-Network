@@ -12,7 +12,10 @@
     "start": "vite preview",
     "test": "vitest run",
     "verify": "npm test && npm run lint && npm run build",
-    "smoke:release": "node scripts/release-readiness-smoke.mjs"
+    "smoke:release": "tsx scripts/release-readiness-smoke.mjs",
+    "smoke:roles": "tsx scripts/role-surface-smoke.mjs",
+    "smoke:final": "tsx scripts/final-launch-smoke.mjs",
+    "cleanup:test-data": "tsx scripts/test-data-cleanup.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

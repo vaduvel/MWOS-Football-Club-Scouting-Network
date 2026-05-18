@@ -120,8 +120,9 @@ export default function Login() {
                     {!isLogin && !isRecoveryMode && (
                       <>
                         <div>
-                          <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Full Name</label>
+                          <label htmlFor="signup-name" className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Full Name</label>
                           <input
+                            id="signup-name"
                             required
                             name="name"
                             type="text"
@@ -132,8 +133,9 @@ export default function Login() {
                           />
                         </div>
                         <div>
-                          <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Organization</label>
+                          <label htmlFor="signup-organization" className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Organization</label>
                           <input
+                            id="signup-organization"
                             name="organization"
                             type="text"
                             value={organization}
@@ -149,8 +151,9 @@ export default function Login() {
                     )}
 
                     <div>
-                      <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Email</label>
+                      <label htmlFor="auth-email" className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Email</label>
                       <input
+                        id="auth-email"
                         required
                         name="email"
                         type="email"
@@ -165,8 +168,9 @@ export default function Login() {
 
                     {!isRecoveryMode && (
                       <div>
-                        <label className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Password</label>
+                        <label htmlFor="auth-password" className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Password</label>
                         <input
+                          id="auth-password"
                           required
                           name="password"
                           type="password"

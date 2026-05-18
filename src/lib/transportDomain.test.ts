@@ -46,6 +46,45 @@ describe('normalizeTransportPlan', () => {
       contactNotes: 'Call manager on arrival',
     });
   });
+
+  it('normalizes flexible time values to HH:MM', () => {
+    const normalized = normalizeTransportPlan({
+      title: 'U17 away to Harare City',
+      contextType: 'match',
+      eventDate: '20260522',
+      departureTime: '830',
+      arrivalTargetTime: '8:5',
+      meetingPoint: 'Club gate',
+      destination: 'Harare National Sports Stadium',
+      driverUserId: 'driver-1',
+      notes: '',
+      contactNotes: '',
+      status: 'draft',
+    });
+
+    expect(normalized.eventDate).toBe('2026-05-22');
+    expect(normalized.departureTime).toBe('08:30');
+    expect(normalized.arrivalTargetTime).toBe('08:05');
+  });
+
+  it('normalizes persisted HH:MM:SS values back to HH:MM', () => {
+    const normalized = normalizeTransportPlan({
+      title: 'U17 away to Harare City',
+      contextType: 'match',
+      eventDate: '2026-05-22',
+      departureTime: '08:30:00',
+      arrivalTargetTime: '10:05:00',
+      meetingPoint: 'Club gate',
+      destination: 'Harare National Sports Stadium',
+      driverUserId: 'driver-1',
+      notes: '',
+      contactNotes: '',
+      status: 'published',
+    });
+
+    expect(normalized.departureTime).toBe('08:30');
+    expect(normalized.arrivalTargetTime).toBe('10:05');
+  });
 });
 
 describe('validateTransportPlan', () => {
@@ -90,6 +129,21 @@ describe('validateTransportPlan', () => {
         'draft',
       ),
     ).toEqual([]);
+  });
+
+  it('rejects invalid time formats in publish mode', () => {
+    expect(
+      validateTransportPlan({
+        ...basePlan,
+        eventDate: '2026-13-40',
+        departureTime: '29:15',
+        arrivalTargetTime: '9x30',
+      }),
+    ).toEqual([
+      'Event date must be in YYYY-MM-DD format.',
+      'Departure time must be in HH:MM format.',
+      'Arrival target must be in HH:MM format.',
+    ]);
   });
 });
 
