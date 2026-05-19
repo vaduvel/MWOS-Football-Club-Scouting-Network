@@ -119,7 +119,10 @@ function buildEmailHtml({ title, message, linkPath }) {
 
 async function sendEmail({ to, subject, html }) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.NOTIFICATION_FROM_EMAIL;
+  const configuredFrom = String(process.env.NOTIFICATION_FROM_EMAIL || '').trim();
+  const from = configuredFrom.toLowerCase().includes('@resend.dev')
+    ? 'MWOS Club Management <access@mwos-hub.com>'
+    : configuredFrom;
   const replyTo = process.env.NOTIFICATION_REPLY_TO_EMAIL;
 
   if (!apiKey || !from) {

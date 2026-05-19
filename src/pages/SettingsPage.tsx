@@ -37,7 +37,6 @@ import {
   normalizeClubAccessSelection,
   validateClubAccessSelection,
 } from '../lib/staffAccessDomain';
-import { buildLaunchReadiness } from '../lib/settingsReadinessDomain';
 import {
   buildStaffMaintenanceSummary,
   buildStaffOperationsMetrics,
@@ -363,20 +362,6 @@ export default function SettingsPage() {
   const appRuntimeSummary = useMemo(
     () => buildAppRuntimeSummary(adminAppRuntimeStatus),
     [adminAppRuntimeStatus],
-  );
-
-  const launchReadiness = useMemo(
-    () =>
-      isAdmin && !adminAiStatusLoading && !adminEmailStatusLoading
-        ? buildLaunchReadiness({
-            publicAppUrl,
-            footballApiProvider: localProvider,
-            footballApiKey: localApiKey,
-            adminAiStatus,
-            adminEmailStatus,
-          })
-        : null,
-    [adminAiStatus, adminAiStatusLoading, adminEmailStatus, adminEmailStatusLoading, isAdmin, localApiKey, localProvider, publicAppUrl],
   );
 
   const refreshClubAccessData = async (preserveSelectedUserId?: string) => {
@@ -1173,116 +1158,6 @@ export default function SettingsPage() {
                           Delivery status is unavailable right now.
                         </p>
                       )}
-                    </div>
-                  </div>
-                )}
-
-                {isAdmin && launchReadiness && (
-                  <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck size={16} className="text-[var(--color-primary)]" />
-                      <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
-                        Launch Readiness
-                      </p>
-                    </div>
-                    <p className="mt-2 text-xs font-semibold leading-6 text-[var(--color-mid)]">
-                      Use this as the admin truth source before onboarding staff broadly. It combines the public app URL, invite delivery mode, squad import setup and Admin AI readiness into one honest verdict.
-                    </p>
-
-                    <div className="mt-4 rounded-2xl border border-white/70 bg-white px-4 py-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
-                                launchReadiness.tone === 'ready'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-amber-100 text-amber-800'
-                              }`}
-                            >
-                              {launchReadiness.tone === 'ready' ? 'Operational' : 'Needs attention'}
-                            </span>
-                            {launchReadiness.blockingCount > 0 ? (
-                              <span className="rounded-full bg-red-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-800">
-                                {launchReadiness.blockingCount} blocking
-                              </span>
-                            ) : null}
-                          </div>
-                          <p className="mt-3 text-lg font-black text-[var(--color-dark)]">{launchReadiness.headline}</p>
-                          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[var(--color-dark)]/80">
-                            {launchReadiness.detail}
-                          </p>
-                        </div>
-
-                        <div className="grid min-w-[220px] gap-3 sm:grid-cols-3">
-                          {[
-                            { label: 'Ready', value: launchReadiness.readyCount, tone: 'emerald' },
-                            { label: 'Attention', value: launchReadiness.attentionCount, tone: 'amber' },
-                            { label: 'Optional', value: launchReadiness.optionalCount, tone: 'slate' },
-                          ].map((metric) => (
-                            <div key={metric.label} className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3 text-center">
-                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
-                                {metric.label}
-                              </p>
-                              <p
-                                className={`mt-2 text-2xl font-black ${
-                                  metric.tone === 'emerald'
-                                    ? 'text-emerald-700'
-                                    : metric.tone === 'amber'
-                                      ? 'text-amber-700'
-                                      : 'text-[var(--color-dark)]'
-                                }`}
-                              >
-                                {metric.value}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="mt-5 grid gap-3 lg:grid-cols-2">
-                        {launchReadiness.items.map((item) => (
-                          <div key={item.id} className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/45 p-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
-                                  item.tone === 'ready'
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : item.tone === 'attention'
-                                      ? 'bg-amber-100 text-amber-800'
-                                      : 'bg-slate-100 text-slate-700'
-                                }`}
-                              >
-                                {item.statusLabel}
-                              </span>
-                              {item.blocking ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-800">
-                                  <AlertTriangle size={12} />
-                                  Blocking
-                                </span>
-                              ) : null}
-                            </div>
-                            <p className="mt-3 text-sm font-black text-[var(--color-dark)]">{item.label}</p>
-                            <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-dark)]/80">{item.detail}</p>
-                            <p className="mt-3 text-xs font-semibold leading-5 text-[var(--color-mid)]">{item.action}</p>
-                          </div>
-                        ))}
-                      </div>
-
-                      {launchReadiness.nextSteps.length > 0 ? (
-                        <div className="mt-5 rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/55 p-4">
-                          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                            Next admin steps
-                          </p>
-                          <div className="mt-3 space-y-2">
-                            {launchReadiness.nextSteps.slice(0, 4).map((step) => (
-                              <p key={step} className="text-sm font-semibold leading-6 text-[var(--color-dark)]/80">
-                                {step}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
                     </div>
                   </div>
                 )}

@@ -113,6 +113,17 @@ export function getEmailRuntimeStatus(event) {
   };
 }
 
+function resolveNotificationFromEmail() {
+  const configuredFrom = String(process.env.NOTIFICATION_FROM_EMAIL || '').trim();
+  if (!configuredFrom) return '';
+
+  if (configuredFrom.toLowerCase().includes('@resend.dev')) {
+    return 'MWOS Club Management <access@mwos-hub.com>';
+  }
+
+  return configuredFrom;
+}
+
 function normalizeRuntimeUrl(value) {
   const trimmed = String(value || '').trim();
   if (!trimmed) return null;
@@ -185,7 +196,7 @@ export function getAppRuntimeStatus(event) {
 
 export async function sendTransactionalEmail({ to, subject, html }) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.NOTIFICATION_FROM_EMAIL;
+  const from = resolveNotificationFromEmail();
   const replyTo = process.env.NOTIFICATION_REPLY_TO_EMAIL;
 
   if (!apiKey || !from) {
