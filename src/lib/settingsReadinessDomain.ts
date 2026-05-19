@@ -134,20 +134,20 @@ export function buildLaunchReadiness({
     adminAiStatus?.configured
       ? {
           id: 'admin_ai',
-          label: 'Admin AI',
+          label: 'Club assistant',
           tone: 'ready',
           statusLabel: 'Configured',
-          detail: 'Leadership insights and the admin assistant can use the configured Gemini runtime.',
-          action: 'Review generated insights in Oversight and keep the Gemini server key available in Netlify.',
+          detail: 'Leadership insights and the club assistant can use the configured automation runtime.',
+          action: 'Review generated insights in Oversight and keep the server key available in the hosting environment.',
           blocking: false,
         }
       : {
           id: 'admin_ai',
-          label: 'Admin AI',
+          label: 'Club assistant',
           tone: 'optional',
           statusLabel: 'Optional for launch',
-          detail: 'The club can still operate training, transport, scouting and staff onboarding without Admin AI.',
-          action: 'Add GEMINI_API_KEY later to unlock automated leadership insights and admin chat.',
+          detail: 'The club can still operate training, transport, scouting and staff onboarding without the assistant.',
+          action: 'Add the assistant API key later to unlock automated leadership insights and admin chat.',
           blocking: false,
         },
   ];

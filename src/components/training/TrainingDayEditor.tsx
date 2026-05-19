@@ -242,6 +242,15 @@ export default function TrainingDayEditor({ day, canEdit, onChange }: TrainingDa
         </div>
       </div>
 
+      {canEdit && day.dayType === 'rest' ? (
+        <section className="mt-5 rounded-[24px] border border-[var(--color-primary)]/16 bg-white p-4">
+          <p className="text-sm font-black text-[var(--color-dark)]">Start a training session on this day</p>
+          <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
+            Change Day type to Training below, then the time, location, load, objectives and exercises fields will open for this day.
+          </p>
+        </section>
+      ) : null}
+
       <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <SummaryCard label="Time" value={describeTimeBlock(day)} tone="training" />
         <SummaryCard

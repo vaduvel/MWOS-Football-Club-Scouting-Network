@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, ChevronRight, FileText, Trash2 } from 'lucide-react';
 import AdminDashboardPanel from '../components/AdminDashboardPanel';
 import AppSidebar from '../components/AppSidebar';
+import ConfirmActionModal from '../components/ConfirmActionModal';
 import ScoutingWorkspaceActions from '../components/scouting/ScoutingWorkspaceActions';
 import ScoutingWorkspaceHero from '../components/scouting/ScoutingWorkspaceHero';
 import ScoutingWorkspaceMetrics from '../components/scouting/ScoutingWorkspaceMetrics';
@@ -118,6 +119,8 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
+  const [reportDeleteTargetId, setReportDeleteTargetId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState('');
   const [adminLoadError, setAdminLoadError] = useState('');
   const [insights, setInsights] = useState<AdminAiInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
@@ -204,9 +207,9 @@ export default function Dashboard() {
         setAdminAiStatus(status);
       } catch (error: any) {
         if (!isMounted) return;
-        console.error('Failed to load Admin AI status.', error);
+        console.error('Failed to load club assistant status.', error);
         setAdminAiStatus(null);
-        setAdminAiStatusError(error.message || 'Failed to load Admin AI status.');
+        setAdminAiStatusError(error.message || 'Failed to load club assistant status.');
       } finally {
         if (isMounted) {
           setAdminAiStatusLoading(false);
@@ -267,12 +270,16 @@ export default function Dashboard() {
         `${report.owner_name || ''} ${report.owner_email || ''}`.toLowerCase().includes(search.toLowerCase())),
   );
 
-  const handleDeleteReport = async (event: MouseEvent, reportId: string) => {
+  const handleRequestDeleteReport = (event: MouseEvent, reportId: string) => {
     event.stopPropagation();
+    setDeleteError('');
+    setReportDeleteTargetId(reportId);
+  };
 
-    const confirmed = window.confirm('Delete this report permanently?');
-    if (!confirmed) return;
+  const handleConfirmDeleteReport = async () => {
+    if (!reportDeleteTargetId) return;
 
+    const reportId = reportDeleteTargetId;
     setDeletingReportId(reportId);
 
     try {
@@ -291,8 +298,9 @@ export default function Dashboard() {
       );
     } catch (error) {
       console.error('Failed to delete report.', error);
-      window.alert('Failed to delete report.');
+      setDeleteError('Failed to delete report. Please try again.');
     } finally {
+      setReportDeleteTargetId(null);
       setDeletingReportId(null);
     }
   };
@@ -316,7 +324,7 @@ export default function Dashboard() {
   const handleSendChat = async (message: string) => {
     if (!adminOverview) return;
     if (!adminAiStatus?.configured) {
-      setChatError(adminAiStatus?.setupHint || 'Admin AI is not configured yet.');
+      setChatError('Club assistant is not active yet.');
       return;
     }
 
@@ -354,9 +362,10 @@ export default function Dashboard() {
     hasTrackedPlayers: (playerHubOverview?.totalTrackedPlayers || 0) > 0,
     canCreateReports,
   });
+  const reportDeleteTarget = reports.find((report) => report.id === reportDeleteTargetId);
 
   return (
-    <div className="min-h-screen bg-[var(--color-light)] flex flex-col md:flex-row">
+    <div className="min-h-dvh bg-[var(--color-light)] flex flex-col md:flex-row">
       <AppSidebar
         current="scouting"
         user={user}
@@ -380,6 +389,12 @@ export default function Dashboard() {
           {isAdmin && adminLoadError && (
             <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               {adminLoadError}
+            </div>
+          )}
+
+          {deleteError && (
+            <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {deleteError}
             </div>
           )}
 
@@ -461,7 +476,7 @@ export default function Dashboard() {
                         {canCreateReports ? (
                           <button
                             type="button"
-                            onClick={(event) => void handleDeleteReport(event, report.id!)}
+                            onClick={(event) => handleRequestDeleteReport(event, report.id!)}
                             disabled={deletingReportId === report.id}
                             className="rounded-lg p-2 text-[var(--color-mid)] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                             aria-label="Delete report"
@@ -509,7 +524,7 @@ export default function Dashboard() {
                         {canCreateReports ? (
                           <button
                             type="button"
-                            onClick={(event) => void handleDeleteReport(event, report.id!)}
+                            onClick={(event) => handleRequestDeleteReport(event, report.id!)}
                             disabled={deletingReportId === report.id}
                             className="rounded-lg p-1.5 text-[var(--color-mid)] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                             aria-label="Delete report"
@@ -562,6 +577,20 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      <ConfirmActionModal
+        open={Boolean(reportDeleteTargetId)}
+        title="Delete scouting report?"
+        description={
+          reportDeleteTarget
+            ? `This will permanently delete ${reportDeleteTarget.home_team || 'Home'} vs ${reportDeleteTarget.away_team || 'Away'} and its saved scouting data.`
+            : 'This will permanently delete the selected scouting report and its saved data.'
+        }
+        confirmLabel="Delete report"
+        loading={Boolean(deletingReportId)}
+        onCancel={() => setReportDeleteTargetId(null)}
+        onConfirm={() => void handleConfirmDeleteReport()}
+      />
     </div>
   );
 }

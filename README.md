@@ -127,8 +127,8 @@ Important:
    - Publish directory:
      `dist`
 3. Adaugă environment variables:
-   - `VITE_APP_URL=https://scout-report-builder.netlify.app`
-   - `APP_BASE_URL=https://scout-report-builder.netlify.app`
+  - `VITE_APP_URL=https://mwos-hub.com`
+  - `APP_BASE_URL=https://mwos-hub.com`
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
@@ -153,9 +153,13 @@ Preview stabil de branch pentru `feat/club-management`:
 În `Authentication -> URL Configuration`:
 
 - `Site URL`
-  - `https://scout-report-builder.netlify.app`
+  - `https://mwos-hub.com`
 
 - `Redirect URLs`
+  - `https://mwos-hub.com/accept-invite`
+  - `https://mwos-hub.com/reset-password`
+  - `https://www.mwos-hub.com/accept-invite`
+  - `https://www.mwos-hub.com/reset-password`
   - `https://club-management-preview--scout-report-builder.netlify.app/accept-invite`
   - `https://club-management-preview--scout-report-builder.netlify.app/reset-password`
   - `https://scout-report-builder.netlify.app/accept-invite`

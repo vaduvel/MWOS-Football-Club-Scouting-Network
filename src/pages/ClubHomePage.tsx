@@ -741,7 +741,7 @@ export default function ClubHomePage() {
   const canOpenNotifications = canOpenTraining || canOpenTransport;
 
   return (
-    <div className="min-h-screen bg-[var(--color-light)] md:flex">
+    <div className="min-h-dvh bg-[var(--color-light)] md:flex">
       <AppSidebar current="home" user={user} onLogout={() => void logout()} />
 
       <main className="flex-1 overflow-auto p-3 pb-28 md:p-6">
@@ -872,7 +872,7 @@ export default function ClubHomePage() {
                 <>
                   <section className="grid gap-4 xl:grid-cols-2">
                     <TrainingFeed plans={workspace.trainingPlans} />
-                    <TransportFeed plans={workspace.upcomingTransport} />
+                    {canOpenTransport ? <TransportFeed plans={workspace.upcomingTransport} /> : null}
                   </section>
 
                   <section className="grid gap-4 xl:grid-cols-2">

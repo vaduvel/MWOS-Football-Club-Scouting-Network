@@ -158,15 +158,16 @@ export default function AdminDashboardPanel({
         })}
       </div>
 
+      {aiConfigured ? (
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <div className="rounded-[24px] border border-[var(--color-primary)]/12 bg-[linear-gradient(180deg,rgba(49,39,131,0.03),rgba(255,255,255,1))] p-5 shadow-[0_14px_36px_rgba(49,39,131,0.06)]">
           <div className="flex items-center justify-between gap-4 border-b border-[var(--color-primary)]/10 pb-4">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
-                AI Improvement Suggestions
+                Leadership Suggestions
               </p>
               <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
-                Gemini review of admin data
+                Review of club activity
               </h3>
             </div>
             <div className="flex items-center gap-2">
@@ -194,7 +195,7 @@ export default function AdminDashboardPanel({
             {aiStatusLoading ? (
               <div className="flex items-center gap-3 text-sm font-semibold text-[var(--color-mid)]">
                 <Loader2 size={18} className="animate-spin" />
-                Checking Admin AI readiness...
+                Checking assistant readiness...
               </div>
             ) : aiStatusError ? (
               <div className="rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -207,15 +208,10 @@ export default function AdminDashboardPanel({
                     <AlertTriangle size={18} />
                   </div>
                   <div>
-                    <p className="text-sm font-black text-amber-900">Admin AI is not configured yet</p>
+                    <p className="text-sm font-black text-amber-900">Assistant insights are not active yet</p>
                     <p className="mt-2 text-sm font-semibold leading-6 text-amber-900/85">
-                      {aiStatus?.setupHint || 'Add a Gemini server key and redeploy before using AI insights.'}
+                      This optional assistant is not active for the club workspace yet.
                     </p>
-                    {aiStatus?.acceptedEnvVars?.length ? (
-                      <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-amber-800">
-                        Accepted env vars: {aiStatus.acceptedEnvVars.join(' or ')}
-                      </p>
-                    ) : null}
                   </div>
                 </div>
               </div>
@@ -293,10 +289,10 @@ export default function AdminDashboardPanel({
           <div className="flex items-center justify-between gap-4 border-b border-[var(--color-mid)]/16 pb-4">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
-                Admin Assistant
+                Club Assistant
               </p>
               <h3 className="mt-1.5 text-base font-black text-[var(--color-dark)] md:mt-2 md:text-xl lg:text-2xl">
-                Ask the dashboard agent
+                Ask about club activity
               </h3>
             </div>
             <div className="flex items-center gap-2">
@@ -339,7 +335,7 @@ export default function AdminDashboardPanel({
 
             {!aiStatusLoading && !aiConfigured && (
               <div className="mt-3 rounded-[16px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900/85">
-                {aiStatus?.setupHint || 'Admin AI is not configured yet.'}
+                Club assistant is not active yet.
               </div>
             )}
 
@@ -362,7 +358,7 @@ export default function AdminDashboardPanel({
                 placeholder={
                   aiConfigured
                     ? 'Ask about top scouts, best players, report quality...'
-                    : 'Admin AI will unlock here once Gemini is configured'
+                    : 'Club assistant is not active yet'
                 }
                 disabled={!aiConfigured}
                 className="flex-1 rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/12"
@@ -379,6 +375,7 @@ export default function AdminDashboardPanel({
           </div>
         </div>
       </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_14px_36px_rgba(49,39,131,0.06)]">

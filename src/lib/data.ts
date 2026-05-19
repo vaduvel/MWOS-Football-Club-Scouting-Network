@@ -740,7 +740,7 @@ export function canAccessTrainingModule(user: Pick<AppUser, 'roles'> | null | un
 }
 
 export function canAccessTransportModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'driver', 'coach']);
+  return userHasAnyRole(user, ['admin', 'technical_director', 'driver']);
 }
 
 export function canAccessScoutingModule(user: Pick<AppUser, 'roles'> | null | undefined) {

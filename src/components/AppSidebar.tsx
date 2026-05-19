@@ -112,24 +112,49 @@ function buildAccessProfileCopy(roleSlug: string) {
   }
 }
 
-function buildMobilePrimaryKeys(roleSlug: string) {
+function buildMobilePrimaryKeys(user: AppUser | null, roleSlug: string) {
   switch (roleSlug) {
     case 'admin':
       return ['home', 'training', 'transport', 'oversight'];
     case 'technical_director':
       return ['home', 'training', 'oversight', 'transport'];
-    case 'board_observer':
-      return ['home', 'oversight', 'notifications'];
-    case 'coach':
-      return ['home', 'training', 'transport', 'notifications'];
-    case 'driver':
-      return ['home', 'transport', 'notifications'];
-    case 'scout':
-      return ['home', 'scouting', 'players', 'notifications'];
     case 'pending':
-    default:
       return ['home', 'settings'];
+    default:
+      break;
   }
+
+  const keys: SidebarSection[] = ['home'];
+  const pushKey = (key: SidebarSection) => {
+    if (!keys.includes(key) && keys.length < 4) {
+      keys.push(key);
+    }
+  };
+
+  if (userHasAnyRole(user, ['coach'])) {
+    pushKey('training');
+  }
+
+  if (userHasAnyRole(user, ['driver'])) {
+    pushKey('transport');
+  }
+
+  if (userHasAnyRole(user, ['scout'])) {
+    pushKey('scouting');
+    pushKey('players');
+  }
+
+  if (userHasAnyRole(user, ['board_observer'])) {
+    pushKey('oversight');
+  }
+
+  pushKey('notifications');
+
+  if (keys.length === 1) {
+    pushKey('settings');
+  }
+
+  return keys;
 }
 
 export default function AppSidebar({ current, user, onLogout }: AppSidebarProps) {
@@ -143,7 +168,7 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
 
   const { mobileItems, overflowItems } = useMemo(() => {
-    const primaryKeys = buildMobilePrimaryKeys(roleSlug);
+    const primaryKeys = buildMobilePrimaryKeys(user, roleSlug);
     const itemKeys = new Set(items.map((item) => item.key));
 
     const resolvedKeys = primaryKeys.filter((key) => itemKeys.has(key as SidebarSection));
@@ -164,7 +189,16 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
         .filter((item): item is SidebarItem => Boolean(item)),
       overflowItems: items.filter((item) => !uniqueKeys.includes(item.key)),
     };
-  }, [current, items, roleSlug]);
+  }, [current, items, roleSlug, user]);
+
+  const mobileColumnClass =
+    mobileItems.length + 1 >= 5
+      ? 'grid-cols-5'
+      : mobileItems.length + 1 === 4
+        ? 'grid-cols-4'
+        : mobileItems.length + 1 === 3
+          ? 'grid-cols-3'
+          : 'grid-cols-2';
 
   useEffect(() => {
     setMobileMoreOpen(false);
@@ -249,18 +283,19 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
               {buildAccessProfileCopy(roleSlug)}
             </p>
             <button
+              type="button"
               onClick={onLogout}
               className="mt-4 flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-bold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
             >
               <LogOut size={18} />
-              <span>Sign Out</span>
+              <span>Log Out</span>
             </button>
           </div>
         </div>
       </aside>
 
       {mobileMoreOpen ? (
-        <div className="fixed inset-0 z-[60] md:hidden">
+        <div className="fixed inset-0 z-50 md:hidden">
           <button
             type="button"
             aria-label="Close more navigation"
@@ -333,21 +368,22 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
                 className="mt-2 inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/75 px-4 py-3 text-sm font-black text-[var(--color-dark)]"
               >
                 <LogOut size={18} />
-                Sign Out
+                Log Out
               </button>
             </div>
           </section>
         </div>
       ) : null}
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[rgba(21,18,83,0.96)] px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 text-white shadow-[0_-12px_28px_rgba(12,16,53,0.22)] backdrop-blur-xl md:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-5 gap-1 rounded-[22px] border border-white/10 bg-white/5 p-1">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[rgba(21,18,83,0.96)] px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 text-white shadow-[0_-12px_28px_rgba(12,16,53,0.22)] backdrop-blur-xl md:hidden">
+        <div className={`mx-auto grid max-w-md ${mobileColumnClass} gap-1 rounded-[22px] border border-white/10 bg-white/5 p-1`}>
           {mobileItems.map((item) => {
             const Icon = item.icon;
             const active = current === item.key;
             return (
               <button
                 key={item.key}
+                type="button"
                 onClick={() => navigate(item.path)}
                 aria-label={item.label}
                 title={item.label}

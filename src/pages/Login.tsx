@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Bus, CalendarRange, FileText, ShieldCheck } from 'lucide-react';
+import { Bus, CalendarRange, FileText, Info, Share2, ShieldCheck, X } from 'lucide-react';
 import { requestPasswordReset, signIn, signUp } from '../lib/data';
 import { useAuthStore } from '../store/auth';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [isInstallGuideOpen, setIsInstallGuideOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -27,6 +29,19 @@ export default function Login() {
       setSearchParams(nextParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const nav = window.navigator as Navigator & { standalone?: boolean };
+    const userAgent = nav.userAgent || '';
+    const isIos =
+      /iphone|ipad|ipod/i.test(userAgent) ||
+      (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1);
+    const isSmallScreen = window.matchMedia('(max-width: 767px)').matches;
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches || nav.standalone === true;
+
+    setShowInstallGuide((isIos || isSmallScreen) && !isStandalone);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -74,7 +89,7 @@ export default function Login() {
   };
 
   return (
-    <div className="mwos-auth-shell relative min-h-screen overflow-hidden">
+    <div className="mwos-auth-shell relative min-h-dvh overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center opacity-30"
         style={{ backgroundImage: "url('/branding/att.AGuDIc57f42thGuMeUSyrotRD6Zy0fxGX1rynzNNmWM.JPG')" }}
@@ -82,7 +97,7 @@ export default function Login() {
       <div className="mwos-subtle-grid absolute inset-0 opacity-25" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(190,23,23,0.24),transparent_28%),linear-gradient(180deg,rgba(16,20,74,0.22),rgba(16,20,74,0.38))]" />
 
-      <main className="relative flex min-h-screen items-start justify-center px-4 py-6 md:px-6 md:py-10">
+      <main className="relative flex min-h-dvh items-start justify-center px-4 py-6 md:px-6 md:py-10">
         <div className="w-full max-w-6xl">
           <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4 lg:gap-6">
             <div className="order-1 mx-auto w-full max-w-xl md:order-2">
@@ -105,6 +120,19 @@ export default function Login() {
 
               <div className="overflow-hidden rounded-[28px] border border-white/12 bg-white/94 shadow-[0_34px_90px_rgba(12,16,53,0.34)] backdrop-blur-xl">
                 <div className="p-5 md:p-7">
+                  {showInstallGuide ? (
+                    <div className="mb-3 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setIsInstallGuideOpen(true)}
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-primary)]/16 bg-[var(--color-light)] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-primary)] shadow-sm"
+                      >
+                        <Info size={16} />
+                        Install help
+                      </button>
+                    </div>
+                  ) : null}
+
                   <form onSubmit={handleSubmit} className="space-y-4">
                     {error && (
                       <div className="rounded-2xl bg-[var(--color-accent)]/10 p-3 text-sm font-semibold text-[var(--color-accent)]">
@@ -186,7 +214,7 @@ export default function Login() {
                       type="submit"
                       className="w-full rounded-2xl bg-[var(--color-primary)] py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-92"
                     >
-                      {isRecoveryMode ? 'Send Reset Link' : isLogin ? 'Sign In' : 'Create Account'}
+                      {isRecoveryMode ? 'Send Reset Link' : isLogin ? 'Log In' : 'Create Account'}
                     </button>
                   </form>
 
@@ -217,10 +245,10 @@ export default function Login() {
                         className="text-sm font-semibold text-[var(--color-mid)] transition-colors hover:text-[var(--color-primary)]"
                       >
                         {isRecoveryMode
-                          ? 'Back to sign in'
+                          ? 'Back to log in'
                           : isLogin
                             ? "Don't have an account? Sign up"
-                            : 'Already have an account? Sign in'}
+                            : 'Already have an account? Log in'}
                       </button>
                     </div>
 
@@ -229,9 +257,63 @@ export default function Login() {
                         Forgot email? Ask your club admin or the person who created the account.
                       </p>
                     ) : null}
+
                   </div>
                 </div>
               </div>
+
+              {showInstallGuide && isInstallGuideOpen ? (
+                <div
+                  className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 sm:items-center sm:p-4"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="install-guide-title"
+                >
+                  <div className="w-full max-w-md rounded-[28px] bg-white p-5 text-[var(--color-dark)] shadow-2xl">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">
+                          Install app
+                        </p>
+                        <h2 id="install-guide-title" className="mt-2 text-balance text-2xl font-black">
+                          Add MWOS to your phone
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsInstallGuideOpen(false)}
+                        className="flex size-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-mid)]/16 bg-[var(--color-light)] text-[var(--color-mid)]"
+                        aria-label="Close install help"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    <div className="mt-5 space-y-3 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                      <div className="rounded-[20px] border border-[var(--color-primary)]/12 bg-[var(--color-light)] p-4">
+                        <p className="font-black text-[var(--color-dark)]">iPhone / Safari</p>
+                        <p className="mt-1 text-pretty">
+                          Open this site in Safari, tap Share, then choose Add to Home Screen.
+                        </p>
+                      </div>
+                      <div className="rounded-[20px] border border-[var(--color-primary)]/12 bg-white p-4">
+                        <p className="font-black text-[var(--color-dark)]">Android / Chrome</p>
+                        <p className="mt-1 text-pretty">
+                          Tap the browser menu, then choose Install app or Add to Home screen.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsInstallGuideOpen(false)}
+                      className="mt-5 w-full rounded-2xl bg-[var(--color-primary)] py-3 text-sm font-black text-white shadow-md"
+                    >
+                      Got it
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="order-2 w-full md:order-1">

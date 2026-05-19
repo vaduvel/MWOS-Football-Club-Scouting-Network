@@ -394,7 +394,7 @@ export default function ReportEditor() {
   const readOnlyPreviewTab = !canEditReport && activeTab !== 'export';
 
   return (
-    <div className="min-h-screen bg-[var(--color-light)] flex flex-col">
+    <div className="min-h-dvh bg-[var(--color-light)] flex flex-col">
       <header className="mwos-ribbon-surface sticky top-0 z-50 shadow-sm">
         <div className="px-3 py-2.5 text-white md:hidden">
           <div className="flex items-center gap-2">
@@ -636,10 +636,10 @@ export default function ReportEditor() {
           <button
             type="button"
             onClick={() => setMobileTabPickerOpen(false)}
-            className="fixed inset-0 z-[55] bg-slate-950/30 md:hidden"
+            className="fixed inset-0 z-40 bg-slate-950/30 md:hidden"
             aria-label="Close step picker"
           />
-          <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+9.8rem)] z-[60] rounded-[26px] border border-[var(--color-mid)]/14 bg-white p-2 shadow-[0_20px_60px_rgba(15,23,42,0.18)] md:hidden">
+          <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+9.8rem)] z-50 rounded-[26px] border border-[var(--color-mid)]/14 bg-white p-2 shadow-[0_20px_60px_rgba(15,23,42,0.18)] md:hidden">
             <div className="px-3 pb-2 pt-1">
               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Report Steps</p>
             </div>

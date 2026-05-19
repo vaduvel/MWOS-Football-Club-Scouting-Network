@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, FileText, Loader2, Sparkles, Trash2, Upload, Video } from 'lucide-react';
+import ConfirmActionModal from '../../components/ConfirmActionModal';
 import {
   ALLOWED_REPORT_VIDEO_TYPES,
   deleteReportVideo,
@@ -30,9 +31,8 @@ export default function MatchReportTab() {
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoError, setVideoError] = useState('');
   const [videoDeleting, setVideoDeleting] = useState(false);
+  const [videoDeleteConfirmOpen, setVideoDeleteConfirmOpen] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
-
-  if (!currentReport) return null;
 
   useEffect(() => {
     const syncCompactMode = () => {
@@ -53,6 +53,8 @@ export default function MatchReportTab() {
     window.addEventListener('resize', syncCompactMode);
     return () => window.removeEventListener('resize', syncCompactMode);
   }, []);
+
+  if (!currentReport) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateReportField(e.target.name as keyof typeof currentReport, e.target.value);
@@ -126,14 +128,13 @@ export default function MatchReportTab() {
 
   const handleVideoDelete = async () => {
     if (!currentReport?.id || !currentReport.video_url) return;
-    const confirmed = window.confirm('Delete this video from the report?');
-    if (!confirmed) return;
 
     setVideoDeleting(true);
     setVideoError('');
     try {
       await deleteReportVideo(currentReport.id, currentReport.video_url);
       updateReportField('video_url', undefined);
+      setVideoDeleteConfirmOpen(false);
     } catch (err: any) {
       setVideoError(err.message || 'Delete failed.');
     } finally {
@@ -145,7 +146,8 @@ export default function MatchReportTab() {
   const sectionPadding = isCompact ? 'p-4' : 'p-6 md:p-8';
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-8">
+    <>
+      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-8">
       <section className={`${sectionSurface} ${sectionPadding}`}>
         <button
           type="button"
@@ -470,7 +472,7 @@ export default function MatchReportTab() {
                   <p className="text-xs font-semibold text-[var(--color-mid)]">1 video attached. Remove it before uploading a new clip.</p>
                   <button
                     type="button"
-                    onClick={() => void handleVideoDelete()}
+                    onClick={() => setVideoDeleteConfirmOpen(true)}
                     disabled={videoDeleting}
                     className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
                   >
@@ -524,6 +526,17 @@ export default function MatchReportTab() {
           </div>
         )}
       </section>
-    </div>
+      </div>
+
+      <ConfirmActionModal
+        open={videoDeleteConfirmOpen}
+        title="Remove video?"
+        description="This clip will be detached from the report and deleted from storage. The rest of the report stays unchanged."
+        confirmLabel="Remove video"
+        loading={videoDeleting}
+        onCancel={() => setVideoDeleteConfirmOpen(false)}
+        onConfirm={() => void handleVideoDelete()}
+      />
+    </>
   );
 }

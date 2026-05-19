@@ -151,11 +151,15 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "https://scout-report-builder.netlify.app"
+site_url = "https://mwos-hub.com"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = [
+  "https://mwos-hub.com/accept-invite",
+  "https://mwos-hub.com/reset-password",
+  "https://www.mwos-hub.com/accept-invite",
+  "https://www.mwos-hub.com/reset-password",
   "https://club-management-preview--scout-report-builder.netlify.app/accept-invite",
   "https://club-management-preview--scout-report-builder.netlify.app/reset-password",
   "https://scout-report-builder.netlify.app/accept-invite",

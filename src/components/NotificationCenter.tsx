@@ -154,7 +154,7 @@ export default function NotificationCenter() {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="fixed right-4 top-16 z-[92] hidden h-12 w-12 items-center justify-center rounded-2xl border border-white/14 bg-[rgba(21,18,83,0.94)] text-white shadow-[0_18px_45px_rgba(12,16,53,0.28)] backdrop-blur-xl transition-transform hover:scale-[1.02] md:inline-flex md:right-6 md:top-24"
+        className="fixed right-4 top-16 z-40 hidden h-12 w-12 items-center justify-center rounded-2xl border border-white/14 bg-[rgba(21,18,83,0.94)] text-white shadow-[0_18px_45px_rgba(12,16,53,0.28)] backdrop-blur-xl transition-transform hover:scale-[1.02] md:inline-flex md:right-6 md:top-24"
         aria-label="Open notifications"
       >
         <Bell size={18} />
@@ -166,7 +166,7 @@ export default function NotificationCenter() {
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-[91] bg-[rgba(15,23,42,0.32)] backdrop-blur-[1px]" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-[rgba(15,23,42,0.32)] backdrop-blur-[1px]" onClick={() => setOpen(false)}>
           <aside
             className="absolute right-3 top-32 h-[min(72vh,680px)] w-[min(92vw,420px)] overflow-hidden rounded-[28px] border border-[var(--color-mid)]/16 bg-white shadow-[0_28px_70px_rgba(15,23,42,0.2)] md:right-6 md:top-40"
             onClick={(event) => event.stopPropagation()}

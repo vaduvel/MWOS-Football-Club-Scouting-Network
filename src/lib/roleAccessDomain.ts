@@ -45,7 +45,7 @@ export function canAccessTrainingModule(user: RoleAccessUserShape | null | undef
 }
 
 export function canAccessTransportModule(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'driver', 'coach']);
+  return userHasAnyRole(user, ['admin', 'technical_director', 'driver']);
 }
 
 export function canAccessScoutingModule(user: RoleAccessUserShape | null | undefined) {

@@ -2,12 +2,14 @@ import type { ReactNode } from 'react';
 import { FileText, PenSquare, ScanLine } from 'lucide-react';
 
 function IntakeButton({
+  eyebrow,
   title,
   description,
   icon,
   tone,
   onClick,
 }: {
+  eyebrow: string;
   title: string;
   description: string;
   icon: ReactNode;
@@ -38,7 +40,7 @@ function IntakeButton({
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] opacity-70">Add training update</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] opacity-70">{eyebrow}</p>
           <h3 className="mt-2 text-balance text-base font-black">{title}</h3>
           <p className="mt-2 text-pretty text-sm font-semibold leading-6 opacity-80">{description}</p>
         </div>
@@ -65,6 +67,7 @@ export default function TrainingIntakeLauncher({
   return (
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       <IntakeButton
+        eyebrow="Fastest from WhatsApp"
         title="Scan WhatsApp / photo"
         description="Upload a WhatsApp screenshot or plan photo and convert it into editable day cards."
         icon={<ScanLine size={20} />}
@@ -72,6 +75,7 @@ export default function TrainingIntakeLauncher({
         onClick={onScanPhoto}
       />
       <IntakeButton
+        eyebrow="Build inside MWOS"
         title="Create manually"
         description="Type the coach plan directly, then share the structured message on WhatsApp."
         icon={<PenSquare size={20} />}
@@ -79,6 +83,7 @@ export default function TrainingIntakeLauncher({
         onClick={onCreateManual}
       />
       <IntakeButton
+        eyebrow="Existing document"
         title="Import PDF"
         description="Use an existing weekly training document and keep the original attached for review."
         icon={<FileText size={20} />}

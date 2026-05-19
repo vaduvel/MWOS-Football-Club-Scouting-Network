@@ -74,7 +74,7 @@ const qaAccounts = [
     expectedLeadership: 'none',
     expectedModules: {
       training: true,
-      transport: true,
+      transport: false,
       scouting: false,
       players: false,
       oversight: false,

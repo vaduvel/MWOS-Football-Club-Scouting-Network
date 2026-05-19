@@ -23,10 +23,37 @@ describe('roleAccessDomain', () => {
   it('computes module access by role', () => {
     expect(canAccessOversightModule({ roles: ['board_observer'] })).toBe(true);
     expect(canAccessTrainingModule({ roles: ['coach'] })).toBe(true);
+    expect(canAccessTransportModule({ roles: ['coach'] })).toBe(false);
     expect(canAccessTransportModule({ roles: ['driver'] })).toBe(true);
     expect(canAccessScoutingModule({ roles: ['scout'] })).toBe(true);
     expect(canAccessPlayerHub({ roles: ['scout'] })).toBe(true);
     expect(canAccessPlayerHub({ roles: ['driver'] })).toBe(false);
+  });
+
+  it('combines access for staff with multiple operational roles', () => {
+    const coachDriver = { roles: ['driver', 'coach'] };
+
+    expect(getPrimaryRoleSlug(coachDriver)).toBe('coach');
+    expect(getDefaultModulePath(coachDriver)).toBe('/training');
+    expect(canAccessTrainingModule(coachDriver)).toBe(true);
+    expect(canAccessTransportModule(coachDriver)).toBe(true);
+    expect(canAccessScoutingModule(coachDriver)).toBe(false);
+    expect(canAccessOversightModule(coachDriver)).toBe(false);
+  });
+
+  it('keeps single-purpose staff out of unrelated modules', () => {
+    const coach = { roles: ['coach'] };
+    const driver = { roles: ['driver'] };
+    const boardObserver = { roles: ['board_observer'] };
+
+    expect(canAccessTrainingModule(coach)).toBe(true);
+    expect(canAccessTransportModule(coach)).toBe(false);
+    expect(canAccessTransportModule(driver)).toBe(true);
+    expect(canAccessTrainingModule(driver)).toBe(false);
+    expect(canAccessOversightModule(boardObserver)).toBe(true);
+    expect(canAccessTrainingModule(boardObserver)).toBe(false);
+    expect(canAccessTransportModule(boardObserver)).toBe(false);
+    expect(canAccessScoutingModule(boardObserver)).toBe(false);
   });
 
   it('computes the primary role and default module path', () => {

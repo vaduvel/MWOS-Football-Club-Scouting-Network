@@ -261,14 +261,14 @@ export default function PlayersPage() {
       });
     } catch (watchlistError) {
       console.error('Failed to update watchlist.', watchlistError);
-      window.alert('Failed to update watchlist.');
+      setError('Failed to update watchlist. Please try again.');
     } finally {
       setUpdatingWatchlistKey(null);
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--color-light)] md:flex-row">
+    <div className="flex min-h-dvh flex-col bg-[var(--color-light)] md:flex-row">
       <AppSidebar
         current="players"
         user={user}

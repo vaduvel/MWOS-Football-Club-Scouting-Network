@@ -639,7 +639,7 @@ export default function OversightPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-light)] md:flex">
+    <div className="min-h-dvh bg-[var(--color-light)] md:flex">
       <AppSidebar current="oversight" user={user} onLogout={() => void logout()} />
 
       <main className="flex-1 overflow-auto p-3 pb-28 md:p-6">

@@ -40,7 +40,7 @@ type DeferredPromptEvent = Event & {
 
 function RouteLoadingScreen() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#f7f8fb,#eef1f7)] px-6">
+    <div className="flex min-h-dvh items-center justify-center bg-[linear-gradient(180deg,#f7f8fb,#eef1f7)] px-6">
       <div className="w-full max-w-md rounded-[28px] border border-[var(--color-primary)]/10 bg-white/96 p-6 text-center shadow-[0_30px_80px_rgba(12,16,53,0.12)]">
         <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">MWOS Club Management</p>
         <div className="mx-auto mt-4 h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-primary)]/18 border-t-[var(--color-primary)]" />
@@ -210,7 +210,7 @@ export default function App() {
     setUpdateRegistration(null);
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  if (loading) return <div className="flex min-h-dvh items-center justify-center">Loading...</div>;
   if (!isSupabaseConfigured) return <MissingConfigScreen />;
 
   return (

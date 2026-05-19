@@ -93,11 +93,16 @@ export default function ImportTeamModal({ isOpen, onClose, teamSide }: { isOpen:
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="import-team-title"
+    >
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
         <div className="flex justify-between items-center p-4 border-b border-[var(--color-mid)]/20">
-          <h2 className="text-lg font-black text-[var(--color-dark)] uppercase tracking-tighter">Import {teamSide} Team</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full"><X size={20} /></button>
+          <h2 id="import-team-title" className="text-lg font-black text-[var(--color-dark)] uppercase tracking-tighter">Import {teamSide} Team</h2>
+          <button type="button" onClick={onClose} aria-label="Close import team modal" className="p-2 hover:bg-gray-100 rounded-full"><X size={20} /></button>
         </div>
 
         <div className="p-6 overflow-y-auto">
@@ -114,7 +119,7 @@ export default function ImportTeamModal({ isOpen, onClose, teamSide }: { isOpen:
                   placeholder="Enter API key..."
                 />
               </div>
-              <button onClick={handleSaveSettings} className="w-full bg-[var(--color-primary)] text-white py-3 rounded-xl font-bold">Save Settings</button>
+              <button type="button" onClick={handleSaveSettings} className="w-full bg-[var(--color-primary)] text-white py-3 rounded-xl font-bold">Save Settings</button>
             </div>
           ) : (
             <div className="space-y-6">
@@ -127,7 +132,7 @@ export default function ImportTeamModal({ isOpen, onClose, teamSide }: { isOpen:
                   className="flex-1 p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] outline-none font-semibold"
                   placeholder="Search team name (e.g. Arsenal)"
                 />
-                <button onClick={handleSearch} disabled={loading} className="bg-[var(--color-primary)] text-white px-4 rounded-xl font-bold flex items-center justify-center">
+                <button type="button" onClick={handleSearch} disabled={loading} aria-label="Search teams" className="bg-[var(--color-primary)] text-white px-4 rounded-xl font-bold flex items-center justify-center">
                   <Search size={20} />
                 </button>
               </div>
@@ -141,7 +146,8 @@ export default function ImportTeamModal({ isOpen, onClose, teamSide }: { isOpen:
                       {team.logo && <img src={team.logo} alt={team.name} className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />}
                       <span className="font-bold text-[var(--color-dark)]">{team.name}</span>
                     </div>
-                    <button 
+                    <button
+                      type="button"
                       onClick={() => handleImportSquad(team.id)}
                       disabled={loading}
                       className="bg-[var(--color-light)] text-[var(--color-primary)] px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-[var(--color-primary)] hover:text-white transition-colors flex items-center"
@@ -153,7 +159,7 @@ export default function ImportTeamModal({ isOpen, onClose, teamSide }: { isOpen:
               </div>
               
               <div className="text-center pt-4">
-                <button onClick={() => setShowSettings(true)} className="text-xs text-[var(--color-mid)] hover:text-[var(--color-primary)] font-semibold underline">
+                <button type="button" onClick={() => setShowSettings(true)} className="text-xs text-[var(--color-mid)] hover:text-[var(--color-primary)] font-semibold underline">
                   Provider Settings
                 </button>
               </div>

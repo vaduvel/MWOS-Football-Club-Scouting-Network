@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MessageSquare, Send, Trash2 } from 'lucide-react';
+import ConfirmActionModal from '../../components/ConfirmActionModal';
 import { addReportComment, deleteReportComment, fetchReportComments, userHasRole, type ReportComment } from '../../lib/data';
 import { useAuthStore } from '../../store/auth';
 
@@ -29,6 +30,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [commentDeleteTarget, setCommentDeleteTarget] = useState<ReportComment | null>(null);
 
   useEffect(() => {
     if (!reportId) {
@@ -79,15 +81,21 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
     }
   };
 
-  const handleDelete = async (comment: ReportComment) => {
-    const confirmed = window.confirm('Delete this comment?');
-    if (!confirmed) return;
+  const handleRequestDelete = (comment: ReportComment) => {
+    setError('');
+    setCommentDeleteTarget(comment);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!commentDeleteTarget) return;
+
+    const comment = commentDeleteTarget;
     setDeletingId(comment.id);
     setError('');
     try {
       await deleteReportComment(comment.id);
       setComments((current) => current.filter((item) => item.id !== comment.id));
+      setCommentDeleteTarget(null);
     } catch (deleteError: any) {
       console.error('Failed to delete comment.', deleteError);
       setError(deleteError.message || 'Failed to delete comment.');
@@ -111,7 +119,8 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <>
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="rounded-[24px] border border-[var(--color-mid)]/20 bg-white shadow-[0_16px_45px_rgba(49,39,131,0.06)] md:rounded-[28px]">
         <div className="border-b border-[var(--color-mid)]/12 bg-[var(--color-light)]/40 p-4 md:p-6">
           <div className="flex items-start justify-between gap-4">
@@ -185,7 +194,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
 
                     {(comment.isAuthor || isAdmin) && (
                       <button
-                        onClick={() => void handleDelete(comment)}
+                        onClick={() => handleRequestDelete(comment)}
                         disabled={deletingId === comment.id}
                         className="rounded-full border border-[var(--color-mid)]/18 p-2 text-[var(--color-mid)] transition-colors hover:border-[var(--color-accent)]/25 hover:bg-[var(--color-accent)]/8 hover:text-[var(--color-accent)]"
                       >
@@ -210,6 +219,17 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+
+      <ConfirmActionModal
+        open={Boolean(commentDeleteTarget)}
+        title="Delete comment?"
+        description="This comment will be removed from the report discussion. This cannot be undone."
+        confirmLabel="Delete comment"
+        loading={Boolean(deletingId)}
+        onCancel={() => setCommentDeleteTarget(null)}
+        onConfirm={() => void handleConfirmDelete()}
+      />
+    </>
   );
 }

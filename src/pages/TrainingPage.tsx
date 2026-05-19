@@ -286,6 +286,18 @@ export default function TrainingPage() {
     () => workspace?.days.filter((day) => day.dayType === 'active_recovery').length || 0,
     [workspace],
   );
+  const hasPlanActivity = useMemo(
+    () =>
+      Boolean(
+        draftSource ||
+          workspace?.source ||
+          workspace?.planId ||
+          workspace?.headline?.trim() ||
+          workspace?.objective?.trim() ||
+          workspace?.days.some((day) => hasTrainingShareContent(day) || day.importReviewState !== 'ready'),
+      ),
+    [draftSource, workspace],
+  );
   const canViewRawSource = useMemo(
     () => userHasAnyRole(user, ['admin', 'coach', 'technical_director']),
     [user],
@@ -327,7 +339,14 @@ export default function TrainingPage() {
   };
 
   const handleJumpToTrainingIntake = () => {
-    const target = document.getElementById('training-intake-actions');
+    const target =
+      document.getElementById('training-intake-actions-mobile') ||
+      document.getElementById('training-intake-actions');
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleJumpToDayEditor = () => {
+    const target = document.getElementById('training-day-editor-section');
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -454,15 +473,17 @@ export default function TrainingPage() {
   };
 
   const handleCreateManual = () => {
+    const nextDayIndex = workspace ? resolveImportedFocusDay(workspace.days) : 0;
+
     setDraftSource(null);
     setImportSheetOpen(false);
     setSelectedImportFile(null);
     setImportError('');
     setWarning('');
-    setSuccess('Manual editor ready. Start with the first day that needs planning.');
-    updateSearch({
-      dayIndex: workspace ? resolveImportedFocusDay(workspace.days) : 0,
-    });
+    setMobileDetailView('editor');
+    setSuccess('Manual editor ready. Pick a day, set the day type to Training, then fill the session details.');
+    updateSearch({ dayIndex: nextDayIndex });
+    window.setTimeout(handleJumpToDayEditor, 80);
   };
 
   const handleImportSource = async () => {
@@ -580,10 +601,10 @@ export default function TrainingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-light)] md:flex">
+    <div className="min-h-dvh bg-[var(--color-light)] md:flex">
       <AppSidebar current="training" user={user} onLogout={() => void logout()} />
 
-      <main className="flex-1 overflow-auto p-3 pb-40 md:p-6">
+      <main className="flex-1 overflow-auto p-3 pb-52 md:p-6">
         <div className="mx-auto max-w-7xl space-y-5 md:space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
             <div className="mwos-ribbon-surface px-4 py-5 text-white md:px-8 md:py-8">
@@ -628,9 +649,14 @@ export default function TrainingPage() {
             <article className={cn('rounded-[28px] border bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6', activeTeamTone.cardClass)}>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">
-                    Planning scope
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)] shadow-sm">
+                      Step 1
+                    </span>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+                      Team and week
+                    </p>
+                  </div>
                   <div className="mt-2 flex flex-wrap items-center gap-3">
                     <span className={cn('h-4 w-4 rounded-full shadow-[0_0_0_5px_rgba(255,255,255,0.9)]', activeTeamTone.accentClass)} />
                     <h2 className="text-2xl font-black text-[var(--color-dark)]">
@@ -639,6 +665,9 @@ export default function TrainingPage() {
                   </div>
                   <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">
                     {getTrainingWeekRangeLabel(weekStart)}
+                  </p>
+                  <p className="mt-3 max-w-xl text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                    This is only the filing location for the plan. The real training content is added in Step 2 with scan, PDF import, or manual edit.
                   </p>
                 </div>
 
@@ -675,14 +704,14 @@ export default function TrainingPage() {
 
               <div className="mt-5 rounded-[24px] border border-[var(--color-mid)]/14 bg-white/74 p-4 shadow-[0_12px_30px_rgba(49,39,131,0.05)]">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                  How to build this plan
+                  Coach workflow
                 </p>
                 <div className="mt-3 grid gap-2 text-sm font-semibold leading-6 text-[var(--color-mid)] sm:grid-cols-3">
                   <p>
-                    <span className="font-black text-[var(--color-dark)]">1.</span> Choose the team and week.
+                    <span className="font-black text-[var(--color-dark)]">1.</span> Choose where the plan belongs.
                   </p>
                   <p>
-                    <span className="font-black text-[var(--color-dark)]">2.</span> Add details by scan, PDF, or manual edit.
+                    <span className="font-black text-[var(--color-dark)]">2.</span> Add the actual sessions.
                   </p>
                   <p>
                     <span className="font-black text-[var(--color-dark)]">3.</span> Save, publish, then share on WhatsApp.
@@ -695,12 +724,12 @@ export default function TrainingPage() {
                     className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--color-primary)]/14 bg-[var(--color-light)] px-4 py-3 text-sm font-black text-[var(--color-primary)] sm:w-auto"
                   >
                     <ArrowDownCircle size={16} />
-                    Add or import training details
+                    Add sessions now
                   </button>
                 ) : null}
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:flex xl:flex-wrap">
+              <div className="mt-5 hidden gap-3 md:grid md:grid-cols-2 xl:flex xl:flex-wrap">
                 <button
                   type="button"
                   onClick={() => void handleSave('draft')}
@@ -740,7 +769,7 @@ export default function TrainingPage() {
               </div>
 
               {workspace ? (
-      <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-3">
+                <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-3">
                   <WorkspaceMetric
                     className="mwos-card-tone-training"
                     label="Training days"
@@ -793,6 +822,32 @@ export default function TrainingPage() {
             </article>
           </section>
 
+          {!loading && workspace?.canManage ? (
+            <section id="training-intake-actions-mobile" className="md:hidden">
+              <div className="mb-3 rounded-[24px] border border-[var(--color-primary)]/14 bg-white p-4 shadow-[0_14px_34px_rgba(49,39,131,0.06)]">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
+                    Step 2
+                  </span>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">
+                    Add training sessions
+                  </p>
+                </div>
+                <h2 className="mt-3 text-xl font-black text-[var(--color-dark)]">
+                  Turn the coach update into a plan
+                </h2>
+                <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                  Scan a WhatsApp screenshot, import a PDF, or type the sessions manually. The draft stays editable before you publish.
+                </p>
+              </div>
+              <TrainingIntakeLauncher
+                onCreateManual={handleCreateManual}
+                onImportPdf={() => openImportSheet('pdf_import')}
+                onScanPhoto={() => openImportSheet('image_import')}
+              />
+            </section>
+          ) : null}
+
           {loading ? (
             <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
               <p className="text-sm font-semibold text-[var(--color-mid)]">Loading training workspace…</p>
@@ -802,7 +857,7 @@ export default function TrainingPage() {
           {!loading && workspace ? (
             <>
               {workspace.canManage ? (
-                <section id="training-intake-actions" className="scroll-mt-4 md:scroll-mt-6">
+                <section id="training-intake-actions" className="hidden scroll-mt-4 md:block md:scroll-mt-6">
                   <TrainingIntakeLauncher
                     onCreateManual={handleCreateManual}
                     onImportPdf={() => openImportSheet('pdf_import')}
@@ -825,7 +880,11 @@ export default function TrainingPage() {
                 days={workspace.days}
                 nextReviewDayLabel={nextReviewDayLabel}
                 canManage={workspace.canManage}
-                onJumpToNextIssue={() => updateSearch({ dayIndex: nextReviewDayIndex })}
+                onJumpToNextIssue={() => {
+                  setMobileDetailView('editor');
+                  updateSearch({ dayIndex: nextReviewDayIndex });
+                  window.setTimeout(handleJumpToDayEditor, 80);
+                }}
               />
 
               <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
@@ -886,14 +945,40 @@ export default function TrainingPage() {
                 </div>
               </section>
 
-              <TrainingPlanBoard
-                days={workspace.days}
-                selectedDayIndex={selectedDayIndex}
-                onSelect={(index) => {
-                  setMobileDetailView('editor');
-                  updateSearch({ dayIndex: index });
-                }}
-              />
+              <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+                      Weekly day cards
+                    </p>
+                    <h2 className="mt-2 text-balance text-xl font-black text-[var(--color-dark)]">
+                      Pick a day, then complete it in the editor
+                    </h2>
+                    <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                      Rest days can stay simple. For training days, open a card and set Day type to Training before adding time, venue, objectives and exercises.
+                    </p>
+                  </div>
+                  {workspace.canManage ? (
+                    <button
+                      type="button"
+                      onClick={handleJumpToDayEditor}
+                      className="inline-flex items-center justify-center rounded-2xl border border-[var(--color-primary)]/14 bg-[var(--color-light)] px-4 py-3 text-sm font-black text-[var(--color-primary)]"
+                    >
+                      Edit {selectedDay?.weekday || 'selected day'}
+                    </button>
+                  ) : null}
+                </div>
+
+                <TrainingPlanBoard
+                  days={workspace.days}
+                  selectedDayIndex={selectedDayIndex}
+                  onSelect={(index) => {
+                    setMobileDetailView('editor');
+                    updateSearch({ dayIndex: index });
+                    window.setTimeout(handleJumpToDayEditor, 80);
+                  }}
+                />
+              </section>
 
               <div className="grid grid-cols-2 gap-2 md:hidden">
                 <button
@@ -922,7 +1007,7 @@ export default function TrainingPage() {
                 </button>
               </div>
 
-              <section className="grid gap-4 xl:grid-cols-[1.2fr,0.8fr]">
+              <section id="training-day-editor-section" className="scroll-mt-4 grid gap-4 xl:grid-cols-[1.2fr,0.8fr] md:scroll-mt-6">
                 <div className={cn(mobileDetailView !== 'editor' && 'hidden md:block')}>
                   {selectedDay ? (
                     <TrainingDayEditor
@@ -977,36 +1062,50 @@ export default function TrainingPage() {
         </div>
 
         {workspace?.canManage ? (
-          <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5.15rem)] z-[70] md:hidden">
-            <div className="grid grid-cols-3 gap-2 rounded-[26px] border border-[var(--color-mid)]/12 bg-white/95 p-2 shadow-[0_24px_48px_rgba(15,23,42,0.18)] backdrop-blur">
-              <button
-                type="button"
-                onClick={() => void handleSave('draft')}
-                disabled={loading || savingState !== null}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-white disabled:opacity-50"
-              >
-                {savingState === 'draft' ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSave('publish')}
-                disabled={loading || savingState !== null}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/16 bg-white px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-primary)] disabled:opacity-50"
-              >
-                {savingState === 'publish' ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-                Publish
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenWhatsAppShare}
-                disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-emerald-700 disabled:opacity-50"
-              >
-                <MessageCircleMore size={15} />
-                Share
-              </button>
-            </div>
+          <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5.15rem)] z-40 md:hidden">
+            {hasPlanActivity ? (
+              <div className="grid grid-cols-3 gap-2 rounded-[26px] border border-[var(--color-mid)]/12 bg-white/95 p-2 shadow-[0_24px_48px_rgba(15,23,42,0.18)] backdrop-blur">
+                <button
+                  type="button"
+                  onClick={() => void handleSave('draft')}
+                  disabled={loading || savingState !== null}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-white disabled:opacity-50"
+                >
+                  {savingState === 'draft' ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSave('publish')}
+                  disabled={loading || savingState !== null}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/16 bg-white px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-primary)] disabled:opacity-50"
+                >
+                  {savingState === 'publish' ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                  Publish
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenWhatsAppShare}
+                  disabled={loading}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-emerald-700 disabled:opacity-50"
+                >
+                  <MessageCircleMore size={15} />
+                  Share
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-[26px] border border-[var(--color-primary)]/12 bg-white/95 p-2 shadow-[0_24px_48px_rgba(15,23,42,0.18)] backdrop-blur">
+                <button
+                  type="button"
+                  onClick={handleJumpToTrainingIntake}
+                  disabled={loading}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white disabled:opacity-50"
+                >
+                  <ArrowDownCircle size={15} />
+                  Add sessions
+                </button>
+              </div>
+            )}
           </div>
         ) : null}
       </main>

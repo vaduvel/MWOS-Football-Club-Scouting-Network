@@ -71,7 +71,8 @@ function getReviewTone(day: TrainingPlanDay, selected: boolean) {
 function reviewLabel(day: TrainingPlanDay) {
   if (day.importReviewState === 'missing_info') return 'Missing info';
   if (day.importReviewState === 'needs_review') return 'Needs review';
-  return 'Ready';
+  if (day.importReviewState === 'ready' && day.importedExcerpt) return 'Ready';
+  return 'Structured';
 }
 
 type TrainingDayStatusCardProps = Attributes & {
@@ -136,10 +137,20 @@ export default function TrainingDayStatusCard({
           <AlertTriangle size={12} />
           Needs manual completion
         </div>
-      ) : day.importReviewState === 'ready' ? (
+      ) : day.importReviewState === 'needs_review' ? (
+        <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-amber-700">
+          <AlertTriangle size={12} />
+          Review before publish
+        </div>
+      ) : day.importReviewState === 'ready' && day.importedExcerpt ? (
         <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">
           <CheckCircle2 size={12} />
           Draft extracted
+        </div>
+      ) : day.dayType === 'training' ? (
+        <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--color-primary)]">
+          <CheckCircle2 size={12} />
+          Open editor
         </div>
       ) : null}
     </button>

@@ -48,13 +48,18 @@ export default function TrainingImportSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-[80] bg-slate-950/38 backdrop-blur-[1px]">
+    <div className="fixed inset-0 z-50 bg-slate-950/38 backdrop-blur-[1px]">
       <button type="button" className="absolute inset-0 h-full w-full cursor-default" onClick={onClose} aria-label="Close import sheet" />
-      <section className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-auto rounded-t-[32px] border border-white/10 bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-18px_48px_rgba(15,23,42,0.24)] md:bottom-6 md:left-1/2 md:max-w-xl md:-translate-x-1/2 md:rounded-[32px] md:p-5">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="training-import-sheet-title"
+        className="absolute inset-x-0 bottom-0 max-h-[calc(100dvh-1rem)] overflow-auto rounded-t-[32px] border border-white/10 bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-18px_48px_rgba(15,23,42,0.24)] md:bottom-6 md:left-1/2 md:max-w-xl md:-translate-x-1/2 md:rounded-[32px] md:p-5"
+      >
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Add training update</p>
-            <h2 className="mt-2 text-balance text-xl font-black text-[var(--color-dark)] md:text-2xl">{modeLabel(mode)}</h2>
+            <h2 id="training-import-sheet-title" className="mt-2 text-balance text-xl font-black text-[var(--color-dark)] md:text-2xl">{modeLabel(mode)}</h2>
             <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
               {mode === 'pdf_import'
                 ? 'Upload a training PDF. We will extract readable text first, then build a draft week for review.'

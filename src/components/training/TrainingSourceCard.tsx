@@ -1,5 +1,5 @@
 import { Eye, FilePenLine, FileSearch, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { cn } from '../../lib/utils';
 
@@ -28,23 +28,15 @@ export default function TrainingSourceCard({
   }
 
   const isImageImport = source.sourceKind === 'image_import';
-  const toneClasses = useMemo(
-    () =>
-      isImageImport
-        ? {
-            shell: 'mwos-card-tone-scan',
-            chip: 'mwos-chip-tone-transport',
-            action: 'mwos-card-tone-transport text-teal-700',
-            icon: 'mwos-icon-tone-scan',
-          }
-        : {
-            shell: 'mwos-card-tone-pdf',
-            chip: 'mwos-chip-tone-training',
-            action: 'mwos-card-tone-training text-[var(--color-primary)]',
-            icon: 'mwos-icon-tone-pdf',
-          },
-    [isImageImport],
-  );
+  const toneClasses = isImageImport
+    ? {
+        shell: 'mwos-card-tone-scan',
+        chip: 'mwos-chip-tone-transport',
+      }
+    : {
+        shell: 'mwos-card-tone-pdf',
+        chip: 'mwos-chip-tone-training',
+      };
   const extractionLabel = source.extractionStatus.replaceAll('_', ' ');
 
   return (
@@ -74,7 +66,7 @@ export default function TrainingSourceCard({
       <div className="mt-4 rounded-[22px] border border-white/80 bg-white p-4">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Extracted preview</p>
         <p className={cn('mt-3 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]', !expanded && 'line-clamp-4')}>
-        {source.previewText || 'No extracted preview yet.'}
+          {source.previewText || 'No extracted preview yet.'}
         </p>
         {source.previewText ? (
           <button

@@ -237,7 +237,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-light)] md:flex">
+    <div className="min-h-dvh bg-[var(--color-light)] md:flex">
       <AppSidebar current="notifications" user={user} onLogout={() => void logout()} />
 
       <main className="flex-1 overflow-auto p-4 pb-28 md:p-6">

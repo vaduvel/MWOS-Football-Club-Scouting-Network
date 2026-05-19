@@ -1,13 +1,11 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Bell, Bot, CheckCircle, Database, Key, Mail, RotateCcw, Save, Search, Settings, ShieldCheck, UserPlus, Users, XCircle } from 'lucide-react';
+import { Bell, CheckCircle, Database, Key, Mail, RotateCcw, Save, Search, Settings, ShieldCheck, UserPlus, Users, XCircle } from 'lucide-react';
 import AppSidebar from '../components/AppSidebar';
+import ConfirmActionModal from '../components/ConfirmActionModal';
 import {
   cancelStaffInvitation,
   createStaffInvitation,
   expireStaleStaffInvitations,
-  fetchAdminAppRuntimeStatus,
-  fetchAdminAiStatus,
-  fetchAdminEmailStatus,
   fetchClubAccessOverview,
   fetchStaffAccessEvents,
   fetchStaffInvitations,
@@ -17,9 +15,6 @@ import {
   saveUserClubAccess,
   saveUserSettings,
   userHasRole,
-  type AdminAiStatus,
-  type AdminAppRuntimeStatus,
-  type AdminEmailStatus,
   type ClubAccessOverview,
   type StaffAccessEventRecord,
   type StaffInvitationRecord,
@@ -31,14 +26,12 @@ import {
   roleRequiresTeam,
   type InviteDeliveryMode,
 } from '../lib/inviteDomain';
-import { buildAppRuntimeSummary, formatRuntimeContextLabel } from '../lib/appRuntimeDomain';
 import {
   buildClubAccessActionLabels,
   normalizeClubAccessSelection,
   validateClubAccessSelection,
 } from '../lib/staffAccessDomain';
 import {
-  buildStaffMaintenanceSummary,
   buildStaffOperationsMetrics,
   filterClubAccessUsers,
   filterStaffAccessEvents,
@@ -104,15 +97,7 @@ export default function SettingsPage() {
   const [staffSearchQuery, setStaffSearchQuery] = useState('');
   const [staffRoleFilter, setStaffRoleFilter] = useState('all');
   const [staffTeamFilter, setStaffTeamFilter] = useState('all');
-  const [adminAiStatus, setAdminAiStatus] = useState<AdminAiStatus | null>(null);
-  const [adminAiStatusLoading, setAdminAiStatusLoading] = useState(false);
-  const [adminAiStatusError, setAdminAiStatusError] = useState('');
-  const [adminAppRuntimeStatus, setAdminAppRuntimeStatus] = useState<AdminAppRuntimeStatus | null>(null);
-  const [adminAppRuntimeStatusLoading, setAdminAppRuntimeStatusLoading] = useState(false);
-  const [adminAppRuntimeStatusError, setAdminAppRuntimeStatusError] = useState('');
-  const [adminEmailStatus, setAdminEmailStatus] = useState<AdminEmailStatus | null>(null);
-  const [adminEmailStatusLoading, setAdminEmailStatusLoading] = useState(false);
-  const [adminEmailStatusError, setAdminEmailStatusError] = useState('');
+  const [clearAccessDialogOpen, setClearAccessDialogOpen] = useState(false);
   const deferredStaffSearchQuery = useDeferredValue(staffSearchQuery);
 
   useEffect(() => {
@@ -135,16 +120,10 @@ export default function SettingsPage() {
         setNotifyTransportUpdate(settingsData.email_transport_updates);
 
         if (isAdmin) {
-          setAdminAiStatusLoading(true);
-          setAdminAppRuntimeStatusLoading(true);
-          setAdminEmailStatusLoading(true);
-          const [clubAccessResult, invitationResult, accessEventsResult, adminAiStatusResult, adminAppRuntimeStatusResult, adminEmailStatusResult] = await Promise.allSettled([
+          const [clubAccessResult, invitationResult, accessEventsResult] = await Promise.allSettled([
             fetchClubAccessOverview(),
             fetchStaffInvitations(),
             fetchStaffAccessEvents(),
-            fetchAdminAiStatus(),
-            fetchAdminAppRuntimeStatus(),
-            fetchAdminEmailStatus(),
           ]);
 
           if (!isMounted) return;
@@ -168,39 +147,6 @@ export default function SettingsPage() {
           } else {
             setAccessError(accessEventsResult.reason?.message || 'Failed to load access activity.');
           }
-
-          if (adminAiStatusResult.status === 'fulfilled') {
-            setAdminAiStatus(adminAiStatusResult.value);
-            setAdminAiStatusError('');
-          } else {
-            setAdminAiStatus(null);
-            setAdminAiStatusError(adminAiStatusResult.reason?.message || 'Failed to load Admin AI status.');
-          }
-
-          if (adminAppRuntimeStatusResult.status === 'fulfilled') {
-            setAdminAppRuntimeStatus(adminAppRuntimeStatusResult.value);
-            setAdminAppRuntimeStatusError('');
-          } else {
-            setAdminAppRuntimeStatus(null);
-            setAdminAppRuntimeStatusError(adminAppRuntimeStatusResult.reason?.message || 'Failed to load runtime status.');
-          }
-
-          if (adminEmailStatusResult.status === 'fulfilled') {
-            setAdminEmailStatus(adminEmailStatusResult.value);
-            setAdminEmailStatusError('');
-          } else {
-            setAdminEmailStatus(null);
-            setAdminEmailStatusError(adminEmailStatusResult.reason?.message || 'Failed to load invite email status.');
-          }
-        } else {
-          setAdminAiStatus(null);
-          setAdminAiStatusError('');
-          setAdminAppRuntimeStatus(null);
-          setAdminAppRuntimeStatusError('');
-          setAdminAppRuntimeStatusLoading(false);
-          setAdminEmailStatus(null);
-          setAdminEmailStatusError('');
-          setAdminEmailStatusLoading(false);
         }
       } catch (err: any) {
         if (!isMounted) return;
@@ -209,9 +155,6 @@ export default function SettingsPage() {
         if (isMounted) {
           setIsLoading(false);
           setAccessLoading(false);
-          setAdminAiStatusLoading(false);
-          setAdminAppRuntimeStatusLoading(false);
-          setAdminEmailStatusLoading(false);
         }
       }
     })();
@@ -257,15 +200,6 @@ export default function SettingsPage() {
     [clubAccess?.users, staffAccessEvents, staffInvitations],
   );
 
-  const staffMaintenanceSummary = useMemo(
-    () =>
-      buildStaffMaintenanceSummary({
-        users: clubAccess?.users || [],
-        invitations: staffInvitations,
-      }),
-    [clubAccess?.users, staffInvitations],
-  );
-
   const filteredStaffUsers = useMemo(
     () =>
       filterClubAccessUsers(clubAccess?.users || [], {
@@ -309,16 +243,6 @@ export default function SettingsPage() {
     [deferredStaffSearchQuery, selectedTeamFilterName, staffAccessEvents, staffRoleFilter],
   );
 
-  const likelyTestUserIds = useMemo(
-    () => new Set(staffMaintenanceSummary.likelyTestUsers.map((member) => member.id)),
-    [staffMaintenanceSummary.likelyTestUsers],
-  );
-
-  const likelyTestInvitationIds = useMemo(
-    () => new Set(staffMaintenanceSummary.likelyTestInvitations.map((invitation) => invitation.id)),
-    [staffMaintenanceSummary.likelyTestInvitations],
-  );
-
   const selectedUserOutsideFilters = useMemo(
     () => Boolean(selectedUser && !filteredStaffUsers.some((member) => member.id === selectedUser.id)),
     [filteredStaffUsers, selectedUser],
@@ -342,11 +266,6 @@ export default function SettingsPage() {
   );
 
   const publicAppUrl = useMemo(() => {
-    const runtimeAppUrl = adminAppRuntimeStatus?.publicAppUrl?.trim();
-    if (runtimeAppUrl && runtimeAppUrl.length > 0) {
-      return runtimeAppUrl.replace(/\/$/, '');
-    }
-
     const explicitAppUrl = import.meta.env.VITE_APP_URL?.trim();
     if (explicitAppUrl && explicitAppUrl.length > 0) {
       return explicitAppUrl.replace(/\/$/, '');
@@ -357,12 +276,7 @@ export default function SettingsPage() {
     }
 
     return '';
-  }, [adminAppRuntimeStatus?.publicAppUrl]);
-
-  const appRuntimeSummary = useMemo(
-    () => buildAppRuntimeSummary(adminAppRuntimeStatus),
-    [adminAppRuntimeStatus],
-  );
+  }, []);
 
   const refreshClubAccessData = async (preserveSelectedUserId?: string) => {
     const [clubAccessResult, invitationResult, accessEventsResult] = await Promise.allSettled([
@@ -515,16 +429,13 @@ export default function SettingsPage() {
 
   const handleClearAccess = async () => {
     if (!selectedUser) return;
+    setClearAccessDialogOpen(true);
+  };
 
-    const confirmed = window.confirm(
-      `Remove all club roles and team assignments for ${selectedUser.name}? They will still exist in Authentication, but they will no longer have access until an admin assigns roles again.`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
+  const handleConfirmClearAccess = async () => {
+    if (!selectedUser) return;
     await commitClubAccess({ roleSlugs: [], teamIds: [] });
+    setClearAccessDialogOpen(false);
   };
 
   const resetInviteForm = () => {
@@ -787,7 +698,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-light)] flex flex-col md:flex-row">
+    <div className="min-h-dvh bg-[var(--color-light)] flex flex-col md:flex-row">
       <AppSidebar current="settings" user={user} onLogout={() => void logout()} />
 
       <main className="flex-1 overflow-auto p-3 pb-28 md:p-6">
@@ -944,224 +855,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {isAdmin && (
-                  <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
-                    <div className="flex items-center gap-2">
-                      <Bot size={16} className="text-[var(--color-primary)]" />
-                      <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
-                        Admin AI Integration
-                      </p>
-                    </div>
-                    <p className="mt-2 text-xs font-semibold leading-6 text-[var(--color-mid)]">
-                      The admin dashboard uses Gemini for leadership insights and chat. This status checks the server-side integration used by Netlify.
-                    </p>
-
-                    <div className="mt-4 rounded-2xl border border-white/70 bg-white px-4 py-4">
-                      {adminAiStatusLoading ? (
-                        <p className="text-sm font-semibold text-[var(--color-mid)]">Checking Admin AI readiness...</p>
-                      ) : adminAiStatusError ? (
-                        <p className="text-sm font-semibold text-red-700">{adminAiStatusError}</p>
-                      ) : adminAiStatus ? (
-                        <div className="space-y-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
-                                adminAiStatus.configured
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-amber-100 text-amber-800'
-                              }`}
-                            >
-                              {adminAiStatus.configured ? 'Configured' : 'Needs setup'}
-                            </span>
-                            <span className="rounded-full bg-[var(--color-light)] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-dark)]">
-                              {adminAiStatus.provider} · {adminAiStatus.model}
-                            </span>
-                            {adminAiStatus.configuredEnvVar ? (
-                              <span className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
-                                {adminAiStatus.configuredEnvVar}
-                              </span>
-                            ) : null}
-                          </div>
-
-                          <p className="text-sm font-semibold leading-6 text-[var(--color-dark)]/80">
-                            {adminAiStatus.setupHint}
-                          </p>
-
-                          {!adminAiStatus.configured && adminAiStatus.acceptedEnvVars.length > 0 && (
-                            <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">
-                              Accepted env vars: {adminAiStatus.acceptedEnvVars.join(' or ')}
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-sm font-semibold text-[var(--color-mid)]">
-                          Admin AI status is unavailable right now.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {isAdmin && (
-                  <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
-                    <div className="flex items-center gap-2">
-                      <Database size={16} className="text-[var(--color-primary)]" />
-                      <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
-                        Deployment Runtime
-                      </p>
-                    </div>
-                    <p className="mt-2 text-xs font-semibold leading-6 text-[var(--color-mid)]">
-                      This shows which runtime the current admin surface is talking to, which branch/build it belongs to, and whether public invite/reset links are aligned with that deployment.
-                    </p>
-
-                    <div className="mt-4 rounded-2xl border border-white/70 bg-white px-4 py-4">
-                      {adminAppRuntimeStatusLoading ? (
-                        <p className="text-sm font-semibold text-[var(--color-mid)]">Checking deployment runtime...</p>
-                      ) : adminAppRuntimeStatusError ? (
-                        <p className="text-sm font-semibold text-red-700">{adminAppRuntimeStatusError}</p>
-                      ) : adminAppRuntimeStatus ? (
-                        <div className="space-y-4">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
-                                appRuntimeSummary.tone === 'ready'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-amber-100 text-amber-800'
-                              }`}
-                            >
-                              {appRuntimeSummary.tone === 'ready' ? 'Runtime aligned' : 'Needs review'}
-                            </span>
-                            <span className="rounded-full bg-[var(--color-light)] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-dark)]">
-                              {formatRuntimeContextLabel(adminAppRuntimeStatus.context)}
-                            </span>
-                            {adminAppRuntimeStatus.branch ? (
-                              <span className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
-                                {adminAppRuntimeStatus.branch}
-                              </span>
-                            ) : null}
-                            {adminAppRuntimeStatus.branchMatchesRelease === false && adminAppRuntimeStatus.releaseBranch ? (
-                              <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-amber-800">
-                                Release branch: {adminAppRuntimeStatus.releaseBranch}
-                              </span>
-                            ) : null}
-                          </div>
-
-                          <div>
-                            <p className="text-base font-black text-[var(--color-dark)]">{appRuntimeSummary.headline}</p>
-                            <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-dark)]/80">
-                              {appRuntimeSummary.detail}
-                            </p>
-                          </div>
-
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
-                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Configured public app URL</p>
-                              <p className="mt-2 break-all text-sm font-semibold text-[var(--color-dark)]">
-                                {adminAppRuntimeStatus.publicAppUrl || 'Not configured yet'}
-                              </p>
-                            </div>
-                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
-                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Recommended URL for this runtime</p>
-                              <p className="mt-2 break-all text-sm font-semibold text-[var(--color-dark)]">
-                                {adminAppRuntimeStatus.recommendedPublicUrl || 'Not detected'}
-                              </p>
-                            </div>
-                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
-                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Site URL</p>
-                              <p className="mt-2 break-all text-sm font-semibold text-[var(--color-dark)]">
-                                {adminAppRuntimeStatus.siteUrl || 'Not exposed in this runtime'}
-                              </p>
-                            </div>
-                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
-                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Preview / deploy URL</p>
-                              <p className="mt-2 break-all text-sm font-semibold text-[var(--color-dark)]">
-                                {adminAppRuntimeStatus.deployPrimeUrl || 'Not applicable'}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--color-mid)]">
-                            <span>Branch: {adminAppRuntimeStatus.branch || 'Unknown'}</span>
-                            <span>•</span>
-                            <span>Commit: {adminAppRuntimeStatus.commitRef?.slice(0, 8) || 'Unknown'}</span>
-                            <span>•</span>
-                            <span>
-                              Public URL match:{' '}
-                              {adminAppRuntimeStatus.matchesRecommendedPublicUrl ? 'yes' : 'no'}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm font-semibold text-[var(--color-mid)]">
-                          Runtime status is unavailable right now.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {isAdmin && (
-                  <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
-                    <div className="flex items-center gap-2">
-                      <Mail size={16} className="text-[var(--color-primary)]" />
-                      <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
-                        Invite & Alert Delivery
-                      </p>
-                    </div>
-                    <p className="mt-2 text-xs font-semibold leading-6 text-[var(--color-mid)]">
-                      This checks whether invite emails and important training/transport alerts can leave the Netlify runtime, or whether the club should keep using manual links and WhatsApp sharing for now.
-                    </p>
-
-                    <div className="mt-4 rounded-2xl border border-white/70 bg-white px-4 py-4">
-                      {adminEmailStatusLoading ? (
-                        <p className="text-sm font-semibold text-[var(--color-mid)]">Checking invite delivery readiness...</p>
-                      ) : adminEmailStatusError ? (
-                        <p className="text-sm font-semibold text-red-700">{adminEmailStatusError}</p>
-                      ) : adminEmailStatus ? (
-                        <div className="space-y-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
-                                adminEmailStatus.configured
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-amber-100 text-amber-800'
-                              }`}
-                            >
-                              {adminEmailStatus.configured ? 'Email delivery ready' : 'Manual-link mode'}
-                            </span>
-                            <span className="rounded-full bg-[var(--color-light)] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-dark)]">
-                              {adminEmailStatus.deliveryMode === 'transactional_email' ? 'Transactional email' : 'Manual share fallback'}
-                            </span>
-                          </div>
-
-                          <p className="text-sm font-semibold leading-6 text-[var(--color-dark)]/80">
-                            {adminEmailStatus.setupHint}
-                          </p>
-
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
-                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Sender</p>
-                              <p className="mt-2 text-sm font-semibold text-[var(--color-dark)]">
-                                {adminEmailStatus.sender || 'Not configured yet'}
-                              </p>
-                            </div>
-                            <div className="rounded-2xl bg-[var(--color-light)]/65 px-4 py-3">
-                              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Public app URL</p>
-                              <p className="mt-2 break-all text-sm font-semibold text-[var(--color-dark)]">
-                                {adminEmailStatus.publicAppUrl || 'Not configured yet'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm font-semibold text-[var(--color-mid)]">
-                          Delivery status is unavailable right now.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
                 <div className="flex flex-col gap-3 border-t border-[var(--color-mid)]/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     {saveSuccess && (
@@ -1293,7 +986,7 @@ export default function SettingsPage() {
                       <div className="flex flex-wrap items-start gap-3 lg:flex-nowrap lg:items-end">
                         <div className="min-w-[220px] flex-1">
                           <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                            Search staff operations
+                            Search staff access
                           </label>
                           <div className="flex items-center gap-3 rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 shadow-sm">
                             <Search size={16} className="text-[var(--color-mid)]" />
@@ -1367,7 +1060,7 @@ export default function SettingsPage() {
                             description: 'Access actions recorded in the last 7 days.',
                           },
                           {
-                            label: 'Stale invites',
+                            label: 'Expired invites',
                             value: staffOperationsMetrics.stalePendingInvitationCount,
                             description: 'Pending invites that already passed their activation window.',
                           },
@@ -1388,150 +1081,6 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle size={16} className="text-[var(--color-primary)]" />
-                        <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
-                          Maintenance & Cleanup
-                        </p>
-                      </div>
-                      <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
-                        This is the admin cleanup lane before live rollout. It surfaces stale pending invites and records that look like QA smoke data, but keeps destructive cleanup deliberate and outside one-click flows.
-                      </p>
-
-                      <div className="mt-4 grid gap-3 md:grid-cols-3">
-                        {[
-                          {
-                            label: 'Stale pending invites',
-                            value: staffOperationsMetrics.stalePendingInvitationCount,
-                            description: 'Invites that already passed their activation window.',
-                          },
-                          {
-                            label: 'Likely test invites',
-                            value: staffMaintenanceSummary.likelyTestInvitationCount,
-                            description: 'Pending or historical invite records that look like QA or smoke data.',
-                          },
-                          {
-                            label: 'Likely test accounts',
-                            value: staffMaintenanceSummary.likelyTestUserCount,
-                            description: 'Staff accounts that probably came from QA aliases or demo naming.',
-                          },
-                        ].map((card) => (
-                          <div
-                            key={card.label}
-                            className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/35 p-4"
-                          >
-                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                              {card.label}
-                            </p>
-                            <p className="mt-3 text-3xl font-black text-[var(--color-dark)]">{card.value}</p>
-                            <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
-                              {card.description}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr,1.1fr]">
-                        <div className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/35 p-4">
-                          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                            Cleanup playbook
-                          </p>
-                          <div className="mt-3 space-y-3 text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                            <p>
-                              1. Expire stale invites first. That removes them from the live pending queue without deleting audit history.
-                            </p>
-                            <p>
-                              2. Review likely test invites and likely test accounts below before launch day, especially `+qa`, `+invite`, `+slice` or `Smoke` entries.
-                            </p>
-                            <p>
-                              3. Keep destructive cleanup deliberate. Real deletions should happen only once the club confirms which records are safe to remove.
-                            </p>
-                          </div>
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => void handleExpireStaleInvites()}
-                              disabled={
-                                invitationActionKey === 'expire-stale' ||
-                                staffOperationsMetrics.stalePendingInvitationCount === 0
-                              }
-                              className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-800 shadow-sm disabled:opacity-50"
-                            >
-                              {invitationActionKey === 'expire-stale' ? 'Cleaning…' : 'Expire stale invites now'}
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/35 p-4">
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                              Likely test invites
-                            </p>
-                            <div className="mt-3 space-y-3">
-                              {staffMaintenanceSummary.likelyTestInvitations.length === 0 ? (
-                                <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/20 bg-white/70 p-4 text-sm font-semibold text-[var(--color-mid)]">
-                                  No likely test invites detected right now.
-                                </div>
-                              ) : (
-                                staffMaintenanceSummary.likelyTestInvitations.slice(0, 5).map((invitation) => (
-                                  <div
-                                    key={invitation.id}
-                                    className="rounded-2xl border border-[var(--color-mid)]/14 bg-white/80 p-3"
-                                  >
-                                    <p className="text-sm font-black text-[var(--color-dark)]">{invitation.name}</p>
-                                    <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{invitation.email}</p>
-                                    <p className="mt-2 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
-                                      {invitation.reasonLabels.join(' · ')}
-                                    </p>
-                                    <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
-                                      {(invitation.roleLabels.length > 0 ? invitation.roleLabels.join(' · ') : 'No roles') +
-                                        (invitation.teamNames.length > 0 ? ` · ${invitation.teamNames.join(' · ')}` : '')}
-                                    </p>
-                                    {invitation.updatedAt ? (
-                                      <p className="mt-1 text-[11px] font-semibold text-[var(--color-mid)]">
-                                        Updated {dateTimeFormatter.format(new Date(invitation.updatedAt))}
-                                      </p>
-                                    ) : null}
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="rounded-2xl border border-[var(--color-mid)]/14 bg-[var(--color-light)]/35 p-4">
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                              Likely test accounts
-                            </p>
-                            <div className="mt-3 space-y-3">
-                              {staffMaintenanceSummary.likelyTestUsers.length === 0 ? (
-                                <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/20 bg-white/70 p-4 text-sm font-semibold text-[var(--color-mid)]">
-                                  No likely test staff accounts detected right now.
-                                </div>
-                              ) : (
-                                staffMaintenanceSummary.likelyTestUsers.slice(0, 5).map((member) => (
-                                  <div
-                                    key={member.id}
-                                    className="rounded-2xl border border-[var(--color-mid)]/14 bg-white/80 p-3"
-                                  >
-                                    <p className="text-sm font-black text-[var(--color-dark)]">{member.name}</p>
-                                    <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{member.email}</p>
-                                    <p className="mt-2 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
-                                      {member.reasonLabels.join(' · ')}
-                                    </p>
-                                    <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
-                                      {(member.roleLabels.length > 0 ? member.roleLabels.join(' · ') : 'No roles') +
-                                        (member.teamNames.length > 0 ? ` · ${member.teamNames.join(' · ')}` : '')}
-                                    </p>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="grid gap-4 xl:grid-cols-[0.95fr,1.05fr]">
                       <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
                         <div className="flex items-center gap-2">
@@ -1541,7 +1090,7 @@ export default function SettingsPage() {
                           </p>
                         </div>
                         <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
-                          Invite coaches, drivers, scouts, technical staff and observers by email. Existing accounts are updated directly with the selected roles and teams.
+                          Choose one or more roles, select every team this person should access, then send the invite by email or share the activation link on WhatsApp.
                         </p>
 
                         <div className="mt-4 space-y-4">
@@ -1572,7 +1121,7 @@ export default function SettingsPage() {
                           </div>
 
                           <div>
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Roles</p>
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Roles (choose one or more)</p>
                             <div className="mt-3 grid gap-2 sm:grid-cols-2">
                               {clubAccess?.roles.map((role) => {
                                 const active = inviteRoleSlugs.includes(role.slug);
@@ -1598,7 +1147,7 @@ export default function SettingsPage() {
 
                           <div>
                             <div className="flex items-center justify-between gap-3">
-                              <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Teams</p>
+                              <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Teams for this access</p>
                               {inviteNeedsTeam && (
                                 <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
                                   Required for coach / driver / scout
@@ -1684,11 +1233,11 @@ export default function SettingsPage() {
                               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                   <p className="text-sm font-black text-amber-900">
-                                    {staffOperationsMetrics.stalePendingInvitationCount} stale invite
+                                    {staffOperationsMetrics.stalePendingInvitationCount} expired invite
                                     {staffOperationsMetrics.stalePendingInvitationCount === 1 ? '' : 's'} need follow-up
                                   </p>
                                   <p className="mt-2 text-sm font-semibold leading-6 text-amber-800">
-                                    These invites are already past their activation window. You can leave them for audit history, or move them out of the pending queue in one safe cleanup action.
+                                    These invites are already past their activation window. You can keep them for history, or move them out of the pending queue.
                                   </p>
                                 </div>
                                 <button
@@ -1697,7 +1246,7 @@ export default function SettingsPage() {
                                   disabled={invitationActionKey === 'expire-stale'}
                                   className="rounded-2xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-bold text-amber-800 shadow-sm disabled:opacity-50"
                                 >
-                                  {invitationActionKey === 'expire-stale' ? 'Cleaning…' : 'Expire stale invites'}
+                                  {invitationActionKey === 'expire-stale' ? 'Updating…' : 'Move expired invites'}
                                 </button>
                               </div>
                             </div>
@@ -1717,11 +1266,6 @@ export default function SettingsPage() {
                                   <div>
                                     <p className="text-sm font-black text-[var(--color-dark)]">{invitation.fullName}</p>
                                     <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{invitation.email}</p>
-                                    {likelyTestInvitationIds.has(invitation.id) ? (
-                                      <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-amber-800">
-                                        Likely QA data
-                                      </span>
-                                    ) : null}
                                   </div>
                                   <span className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">
                                     {invitation.statusLabel}
@@ -1857,33 +1401,39 @@ export default function SettingsPage() {
                             </div>
                           ) : (
                             filteredStaffUsers.map((member) => {
-                            const active = member.id === selectedUserId;
-                            return (
-                              <button
-                                key={member.id}
-                                onClick={() => setSelectedUserId(member.id)}
-                                className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${
-                                  active
-                                    ? 'border-[var(--color-primary)]/25 bg-white shadow-sm'
-                                    : 'border-transparent bg-white/65 hover:border-[var(--color-primary)]/15'
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <p className="text-sm font-black text-[var(--color-dark)]">{member.name}</p>
-                                  {likelyTestUserIds.has(member.id) ? (
-                                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-amber-800">
-                                      Likely QA data
-                                    </span>
+                              const active = member.id === selectedUserId;
+                              const hasClubAccess = member.roles.length > 0;
+
+                              return (
+                                <button
+                                  key={member.id}
+                                  onClick={() => setSelectedUserId(member.id)}
+                                  className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${
+                                    active
+                                      ? 'border-[var(--color-primary)]/25 bg-white shadow-sm'
+                                      : 'border-transparent bg-white/65 hover:border-[var(--color-primary)]/15'
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <p className="text-sm font-black text-[var(--color-dark)]">{member.name}</p>
+                                  </div>
+                                  <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{member.email}</p>
+                                  <p
+                                    className={`mt-2 text-[11px] font-black uppercase tracking-[0.18em] ${
+                                      hasClubAccess ? 'text-[var(--color-mid)]' : 'text-amber-700'
+                                    }`}
+                                  >
+                                    {hasClubAccess
+                                      ? member.roles.map((role) => role.label).join(' · ')
+                                      : 'Pending access'}
+                                  </p>
+                                  {!hasClubAccess ? (
+                                    <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                                      Select this account, assign roles and teams, then save access.
+                                    </p>
                                   ) : null}
-                                </div>
-                                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{member.email}</p>
-                                <p className="mt-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                                  {member.roles.length > 0
-                                    ? member.roles.map((role) => role.label).join(' · ')
-                                    : 'Pending access'}
-                                </p>
-                              </button>
-                            );
+                                </button>
+                              );
                             })
                           )}
                         </div>
@@ -1899,23 +1449,9 @@ export default function SettingsPage() {
                           <>
                             <p className="text-lg font-black text-[var(--color-dark)]">{selectedUser.name}</p>
                             <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">{selectedUser.email}</p>
-                            <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                              Legacy profile role: {selectedUser.legacyRole}
-                            </p>
-                            {likelyTestUserIds.has(selectedUser.id) ? (
-                              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
-                                <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-800">
-                                  Likely QA / smoke account
-                                </p>
-                                <p className="mt-2 text-sm font-semibold leading-6 text-amber-800">
-                                  This account looks like test data based on its name or email alias. Keep it out of live rollout unless the club explicitly wants to keep it.
-                                </p>
-                              </div>
-                            ) : null}
-
                             <div className="mt-5">
                               <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                                Roles
+                                Roles (choose one or more)
                               </p>
                               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                                 {clubAccess?.roles.map((role) => {
@@ -1942,7 +1478,7 @@ export default function SettingsPage() {
 
                             <div className="mt-5">
                               <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                                Teams
+                                Teams for team access
                               </p>
                               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                                 {clubAccess?.teams.map((team) => {
@@ -2100,6 +1636,20 @@ export default function SettingsPage() {
         )}
         </div>
       </div>
+
+      <ConfirmActionModal
+        open={clearAccessDialogOpen}
+        title="Clear club access?"
+        description={
+          selectedUser
+            ? `${selectedUser.name} will stay in Authentication, but all club roles and team assignments will be removed until an admin restores access.`
+            : 'This staff account will lose all club roles and team assignments.'
+        }
+        confirmLabel="Clear access"
+        loading={accessLoading}
+        onCancel={() => setClearAccessDialogOpen(false)}
+        onConfirm={() => void handleConfirmClearAccess()}
+      />
     </div>
   );
 }

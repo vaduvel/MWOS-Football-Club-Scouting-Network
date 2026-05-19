@@ -34,7 +34,7 @@ export default function PwaStatusDock({
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-2 z-[90] px-3 md:px-6">
+    <div className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+0.5rem)] z-20 px-3 md:px-6">
       <div className="mx-auto flex w-full max-w-xl flex-col gap-2">
         {updateReady ? (
           <div className="pointer-events-auto rounded-2xl border border-[var(--color-primary)]/18 bg-white/96 px-4 py-3 shadow-[0_20px_55px_rgba(49,39,131,0.18)] backdrop-blur-xl">

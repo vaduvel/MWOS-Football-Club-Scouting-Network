@@ -107,7 +107,7 @@ export default function AcceptInvitation() {
 
     try {
       await updatePassword(password);
-      const result = await acceptStaffInvitation(invitationToken);
+      await acceptStaffInvitation(invitationToken);
       const authState = await getSessionWithProfile();
       setAuth(authState.user, authState.session);
       navigate('/', { replace: true });
@@ -119,7 +119,7 @@ export default function AcceptInvitation() {
   };
 
   return (
-    <div className="mwos-auth-shell relative min-h-screen overflow-hidden">
+    <div className="mwos-auth-shell relative min-h-dvh overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center opacity-30"
         style={{ backgroundImage: "url('/branding/att.AGuDIc57f42thGuMeUSyrotRD6Zy0fxGX1rynzNNmWM.JPG')" }}
@@ -127,7 +127,7 @@ export default function AcceptInvitation() {
       <div className="mwos-subtle-grid absolute inset-0 opacity-25" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(190,23,23,0.24),transparent_28%),linear-gradient(180deg,rgba(16,20,74,0.22),rgba(16,20,74,0.38))]" />
 
-      <main className="relative flex min-h-screen items-center justify-center px-4 py-6 md:px-6 md:py-10">
+      <main className="relative flex min-h-dvh items-center justify-center px-4 py-6 md:px-6 md:py-10">
         <div className="w-full max-w-2xl overflow-hidden rounded-[28px] border border-white/12 bg-white/94 shadow-[0_34px_90px_rgba(12,16,53,0.34)] backdrop-blur-xl">
           <div className="p-5 md:p-7">
             <div className="mb-6 text-center">
