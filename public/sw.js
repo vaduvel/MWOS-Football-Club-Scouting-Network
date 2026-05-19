@@ -9,6 +9,8 @@ const APP_SHELL = [
   '/manifest.webmanifest',
   '/favicon.svg',
   '/branding/mwos-fc-300-2.png',
+  '/icons/mwos-icon-192.png',
+  '/icons/mwos-icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
