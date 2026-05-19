@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState, type Attributes } from 'react';
-import { AlertCircle, CalendarRange, Loader2, MessageCircleMore, Save, Send, ShieldCheck } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowDownCircle,
+  CalendarRange,
+  Loader2,
+  MessageCircleMore,
+  Save,
+  Send,
+  ShieldCheck,
+} from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import AppSidebar from '../components/AppSidebar';
 import TrainingCommentsPanel from '../components/training/TrainingCommentsPanel';
@@ -315,6 +324,11 @@ export default function TrainingPage() {
   const handleWeekChange = (value: string) => {
     const normalized = getTrainingWeekStart(new Date(`${value}T09:00:00`));
     updateSearch({ weekStart: normalized, dayIndex: 0 });
+  };
+
+  const handleJumpToTrainingIntake = () => {
+    const target = document.getElementById('training-intake-actions');
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleDayChange = (nextDay: TrainingPlanDay) => {
@@ -659,6 +673,33 @@ export default function TrainingPage() {
                 </div>
               </div>
 
+              <div className="mt-5 rounded-[24px] border border-[var(--color-mid)]/14 bg-white/74 p-4 shadow-[0_12px_30px_rgba(49,39,131,0.05)]">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                  How to build this plan
+                </p>
+                <div className="mt-3 grid gap-2 text-sm font-semibold leading-6 text-[var(--color-mid)] sm:grid-cols-3">
+                  <p>
+                    <span className="font-black text-[var(--color-dark)]">1.</span> Choose the team and week.
+                  </p>
+                  <p>
+                    <span className="font-black text-[var(--color-dark)]">2.</span> Add details by scan, PDF, or manual edit.
+                  </p>
+                  <p>
+                    <span className="font-black text-[var(--color-dark)]">3.</span> Save, publish, then share on WhatsApp.
+                  </p>
+                </div>
+                {workspace?.canManage ? (
+                  <button
+                    type="button"
+                    onClick={handleJumpToTrainingIntake}
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--color-primary)]/14 bg-[var(--color-light)] px-4 py-3 text-sm font-black text-[var(--color-primary)] sm:w-auto"
+                  >
+                    <ArrowDownCircle size={16} />
+                    Add or import training details
+                  </button>
+                ) : null}
+              </div>
+
               <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:flex xl:flex-wrap">
                 <button
                   type="button"
@@ -761,11 +802,13 @@ export default function TrainingPage() {
           {!loading && workspace ? (
             <>
               {workspace.canManage ? (
-                <TrainingIntakeLauncher
-                  onCreateManual={handleCreateManual}
-                  onImportPdf={() => openImportSheet('pdf_import')}
-                  onScanPhoto={() => openImportSheet('image_import')}
-                />
+                <section id="training-intake-actions" className="scroll-mt-4 md:scroll-mt-6">
+                  <TrainingIntakeLauncher
+                    onCreateManual={handleCreateManual}
+                    onImportPdf={() => openImportSheet('pdf_import')}
+                    onScanPhoto={() => openImportSheet('image_import')}
+                  />
+                </section>
               ) : null}
 
               {canViewRawSource && displaySourceCard ? (
