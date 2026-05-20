@@ -144,13 +144,15 @@ function SectionShell({
   title,
   caption,
   children,
+  className = '',
 }: {
   title: string;
   caption: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="rounded-[24px] border border-[var(--color-mid)]/14 bg-[var(--color-light)]/48 p-4">
+    <section className={`rounded-[24px] border border-[var(--color-mid)]/14 bg-[var(--color-light)]/48 p-4 ${className}`}>
       <div className="mb-4">
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">{title}</p>
         <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{caption}</p>
@@ -294,6 +296,7 @@ export default function TrainingDayEditor({ day, canEdit, onChange }: TrainingDa
       <SectionShell
         title="Day basics"
         caption="Confirm the day type, label, and the session essentials staff need to see first."
+        className="mt-7"
       >
         <div className="grid gap-4 md:grid-cols-2">
           <div>
@@ -382,6 +385,7 @@ export default function TrainingDayEditor({ day, canEdit, onChange }: TrainingDa
         <SectionShell
           title="Training load"
           caption="Use focus, intensity, and volume to make the weekly microcycle easy to review later."
+          className="mt-6"
         >
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div>
@@ -429,6 +433,7 @@ export default function TrainingDayEditor({ day, canEdit, onChange }: TrainingDa
       <SectionShell
         title="Session content"
         caption="This is the part other staff will rely on when they need the plan details or a WhatsApp-ready summary."
+        className="mt-6"
       >
         <div className="grid gap-4">
           <div>

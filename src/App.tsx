@@ -38,6 +38,92 @@ type DeferredPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
 
+type AppErrorBoundaryState = {
+  hasError: boolean;
+  message: string;
+};
+
+function isChunkLoadError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || '');
+  return /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk|ChunkLoadError/i.test(message);
+}
+
+function recoverFromAppShellError() {
+  const reloadKey = 'mwos-app-shell-reload-attempted';
+
+  if (sessionStorage.getItem(reloadKey) !== '1') {
+    sessionStorage.setItem(reloadKey, '1');
+    window.location.reload();
+    return;
+  }
+
+  window.location.assign('/');
+}
+
+class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, AppErrorBoundaryState> {
+  declare props: { children: React.ReactNode };
+
+  state: AppErrorBoundaryState = {
+    hasError: false,
+    message: '',
+  };
+
+  static getDerivedStateFromError(error: Error) {
+    return {
+      hasError: true,
+      message: error.message,
+    };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('MWOS app route failed.', error, info);
+
+    if (isChunkLoadError(error) && sessionStorage.getItem('mwos-app-shell-reload-attempted') !== '1') {
+      sessionStorage.setItem('mwos-app-shell-reload-attempted', '1');
+      window.location.reload();
+    }
+  }
+
+  render() {
+    if (!this.state.hasError) {
+      return this.props.children;
+    }
+
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-[linear-gradient(180deg,#f7f8fb,#eef1f7)] px-5 py-8">
+        <section className="w-full max-w-md rounded-[28px] border border-[var(--color-primary)]/14 bg-white p-5 text-left shadow-[0_30px_80px_rgba(12,16,53,0.14)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">MWOS Club Management</p>
+          <h1 className="mt-3 text-2xl font-black text-[var(--color-dark)]">Reload your workspace</h1>
+          <p className="mt-3 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+            The app loaded an old or interrupted screen. Reload once and MWOS will reopen the correct workspace.
+          </p>
+          {this.state.message ? (
+            <p className="mt-3 rounded-2xl bg-[var(--color-light)] px-3 py-2 text-xs font-semibold text-[var(--color-mid)]">
+              {this.state.message}
+            </p>
+          ) : null}
+          <div className="mt-5 grid gap-3">
+            <button
+              type="button"
+              onClick={recoverFromAppShellError}
+              className="rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white"
+            >
+              Reload app
+            </button>
+            <button
+              type="button"
+              onClick={() => window.location.assign('/')}
+              className="rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-black text-[var(--color-primary)]"
+            >
+              Go to home
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+}
+
 function RouteLoadingScreen() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-[linear-gradient(180deg,#f7f8fb,#eef1f7)] px-6">
@@ -184,6 +270,39 @@ export default function App() {
     return () => window.clearTimeout(timeoutId);
   }, [syncDetail]);
 
+  useEffect(() => {
+    const handlePreloadError = (event: Event) => {
+      event.preventDefault();
+
+      if (sessionStorage.getItem('mwos-app-shell-reload-attempted') === '1') {
+        return;
+      }
+
+      sessionStorage.setItem('mwos-app-shell-reload-attempted', '1');
+      window.location.reload();
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (!isChunkLoadError(event.reason)) {
+        return;
+      }
+
+      event.preventDefault();
+      if (sessionStorage.getItem('mwos-app-shell-reload-attempted') !== '1') {
+        sessionStorage.setItem('mwos-app-shell-reload-attempted', '1');
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('vite:preloadError', handlePreloadError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('vite:preloadError', handlePreloadError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   const handleInstall = async () => {
     if (!installPrompt) return;
 
@@ -214,34 +333,37 @@ export default function App() {
   if (!isSupabaseConfigured) return <MissingConfigScreen />;
 
   return (
-    <BrowserRouter>
-      <PwaStatusDock
-        online={online}
-        syncDetail={syncDetail}
-        installReady={Boolean(installPrompt)}
-        updateReady={Boolean(updateRegistration)}
-        onInstall={() => void handleInstall()}
-        onUpdate={handleUpdate}
-      />
-      <Suspense fallback={<RouteLoadingScreen />}>
-        <Routes>
-          <Route path="/login" element={!token ? <Login /> : <Navigate to="/" />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/accept-invite" element={<AcceptInvitation />} />
-          <Route path="/" element={<ProtectedRoute><ClubHomePage /></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-          <Route path="/training" element={<RoleRoute canAccess={canAccessTrainingModule}><TrainingPage /></RoleRoute>} />
-          <Route path="/transport" element={<RoleRoute canAccess={canAccessTransportModule}><TransportPage /></RoleRoute>} />
-          <Route path="/scouting" element={<RoleRoute canAccess={canAccessScoutingModule}><Dashboard /></RoleRoute>} />
-          <Route path="/players" element={<RoleRoute canAccess={canAccessPlayerHub}><PlayersPage /></RoleRoute>} />
-          <Route path="/oversight" element={<RoleRoute canAccess={canAccessOversightModule}><OversightPage /></RoleRoute>} />
-          <Route path="/scouting/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
-          <Route path="/scouting/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
-          <Route path="/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
-          <Route path="/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+    <AppErrorBoundary>
+      <BrowserRouter>
+        <PwaStatusDock
+          online={online}
+          syncDetail={syncDetail}
+          installReady={Boolean(installPrompt)}
+          updateReady={Boolean(updateRegistration)}
+          onInstall={() => void handleInstall()}
+          onUpdate={handleUpdate}
+        />
+        <Suspense fallback={<RouteLoadingScreen />}>
+          <Routes>
+            <Route path="/login" element={!token ? <Login /> : <Navigate to="/" replace />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/accept-invite" element={<AcceptInvitation />} />
+            <Route path="/" element={<ProtectedRoute><ClubHomePage /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+            <Route path="/training" element={<RoleRoute canAccess={canAccessTrainingModule}><TrainingPage /></RoleRoute>} />
+            <Route path="/transport" element={<RoleRoute canAccess={canAccessTransportModule}><TransportPage /></RoleRoute>} />
+            <Route path="/scouting" element={<RoleRoute canAccess={canAccessScoutingModule}><Dashboard /></RoleRoute>} />
+            <Route path="/players" element={<RoleRoute canAccess={canAccessPlayerHub}><PlayersPage /></RoleRoute>} />
+            <Route path="/oversight" element={<RoleRoute canAccess={canAccessOversightModule}><OversightPage /></RoleRoute>} />
+            <Route path="/scouting/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
+            <Route path="/scouting/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
+            <Route path="/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
+            <Route path="/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="*" element={<Navigate to={token ? '/' : '/login'} replace />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </AppErrorBoundary>
   );
 }

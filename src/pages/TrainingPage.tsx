@@ -646,9 +646,9 @@ export default function TrainingPage() {
           ) : null}
 
           <section className="grid gap-4 lg:grid-cols-[1.2fr,0.8fr]">
-            <article className={cn('rounded-[28px] border bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6', activeTeamTone.cardClass)}>
+            <article className={cn('min-w-0 overflow-hidden rounded-[28px] border bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6', activeTeamTone.cardClass)}>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)] shadow-sm">
                       Step 1
@@ -671,15 +671,15 @@ export default function TrainingPage() {
                   </p>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
+                <div className="grid w-full min-w-0 gap-3 sm:grid-cols-2 lg:max-w-md">
+                  <div className="min-w-0">
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
                       Team
                     </label>
                     <select
                       value={teamId}
                       onChange={(event) => updateSearch({ teamId: event.target.value, dayIndex: 0 })}
-                      className="w-full rounded-2xl border border-[var(--color-mid)]/22 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[var(--color-primary)]"
+                      className="block w-full min-w-0 max-w-full rounded-2xl border border-[var(--color-mid)]/22 bg-white px-3 py-3 text-base font-semibold outline-none focus:border-[var(--color-primary)] sm:text-sm"
                     >
                       {teams.map((team) => (
                         <option key={team.id} value={team.id}>
@@ -688,7 +688,7 @@ export default function TrainingPage() {
                       ))}
                     </select>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
                       Week start
                     </label>
@@ -696,7 +696,7 @@ export default function TrainingPage() {
                       type="date"
                       value={weekStart}
                       onChange={(event) => handleWeekChange(event.target.value)}
-                      className="w-full rounded-2xl border border-[var(--color-mid)]/22 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[var(--color-primary)]"
+                      className="block w-full min-w-0 max-w-full appearance-none rounded-2xl border border-[var(--color-mid)]/22 bg-white px-3 py-3 text-base font-semibold outline-none focus:border-[var(--color-primary)] sm:text-sm"
                     />
                   </div>
                 </div>

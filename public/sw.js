@@ -1,6 +1,6 @@
-const SHELL_CACHE = 'mwos-shell-v3';
-const STATIC_CACHE = 'mwos-static-v3';
-const RUNTIME_CACHE = 'mwos-runtime-v3';
+const SHELL_CACHE = 'mwos-shell-v4';
+const STATIC_CACHE = 'mwos-static-v4';
+const RUNTIME_CACHE = 'mwos-runtime-v4';
 
 const APP_SHELL = [
   '/',
@@ -100,10 +100,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (
-    ['style', 'script', 'image', 'font', 'manifest'].includes(event.request.destination) ||
-    url.pathname.startsWith('/branding/')
-  ) {
+  if (event.request.destination === 'script' || url.pathname.startsWith('/assets/')) {
+    event.respondWith(networkFirst(event.request, STATIC_CACHE));
+    return;
+  }
+
+  if (['style', 'image', 'font', 'manifest'].includes(event.request.destination) || url.pathname.startsWith('/branding/')) {
     event.respondWith(staleWhileRevalidate(event.request, STATIC_CACHE));
     return;
   }
