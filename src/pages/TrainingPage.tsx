@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
-  ArrowDownCircle,
   CalendarRange,
-  CheckCircle2,
-  ClipboardList,
   FileSearch,
   Loader2,
   MessageCircleMore,
+  PenSquare,
   Save,
   Send,
   ShieldCheck,
@@ -17,7 +15,6 @@ import AppSidebar from '../components/AppSidebar';
 import TrainingCommentsPanel from '../components/training/TrainingCommentsPanel';
 import TrainingDayEditor from '../components/training/TrainingDayEditor';
 import TrainingImportSheet from '../components/training/TrainingImportSheet';
-import TrainingIntakeLauncher from '../components/training/TrainingIntakeLauncher';
 import TrainingPlanBoard from '../components/training/TrainingPlanBoard';
 import TrainingReviewSummaryCard from '../components/training/TrainingReviewSummaryCard';
 import TrainingSourceCard from '../components/training/TrainingSourceCard';
@@ -43,7 +40,6 @@ import {
   type TrainingCoachFlowActionKind,
 } from '../lib/trainingCoachFlowDomain';
 import { buildTrainingWhatsAppMessage } from '../lib/trainingShareDomain';
-import { getTeamVisualTone } from '../lib/teamVisuals';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/auth';
 
@@ -51,69 +47,6 @@ function normalizeDayIndex(value: string | null) {
   const parsed = Number(value ?? '0');
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 6) return 0;
   return parsed;
-}
-
-function WorkspaceMetric({
-  label,
-  value,
-  help,
-  className = '',
-}: {
-  label: string;
-  value: string | number;
-  help: string;
-  className?: string;
-}) {
-  return (
-    <article className={`rounded-[22px] border p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)] ${className}`}>
-      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">{label}</p>
-      <p className="mt-3 text-3xl font-black text-[var(--color-dark)]">{value}</p>
-      <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{help}</p>
-    </article>
-  );
-}
-
-function CoachFlowStep({
-  label,
-  title,
-  helper,
-  complete,
-  active,
-  Icon,
-  toneClass,
-}: {
-  label: string;
-  title: string;
-  helper: string;
-  complete: boolean;
-  active: boolean;
-  Icon: typeof ClipboardList;
-  toneClass: string;
-}) {
-  return (
-    <article
-      className={cn(
-        'rounded-[24px] border bg-white/82 p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)] transition-all',
-        active ? toneClass : 'border-[var(--color-mid)]/12',
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <span
-          className={cn(
-            'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
-            active ? 'bg-white text-[var(--color-primary)] shadow-sm' : 'bg-[var(--color-light)] text-[var(--color-mid)]',
-          )}
-        >
-          {complete ? <CheckCircle2 size={20} /> : <Icon size={20} />}
-        </span>
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">{label}</p>
-          <h3 className="mt-1 text-base font-black text-[var(--color-dark)]">{title}</h3>
-          <p className="mt-1 text-sm font-semibold leading-6 text-[var(--color-mid)]">{helper}</p>
-        </div>
-      </div>
-    </article>
-  );
 }
 
 function getCoachPrimaryActionClass(kind: TrainingCoachFlowActionKind) {
@@ -127,14 +60,14 @@ function getCoachPrimaryActionClass(kind: TrainingCoachFlowActionKind) {
 }
 
 function getCoachPrimaryActionIcon(kind: TrainingCoachFlowActionKind) {
-  if (kind === 'add_sessions') return ArrowDownCircle;
+  if (kind === 'add_sessions') return PenSquare;
   if (kind === 'review_missing_info') return FileSearch;
   if (kind === 'share_plan') return MessageCircleMore;
   return Send;
 }
 
 function getCoachPrimaryActionMobileLabel(kind: TrainingCoachFlowActionKind) {
-  if (kind === 'add_sessions') return 'Add';
+  if (kind === 'add_sessions') return 'Start';
   if (kind === 'review_missing_info') return 'Review';
   if (kind === 'share_plan') return 'Share';
   return 'Publish';
@@ -210,7 +143,6 @@ export default function TrainingPage() {
   const [draftSource, setDraftSource] = useState<TrainingPlanSourceDraftInput | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareText, setShareText] = useState('');
-  const [mobileDetailView, setMobileDetailView] = useState<'editor' | 'comments'>('editor');
 
   const weekStart = searchParams.get('week') || getTrainingWeekStart();
   const selectedDayIndex = normalizeDayIndex(searchParams.get('day'));
@@ -293,10 +225,6 @@ export default function TrainingPage() {
   }, [success]);
 
   const selectedDay = workspace?.days[selectedDayIndex] || null;
-  const activeTeamTone = useMemo(
-    () => getTeamVisualTone(workspace?.team.name || teams.find((team) => team.id === teamId)?.name || ''),
-    [teamId, teams, workspace?.team.name],
-  );
   const coachFlow = useMemo(
     () =>
       workspace
@@ -309,13 +237,6 @@ export default function TrainingPage() {
         : null,
     [draftSource, workspace],
   );
-  const nextTrainingDay = useMemo(
-    () => workspace?.days.find((day) => day.dayType === 'training' && day.startTime) || null,
-    [workspace],
-  );
-  const trainingCount = coachFlow?.counts.trainingDays || 0;
-  const recoveryCount = coachFlow?.counts.recoveryDays || 0;
-  const structuredDayCount = coachFlow?.counts.structuredDays || 0;
   const issueDayCount = (coachFlow?.counts.missingInfoDays || 0) + (coachFlow?.counts.reviewDays || 0);
   const hasPlanActivity = useMemo(
     () =>
@@ -370,7 +291,7 @@ export default function TrainingPage() {
   };
 
   const handleJumpToTrainingIntake = () => {
-    const target = document.getElementById('training-start-actions');
+    const target = document.getElementById('training-day-editor-section');
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -457,7 +378,6 @@ export default function TrainingPage() {
           : current,
       );
       setSuccess('Comment posted.');
-      setMobileDetailView('comments');
       if (result.warning) {
         setWarning(result.warning);
       }
@@ -508,8 +428,7 @@ export default function TrainingPage() {
     setSelectedImportFile(null);
     setImportError('');
     setWarning('');
-    setMobileDetailView('editor');
-    setSuccess('Manual editor ready. Pick a day, set the day type to Training, then fill the session details.');
+    setSuccess('Manual form ready. Choose the day and fill the session in one place.');
     updateSearch({ dayIndex: nextDayIndex });
     window.setTimeout(handleJumpToDayEditor, 80);
   };
@@ -640,7 +559,6 @@ export default function TrainingPage() {
     }
 
     if (coachFlow.primaryAction.kind === 'review_missing_info') {
-      setMobileDetailView('editor');
       updateSearch({ dayIndex: coachFlow.primaryAction.targetDayIndex ?? nextReviewDayIndex });
       window.setTimeout(handleJumpToDayEditor, 80);
       return;
@@ -661,9 +579,9 @@ export default function TrainingPage() {
     <div className="min-h-dvh bg-[var(--color-light)] md:flex">
       <AppSidebar current="training" user={user} onLogout={() => void logout()} />
 
-      <main className="flex-1 overflow-auto p-3 pb-52 md:p-6">
+      <main className="flex-1 overflow-auto px-3 pb-28 pt-[calc(env(safe-area-inset-top)+0.75rem)] md:p-6">
         <div className="mx-auto max-w-7xl space-y-5 md:space-y-6">
-          <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
+          <section className="hidden overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)] sm:block">
             <div className="mwos-ribbon-surface px-4 py-5 text-white md:px-8 md:py-8">
               <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/68">
                 Club Module
@@ -676,7 +594,7 @@ export default function TrainingPage() {
                   <h1 className="mwos-display text-balance text-[2rem] uppercase leading-none tracking-[0.08em] text-white md:text-[3.4rem]">
                     Training Schedule
                   </h1>
-                  <p className="mt-3 max-w-3xl text-pretty text-sm font-semibold leading-6 text-white/82 md:text-base md:leading-7">
+                  <p className="mt-3 hidden max-w-3xl text-pretty text-sm font-semibold leading-6 text-white/82 sm:block md:text-base md:leading-7">
                     Build the weekly microcycle, adjust sessions live, keep Technical Director feedback in one place and deliver staff reminders without leaving the club workspace.
                   </p>
                 </div>
@@ -702,218 +620,6 @@ export default function TrainingPage() {
             </section>
           ) : null}
 
-          <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
-            <article className={cn('min-w-0 overflow-hidden rounded-[28px] border bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6', activeTeamTone.cardClass)}>
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <p className="inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)] shadow-sm">
-                    Coach Week Builder
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <span className={cn('h-4 w-4 rounded-full shadow-[0_0_0_5px_rgba(255,255,255,0.9)]', activeTeamTone.accentClass)} />
-                    <h2 className="text-balance text-2xl font-black text-[var(--color-dark)] md:text-3xl">
-                      {workspace?.team.name || 'Assigned team'}
-                    </h2>
-                  </div>
-                  <p className="mt-2 text-base font-black text-[var(--color-mid)]">
-                    {getTrainingWeekRangeLabel(weekStart)}
-                  </p>
-                  <p className="mt-3 max-w-2xl text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:text-base md:leading-7">
-                    Choose the team and week once, then add the actual sessions with the fastest input available: WhatsApp screenshot, PDF, photo, or manual edit.
-                  </p>
-                </div>
-
-                <div className="grid w-full min-w-0 gap-3 sm:grid-cols-2 lg:max-w-md">
-                  <div className="min-w-0">
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                      Team
-                    </label>
-                    <select
-                      value={teamId}
-                      onChange={(event) => updateSearch({ teamId: event.target.value, dayIndex: 0 })}
-                      className="block w-full min-w-0 max-w-full rounded-2xl border border-[var(--color-mid)]/22 bg-white px-3 py-3 text-base font-semibold outline-none focus:border-[var(--color-primary)] sm:text-sm"
-                    >
-                      {teams.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="min-w-0">
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                      Week start
-                    </label>
-                    <input
-                      type="date"
-                      value={weekStart}
-                      onChange={(event) => handleWeekChange(event.target.value)}
-                      className="block w-full min-w-0 max-w-full appearance-none rounded-2xl border border-[var(--color-mid)]/22 bg-white px-3 py-3 text-base font-semibold outline-none focus:border-[var(--color-primary)] sm:text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-3 md:grid-cols-3">
-                <CoachFlowStep
-                  label="Step 1"
-                  title="Team & week"
-                  helper="Where this plan belongs."
-                  complete={Boolean(workspace)}
-                  active={!coachFlow?.progress.sessionsStarted}
-                  Icon={ClipboardList}
-                  toneClass={activeTeamTone.cardClass}
-                />
-                <CoachFlowStep
-                  label="Step 2"
-                  title="Sessions"
-                  helper="Scan, import, or type the week."
-                  complete={Boolean(coachFlow?.progress.sessionsStarted)}
-                  active={Boolean(!coachFlow?.progress.published && coachFlow?.progress.sessionsStarted)}
-                  Icon={FileSearch}
-                  toneClass="mwos-card-tone-training"
-                />
-                <CoachFlowStep
-                  label="Step 3"
-                  title="Publish & share"
-                  helper="Make it visible and send WhatsApp."
-                  complete={Boolean(coachFlow?.progress.published)}
-                  active={Boolean(coachFlow?.progress.readyToPublish || coachFlow?.progress.reviewNeeded)}
-                  Icon={Send}
-                  toneClass={coachFlow?.progress.reviewNeeded ? 'mwos-card-tone-alert' : 'mwos-card-tone-staff'}
-                />
-              </div>
-
-              {workspace?.canManage ? (
-                <div id="training-start-actions" className="mt-5 scroll-mt-4 rounded-[26px] border border-[var(--color-primary)]/14 bg-white/78 p-3 shadow-[0_12px_30px_rgba(49,39,131,0.05)] md:scroll-mt-6 md:p-4">
-                  <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">
-                        Add the actual sessions
-                      </p>
-                      <h3 className="mt-1 text-lg font-black text-[var(--color-dark)]">
-                        Start from how the coach already works
-                      </h3>
-                    </div>
-                    <p className="max-w-xl text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                      WhatsApp screenshots and PDFs become editable drafts. Manual entry stays available when the plan is simple.
-                    </p>
-                  </div>
-                  <TrainingIntakeLauncher
-                    onCreateManual={handleCreateManual}
-                    onImportPdf={() => openImportSheet('pdf_import')}
-                    onScanPhoto={() => openImportSheet('image_import')}
-                  />
-                </div>
-              ) : (
-                <div className="mt-5 rounded-[24px] border border-[var(--color-mid)]/14 bg-white/74 p-4 text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                  This account can view training content and comments. Coaches and admins edit the week from this builder.
-                </div>
-              )}
-
-              {workspace ? (
-                <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <WorkspaceMetric
-                    className="mwos-card-tone-training"
-                    label="Training days"
-                    value={trainingCount}
-                    help="Sessions scheduled."
-                  />
-                  <WorkspaceMetric
-                    className="mwos-card-tone-transport"
-                    label="Recovery days"
-                    value={recoveryCount}
-                    help="Recovery touchpoints."
-                  />
-                  <WorkspaceMetric
-                    className="mwos-card-tone-report"
-                    label="Structured"
-                    value={structuredDayCount}
-                    help="Days with content."
-                  />
-                  <WorkspaceMetric
-                    className={issueDayCount ? 'mwos-card-tone-alert' : 'mwos-card-tone-staff'}
-                    label="Review"
-                    value={issueDayCount}
-                    help={issueDayCount ? 'Needs completion.' : 'Ready status.'}
-                  />
-                </div>
-              ) : null}
-            </article>
-
-            <article className="sticky top-4 h-fit rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">
-                Next best action
-              </p>
-              <h2 className="mt-3 text-2xl font-black text-[var(--color-dark)]">
-                {coachFlow?.primaryAction.label || 'Loading workspace'}
-              </h2>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                {coachFlow?.primaryAction.helper || 'Preparing the coach workflow for this team.'}
-              </p>
-
-              <div className="mt-5 grid gap-3">
-                <button
-                  type="button"
-                  onClick={handleCoachPrimaryAction}
-                  disabled={loading || !workspace?.canManage || savingState !== null}
-                  className={cn(
-                    'inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-black disabled:opacity-50',
-                    getCoachPrimaryActionClass(primaryActionKind),
-                  )}
-                >
-                  {savingState === 'publish' && primaryActionKind === 'publish_plan' ? (
-                    <Loader2 size={17} className="animate-spin" />
-                  ) : (
-                    <PrimaryActionIcon size={17} />
-                  )}
-                  {coachFlow?.primaryAction.label || 'Start plan'}
-                </button>
-
-                {hasPlanActivity ? (
-                  <button
-                    type="button"
-                    onClick={() => void handleSave('draft')}
-                    disabled={loading || !workspace?.canManage || savingState !== null}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/16 bg-white px-4 py-3 text-sm font-black text-[var(--color-primary)] disabled:opacity-50"
-                  >
-                    {savingState === 'draft' ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
-                    Save draft
-                  </button>
-                ) : null}
-
-                {workspace?.planId ? (
-                  <button
-                    type="button"
-                    onClick={() => void handleSave('archive')}
-                    disabled={loading || !workspace?.canManage || savingState !== null}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/60 px-4 py-3 text-sm font-black text-[var(--color-mid)] disabled:opacity-50"
-                  >
-                    {savingState === 'archive' ? <Loader2 size={17} className="animate-spin" /> : <ShieldCheck size={17} />}
-                    Archive plan
-                  </button>
-                ) : null}
-              </div>
-
-              <div className="mt-5 rounded-[24px] border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 p-4">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                  Current state
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-sm font-black text-[var(--color-dark)]">
-                  <span>{trainingCount} training</span>
-                  <span>{recoveryCount} recovery</span>
-                  <span>{structuredDayCount} structured</span>
-                  <span>{workspace?.status || 'draft'}</span>
-                </div>
-                <p className="mt-3 text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                  {nextTrainingDay
-                    ? `Next timed session: ${nextTrainingDay.weekday} at ${nextTrainingDay.startTime}.`
-                    : 'No timed training session is set yet.'}
-                </p>
-              </div>
-            </article>
-          </section>
-
           {loading ? (
             <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
               <p className="text-sm font-semibold text-[var(--color-mid)]">Loading training workspace…</p>
@@ -922,29 +628,118 @@ export default function TrainingPage() {
 
           {!loading && workspace ? (
             <>
-              {canViewRawSource && displaySourceCard ? (
-                <TrainingSourceCard
-                  source={displaySourceCard}
+              {issueDayCount ? (
+                <TrainingReviewSummaryCard
+                  days={workspace.days}
+                  nextReviewDayLabel={nextReviewDayLabel}
                   canManage={workspace.canManage}
-                  onViewSource={() => void handleViewSource()}
-                  onReplaceSource={handleReplaceSource}
-                  onClearSource={() => void handleClearImport()}
+                  onJumpToNextIssue={() => {
+                    updateSearch({ dayIndex: nextReviewDayIndex });
+                    window.setTimeout(handleJumpToDayEditor, 80);
+                  }}
                 />
               ) : null}
 
-              <TrainingReviewSummaryCard
-                days={workspace.days}
-                nextReviewDayLabel={nextReviewDayLabel}
-                canManage={workspace.canManage}
-                onJumpToNextIssue={() => {
-                  setMobileDetailView('editor');
-                  updateSearch({ dayIndex: nextReviewDayIndex });
-                  window.setTimeout(handleJumpToDayEditor, 80);
-                }}
-              />
+              <section id="training-day-editor-section" className="scroll-mt-4 md:scroll-mt-6">
+                {selectedDay ? (
+                  <TrainingDayEditor
+                    day={selectedDay}
+                    canEdit={workspace.canManage}
+                    onChange={handleDayChange}
+                    teams={teams}
+                    teamId={teamId}
+                    days={workspace.days}
+                    teamName={workspace.team.name}
+                    weekStart={workspace.weekStart}
+                    weekLabel={getTrainingWeekRangeLabel(workspace.weekStart)}
+                    onSelectTeam={(nextTeamId) => {
+                      updateSearch({ teamId: nextTeamId, dayIndex: 0 });
+                    }}
+                    onSelectWeek={handleWeekChange}
+                    onSelectDay={(index) => {
+                      updateSearch({ dayIndex: index });
+                    }}
+                    onScanPhoto={() => openImportSheet('image_import')}
+                    onImportPdf={() => openImportSheet('pdf_import')}
+                    onTypeManual={handleCreateManual}
+                    issueDayCount={issueDayCount}
+                    onSaveDraft={() => void handleSave('draft')}
+                    isSavingDraft={savingState === 'draft'}
+                  />
+                ) : (
+                  <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
+                    <p className="text-sm font-semibold text-[var(--color-mid)]">
+                      Choose a day to edit the session details.
+                    </p>
+                  </article>
+                )}
+              </section>
 
-              <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
-                <div className="grid gap-4 md:grid-cols-2">
+              {workspace.canManage ? (
+                <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:hidden">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+                    Next step
+                  </p>
+                  <h2 className="mt-2 text-lg font-black text-[var(--color-dark)]">
+                    Save your work, then move the plan forward
+                  </h2>
+                  <div
+                    className={cn(
+                      'mt-4 grid gap-2',
+                      hasPlanActivity ? 'grid-cols-2' : 'grid-cols-1',
+                    )}
+                  >
+                    {hasPlanActivity ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleSave('draft')}
+                        disabled={loading || savingState !== null}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-white disabled:opacity-50"
+                      >
+                        {savingState === 'draft' ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Save size={16} />
+                        )}
+                        Save
+                      </button>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={handleCoachPrimaryAction}
+                      disabled={loading || savingState !== null}
+                      className={cn(
+                        'inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-black uppercase tracking-[0.12em] disabled:opacity-50',
+                        getCoachPrimaryActionClass(primaryActionKind),
+                      )}
+                    >
+                      {savingState === 'publish' && primaryActionKind === 'publish_plan' ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <PrimaryActionIcon size={16} />
+                      )}
+                      {getCoachPrimaryActionMobileLabel(primaryActionKind)}
+                    </button>
+                  </div>
+                </section>
+              ) : null}
+
+              <details className="group hidden rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:block md:p-6">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+                      Optional weekly notes
+                    </p>
+                    <h2 className="mt-1 text-xl font-black text-[var(--color-dark)]">
+                      Add a headline only if staff need the weekly context
+                    </h2>
+                  </div>
+                  <span className="rounded-full bg-[var(--color-light)] px-3 py-1 text-xs font-black text-[var(--color-primary)]">
+                    Open
+                  </span>
+                </summary>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
                       Weekly headline
@@ -979,131 +774,123 @@ export default function TrainingPage() {
                     />
                   </div>
                 </div>
+              </details>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="mwos-chip-tone-report rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em]">
-                    Status · {workspace.status}
-                  </span>
-                  {workspace.publishedAt ? (
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">
-                      Published
-                    </span>
-                  ) : null}
-                  {workspace.canManage ? (
-                    <span className="mwos-chip-tone-training rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em]">
-                      Coach/Admin editable
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">
-                      Comment-only access
-                    </span>
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
+              <details className="group hidden rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:block md:p-6">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                  <div className="min-w-0">
                     <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
-                      Weekly day cards
+                      Week overview
                     </p>
                     <h2 className="mt-2 text-balance text-xl font-black text-[var(--color-dark)]">
-                      Pick a day, then complete it in the editor
+                      Preview the week after filling the form
                     </h2>
-                    <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                      Rest days can stay simple. For training days, open a card and set Day type to Training before adding time, venue, objectives and exercises.
-                    </p>
                   </div>
-                  {workspace.canManage ? (
-                    <button
-                      type="button"
-                      onClick={handleJumpToDayEditor}
-                      className="inline-flex items-center justify-center rounded-2xl border border-[var(--color-primary)]/14 bg-[var(--color-light)] px-4 py-3 text-sm font-black text-[var(--color-primary)]"
-                    >
-                      Edit {selectedDay?.weekday || 'selected day'}
-                    </button>
-                  ) : null}
+                  <span className="shrink-0 rounded-full bg-[var(--color-light)] px-3 py-1 text-xs font-black text-[var(--color-primary)]">
+                    Open
+                  </span>
+                </summary>
+                <div className="mt-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+                    Quick preview
+                  </p>
+                  <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                    This is a quick preview, not another editor. The form above is the only place where a coach fills the plan.
+                  </p>
                 </div>
 
                 <TrainingPlanBoard
                   days={workspace.days}
                   selectedDayIndex={selectedDayIndex}
                   onSelect={(index) => {
-                    setMobileDetailView('editor');
                     updateSearch({ dayIndex: index });
                     window.setTimeout(handleJumpToDayEditor, 80);
                   }}
                 />
-              </section>
+              </details>
 
-              <div className="grid grid-cols-2 gap-2 md:hidden">
-                <button
-                  type="button"
-                  onClick={() => setMobileDetailView('editor')}
-                  className={cn(
-                    'rounded-2xl border px-4 py-3 text-sm font-black',
-                    mobileDetailView === 'editor'
-                      ? 'mwos-card-tone-training text-[var(--color-dark)]'
-                      : 'border-[var(--color-mid)]/16 bg-white text-[var(--color-mid)]',
-                  )}
-                >
-                  Day editor
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMobileDetailView('comments')}
-                  className={cn(
-                    'rounded-2xl border px-4 py-3 text-sm font-black',
-                    mobileDetailView === 'comments'
-                      ? 'mwos-card-tone-staff text-[var(--color-dark)]'
-                      : 'border-[var(--color-mid)]/16 bg-white text-[var(--color-mid)]',
-                  )}
-                >
-                  Comments{workspace.planId ? ` · ${workspace.comments.length}` : ' · locked'}
-                </button>
-              </div>
+              {canViewRawSource && displaySourceCard ? (
+                <TrainingSourceCard
+                  source={displaySourceCard}
+                  canManage={workspace.canManage}
+                  onViewSource={() => void handleViewSource()}
+                  onReplaceSource={handleReplaceSource}
+                  onClearSource={() => void handleClearImport()}
+                />
+              ) : null}
 
-              <section id="training-day-editor-section" className="scroll-mt-4 grid gap-4 xl:grid-cols-[1.2fr,0.8fr] md:scroll-mt-6">
-                <div className={cn(mobileDetailView !== 'editor' && 'hidden md:block')}>
-                  {selectedDay ? (
-                    <TrainingDayEditor
-                      day={selectedDay}
-                      canEdit={workspace.canManage}
-                      onChange={handleDayChange}
-                    />
-                  ) : (
-                    <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
-                      <p className="text-sm font-semibold text-[var(--color-mid)]">
-                        Choose a day from the board to edit the session details.
-                      </p>
-                    </article>
-                  )}
-                </div>
+              <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                <article className="hidden rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:block md:p-6">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+                    Plan actions
+                  </p>
+                  <h2 className="mt-2 text-xl font-black text-[var(--color-dark)]">
+                    Save, publish, then share
+                  </h2>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                    <button
+                      type="button"
+                      onClick={() => void handleSave('draft')}
+                      disabled={!workspace.canManage || savingState !== null}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+                    >
+                      {savingState === 'draft' ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
+                      Save draft
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSave('publish')}
+                      disabled={!workspace.canManage || savingState !== null}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-primary)]/18 bg-white px-4 py-3 text-sm font-black text-[var(--color-primary)] disabled:opacity-50"
+                    >
+                      {savingState === 'publish' ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
+                      Publish
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenWhatsAppShare}
+                      disabled={savingState !== null}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 disabled:opacity-50"
+                    >
+                      <MessageCircleMore size={17} />
+                      Share WhatsApp
+                    </button>
+                    {workspace.planId ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleSave('archive')}
+                        disabled={!workspace.canManage || savingState !== null}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/60 px-4 py-3 text-sm font-black text-[var(--color-mid)] disabled:opacity-50 sm:col-span-3 xl:col-span-1"
+                      >
+                        {savingState === 'archive' ? <Loader2 size={17} className="animate-spin" /> : <ShieldCheck size={17} />}
+                        Archive
+                      </button>
+                    ) : null}
+                  </div>
+                </article>
 
-                <div className={cn(mobileDetailView !== 'comments' && 'hidden md:block')}>
-                  {workspace.planId ? (
-                    <TrainingCommentsPanel
-                      comments={workspace.comments}
-                      canComment={workspace.canComment}
-                      isSubmitting={commentSaving}
-                      onSubmit={handleCommentSubmit}
-                      selectedDayLabel={selectedDay?.weekday || null}
-                      dayLabelsById={dayLabelsById}
-                    />
-                  ) : (
-                    <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="mt-0.5 text-[var(--color-primary)]" size={20} />
-                        <div>
-                          <h2 className="text-lg font-black text-[var(--color-dark)]">Comments unlock after first save</h2>
-                          <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
-                            Save or publish the plan first. Once the plan exists in the database, coaches and the Technical Director can discuss it here.
-                          </p>
-                        </div>
+                {workspace.planId ? (
+                  <TrainingCommentsPanel
+                    comments={workspace.comments}
+                    canComment={workspace.canComment}
+                    isSubmitting={commentSaving}
+                    onSubmit={handleCommentSubmit}
+                    selectedDayLabel={selectedDay?.weekday || null}
+                    dayLabelsById={dayLabelsById}
+                  />
+                ) : (
+                  <article className="hidden rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:block md:p-6">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="mt-0.5 text-[var(--color-primary)]" size={20} />
+                      <div>
+                        <h2 className="text-lg font-black text-[var(--color-dark)]">Comments unlock after first save</h2>
+                        <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+                          Save or publish the plan first. Once the plan exists in the database, coaches and the Technical Director can discuss it here.
+                        </p>
                       </div>
-                    </article>
-                  )}
-                </div>
+                    </div>
+                  </article>
+                )}
               </section>
             </>
           ) : null}
@@ -1116,45 +903,6 @@ export default function TrainingPage() {
             </section>
           ) : null}
         </div>
-
-        {workspace?.canManage ? (
-          <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5.15rem)] z-40 md:hidden">
-            <div
-              className={cn(
-                'grid gap-2 rounded-[26px] border border-[var(--color-mid)]/12 bg-white/95 p-2 shadow-[0_24px_48px_rgba(15,23,42,0.18)] backdrop-blur',
-                hasPlanActivity ? 'grid-cols-2' : 'grid-cols-1',
-              )}
-            >
-              {hasPlanActivity ? (
-                <button
-                  type="button"
-                  onClick={() => void handleSave('draft')}
-                  disabled={loading || savingState !== null}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-white disabled:opacity-50"
-                >
-                  {savingState === 'draft' ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                  Save
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={handleCoachPrimaryAction}
-                disabled={loading || savingState !== null}
-                className={cn(
-                  'inline-flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-xs font-black uppercase tracking-[0.12em] disabled:opacity-50',
-                  getCoachPrimaryActionClass(primaryActionKind),
-                )}
-              >
-                {savingState === 'publish' && primaryActionKind === 'publish_plan' ? (
-                  <Loader2 size={15} className="animate-spin" />
-                ) : (
-                  <PrimaryActionIcon size={15} />
-                )}
-                {getCoachPrimaryActionMobileLabel(primaryActionKind)}
-              </button>
-            </div>
-          </div>
-        ) : null}
       </main>
 
       <TrainingImportSheet

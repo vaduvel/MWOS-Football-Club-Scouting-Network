@@ -1603,40 +1603,6 @@ export default function SettingsPage() {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.95rem)] z-40 px-4 md:hidden">
-        <div className="mx-auto max-w-md rounded-[24px] border border-[var(--color-mid)]/16 bg-white/96 px-4 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] pt-2 shadow-[0_-12px_28px_rgba(15,23,42,0.1)] backdrop-blur-xl">
-        {isAdmin ? (
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={handleSave}
-              disabled={isSaving || isLoading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--color-primary)]/18 bg-white px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-[var(--color-primary)] shadow-sm disabled:opacity-50"
-            >
-              <Save size={16} />
-              {isSaving ? 'Saving…' : 'Save Settings'}
-            </button>
-            <button
-              onClick={() => void handleSaveAccess()}
-              disabled={accessLoading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-white shadow-md disabled:opacity-50"
-            >
-              <Save size={16} />
-              {accessLoading ? 'Saving…' : clubAccessActionLabels.saveLabel}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleSave}
-            disabled={isSaving || isLoading}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-white shadow-md disabled:opacity-50"
-          >
-            <Save size={16} />
-            {isSaving ? 'Saving…' : 'Save Settings'}
-          </button>
-        )}
-        </div>
-      </div>
-
       <ConfirmActionModal
         open={clearAccessDialogOpen}
         title="Clear club access?"

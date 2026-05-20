@@ -311,11 +311,11 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.26em] text-[var(--color-mid)]">
-                  More actions
+                  More
                 </p>
-                <h2 className="mt-2 text-lg font-black text-[var(--color-dark)]">Open another workspace</h2>
+                <h2 className="mt-2 text-lg font-black text-[var(--color-dark)]">Other pages</h2>
                 <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                  Keep the main phone nav short. The rest of the club surfaces stay here when you need them.
+                  Quick access to settings, scouting, transport, or leadership pages assigned to this account.
                 </p>
               </div>
               <button
@@ -354,7 +354,7 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-black">{item.label}</span>
                         <span className="mt-0.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-mid)]">
-                          {active ? 'Current view' : 'Open module'}
+                          {active ? 'Current page' : 'Open page'}
                         </span>
                       </span>
                     </span>

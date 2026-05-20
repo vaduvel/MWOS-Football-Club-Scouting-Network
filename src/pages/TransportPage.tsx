@@ -319,7 +319,7 @@ export default function TransportPage() {
             </section>
           ) : null}
 
-          <section className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
             <article className="mwos-card-tone-transport rounded-[22px] border p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Active trips</p>
               <p className="mt-3 text-3xl font-black text-[var(--color-dark)]">{activePlansCount}</p>
@@ -327,7 +327,7 @@ export default function TransportPage() {
                 Published and in-progress transport work that still needs attention.
               </p>
             </article>
-            <article className="mwos-card-tone-alert col-span-2 rounded-[22px] border p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)] md:col-span-1">
+            <article className="mwos-card-tone-alert rounded-[22px] border p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Next departure</p>
               <p className="mt-3 text-xl font-black text-[var(--color-dark)]">
                 {nextTrip ? `${nextTrip.eventDate} · ${nextTrip.departureTime || 'TBD'}` : 'No upcoming trip'}

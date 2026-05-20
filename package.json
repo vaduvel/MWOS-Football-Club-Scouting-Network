@@ -15,6 +15,8 @@
     "smoke:release": "tsx scripts/release-readiness-smoke.mjs",
     "smoke:roles": "tsx scripts/role-surface-smoke.mjs",
     "smoke:final": "tsx scripts/final-launch-smoke.mjs",
+    "smoke:load": "tsx scripts/load-readiness-smoke.mjs",
+    "smoke:load:burst": "QA_LOGIN_RETRIES=6 QA_LOAD_CONCURRENCY=10 npm run smoke:load -- 20 10",
     "cleanup:test-data": "tsx scripts/test-data-cleanup.mjs"
   },
   "dependencies": {

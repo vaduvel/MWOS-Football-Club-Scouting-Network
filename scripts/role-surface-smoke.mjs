@@ -30,7 +30,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 const qaAccounts = [
   {
     key: 'admin',
-    email: 'danielvaduva994+qa-admin@gmail.com',
+    emails: ['danielvaduva994+qa-admin@gmail.com', 'danielvaduva994+qa-admin-ui@gmail.com'],
     expectedHome: 'admin',
     expectedLeadership: 'admin',
     expectedModules: {
@@ -43,7 +43,7 @@ const qaAccounts = [
   },
   {
     key: 'technical_director',
-    email: 'danielvaduva994+qa-td@gmail.com',
+    emails: ['danielvaduva994+qa-td@gmail.com', 'danielvaduva994+qa-td-ui@gmail.com'],
     expectedHome: 'technical_director',
     expectedLeadership: 'technical_director',
     expectedModules: {
@@ -56,7 +56,7 @@ const qaAccounts = [
   },
   {
     key: 'board_observer',
-    email: 'danielvaduva994+qa-board@gmail.com',
+    emails: ['danielvaduva994+qa-board@gmail.com', 'danielvaduva994+qa-board-ui@gmail.com'],
     expectedHome: 'board_observer',
     expectedLeadership: 'board_observer',
     expectedModules: {
@@ -69,7 +69,7 @@ const qaAccounts = [
   },
   {
     key: 'coach',
-    email: 'danielvaduva994+qa-coach@gmail.com',
+    emails: ['danielvaduva994+qa-coach@gmail.com', 'danielvaduva994+qa-coach-ui@gmail.com'],
     expectedHome: 'coach',
     expectedLeadership: 'none',
     expectedModules: {
@@ -82,7 +82,7 @@ const qaAccounts = [
   },
   {
     key: 'driver',
-    email: 'danielvaduva994+qa-driver@gmail.com',
+    emails: ['danielvaduva994+qa-driver@gmail.com', 'danielvaduva994+qa-driver-ui@gmail.com'],
     expectedHome: 'driver',
     expectedLeadership: 'none',
     expectedModules: {
@@ -95,7 +95,7 @@ const qaAccounts = [
   },
   {
     key: 'scout',
-    email: 'danielvaduva994+qa-scout@gmail.com',
+    emails: ['danielvaduva994+qa-scout@gmail.com', 'danielvaduva994+qa-scout-ui@gmail.com'],
     expectedHome: 'scout',
     expectedLeadership: 'none',
     expectedModules: {
@@ -113,15 +113,30 @@ export async function runRoleSurfaceSmoke({ password = process.env.ROLE_QA_PASSW
   const results = [];
 
   for (const account of qaAccounts) {
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: account.email,
-      password,
-    });
+    let signInData = null;
+    let signInError = null;
+    let activeEmail = null;
+
+    for (const candidateEmail of account.emails) {
+      const attempt = await supabase.auth.signInWithPassword({
+        email: candidateEmail,
+        password,
+      });
+      if (!attempt.error && attempt.data?.user) {
+        signInData = attempt.data;
+        activeEmail = candidateEmail;
+        signInError = null;
+        break;
+      }
+      if (attempt.error && !signInError) {
+        signInError = attempt.error;
+      }
+    }
 
     if (signInError || !signInData.user) {
       failures.push({
         account: account.key,
-        email: account.email,
+        email: account.emails[0],
         issue: `Sign in failed: ${signInError?.message || 'unknown error'}`,
       });
       continue;
@@ -136,7 +151,7 @@ export async function runRoleSurfaceSmoke({ password = process.env.ROLE_QA_PASSW
     if (rolesRes.error) {
       failures.push({
         account: account.key,
-        email: account.email,
+        email: account.emails[0],
         issue: `Role lookup failed: ${rolesRes.error.message}`,
       });
       await supabase.auth.signOut();
@@ -146,7 +161,7 @@ export async function runRoleSurfaceSmoke({ password = process.env.ROLE_QA_PASSW
     if (teamsRes.error) {
       failures.push({
         account: account.key,
-        email: account.email,
+        email: account.emails[0],
         issue: `Team lookup failed: ${teamsRes.error.message}`,
       });
       await supabase.auth.signOut();
@@ -193,7 +208,7 @@ export async function runRoleSurfaceSmoke({ password = process.env.ROLE_QA_PASSW
 
     results.push({
       account: account.key,
-      email: account.email,
+      email: activeEmail || account.emails[0],
       roles: roleSlugs,
       assignedTeams: (teamsRes.data || []).length,
       home: actualHome,
@@ -206,7 +221,7 @@ export async function runRoleSurfaceSmoke({ password = process.env.ROLE_QA_PASSW
     if (mismatches.length > 0) {
       failures.push({
         account: account.key,
-        email: account.email,
+        email: activeEmail || account.emails[0],
         issue: mismatches.join('; '),
       });
     }
