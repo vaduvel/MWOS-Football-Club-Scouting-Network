@@ -370,10 +370,7 @@ export async function archiveClubAnnouncement(announcementId: string) {
 
   const { error } = await supabase
     .from('club_announcements')
-    .update({
-      archived_at: new Date().toISOString(),
-      updated_by: authUser.id,
-    })
+    .delete()
     .eq('id', announcementId)
     .is('archived_at', null);
 
