@@ -48,11 +48,6 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
-    if (sessionStorage.getItem('mwos-login-entry-splash-seen') === '1') {
-      return;
-    }
-
-    sessionStorage.setItem('mwos-login-entry-splash-seen', '1');
     setShowEntrySplash(true);
 
     const timeoutId = window.setTimeout(() => {
