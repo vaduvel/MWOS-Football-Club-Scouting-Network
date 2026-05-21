@@ -352,14 +352,16 @@ export default function App() {
   return (
     <AppErrorBoundary>
       <BrowserRouter>
-        <PwaStatusDock
-          online={online}
-          syncDetail={syncDetail}
-          installReady={Boolean(installPrompt)}
-          updateReady={Boolean(updateRegistration)}
-          onInstall={() => void handleInstall()}
-          onUpdate={handleUpdate}
-        />
+        {token ? (
+          <PwaStatusDock
+            online={online}
+            syncDetail={syncDetail}
+            installReady={Boolean(installPrompt)}
+            updateReady={Boolean(updateRegistration)}
+            onInstall={() => void handleInstall()}
+            onUpdate={handleUpdate}
+          />
+        ) : null}
         <Suspense fallback={<RouteLoadingScreen />}>
           <Routes>
             <Route path="/login" element={!token ? <Login /> : <Navigate to="/" replace />} />
