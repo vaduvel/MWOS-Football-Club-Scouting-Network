@@ -149,6 +149,8 @@ function RouteLoadingScreen() {
   );
 }
 
+const POST_LOGIN_SPLASH_MS = 1800;
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, token } = useAuthStore();
   if (!token || !user) return <Navigate to="/login" />;
@@ -178,6 +180,7 @@ function RoleRoute({
 export default function App() {
   const { token, setAuth } = useAuthStore();
   const [loading, setLoading] = useState(true);
+  const [showPostLoginSplash, setShowPostLoginSplash] = useState(false);
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const [installPrompt, setInstallPrompt] = useState<DeferredPromptEvent | null>(null);
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
@@ -316,6 +319,26 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!token) {
+      setShowPostLoginSplash(false);
+      return;
+    }
+
+    if (sessionStorage.getItem('mwos-post-login-splash') !== '1') {
+      return;
+    }
+
+    sessionStorage.removeItem('mwos-post-login-splash');
+    setShowPostLoginSplash(true);
+
+    const timeoutId = window.setTimeout(() => {
+      setShowPostLoginSplash(false);
+    }, POST_LOGIN_SPLASH_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [token]);
+
   const handleInstall = async () => {
     if (!installPrompt) return;
 
@@ -343,6 +366,7 @@ export default function App() {
   };
 
   if (loading) return <RouteLoadingScreen />;
+  if (showPostLoginSplash) return <RouteLoadingScreen />;
   if (!isSupabaseConfigured) return <MissingConfigScreen />;
 
   return (

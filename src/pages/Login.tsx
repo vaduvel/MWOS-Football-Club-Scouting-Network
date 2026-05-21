@@ -68,6 +68,7 @@ export default function Login() {
 
       if (isLogin) {
         const data = await signIn(submittedEmail, submittedPassword);
+        sessionStorage.setItem('mwos-post-login-splash', '1');
         setAuth(data.user, data.session);
         navigate('/');
         return;
@@ -81,6 +82,7 @@ export default function Login() {
         return;
       }
 
+      sessionStorage.setItem('mwos-post-login-splash', '1');
       setAuth(data.user, data.session);
       navigate('/');
     } catch (err: any) {
