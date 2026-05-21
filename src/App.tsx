@@ -126,11 +126,24 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, Ap
 
 function RouteLoadingScreen() {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-[linear-gradient(180deg,#f7f8fb,#eef1f7)] px-6">
-      <div className="w-full max-w-md rounded-[28px] border border-[var(--color-primary)]/10 bg-white/96 p-6 text-center shadow-[0_30px_80px_rgba(12,16,53,0.12)]">
-        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">MWOS Club Management</p>
-        <div className="mx-auto mt-4 h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-primary)]/18 border-t-[var(--color-primary)]" />
-        <p className="mt-4 text-sm font-semibold text-[var(--color-dark)]/72">Loading your workspace…</p>
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#081126]">
+      <video
+        className="absolute inset-0 h-full w-full object-cover"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        poster="/branding/mwos-fc-300-2.png"
+      >
+        <source src="/branding/mwos-loading-splash.mp4" type="video/mp4" />
+      </video>
+
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(49,39,131,0.08),rgba(5,10,24,0.66)_56%,rgba(3,7,19,0.9)_100%)]" />
+
+      <div className="absolute inset-x-6 bottom-[max(2rem,env(safe-area-inset-bottom))] rounded-[24px] border border-white/12 bg-[rgba(6,12,28,0.52)] px-5 py-4 text-center shadow-[0_18px_48px_rgba(0,0,0,0.24)] backdrop-blur-md">
+        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/68">MWOS Club Management</p>
+        <p className="mt-2 text-sm font-semibold text-white/92">Loading your workspace…</p>
       </div>
     </div>
   );
@@ -329,7 +342,7 @@ export default function App() {
     setUpdateRegistration(null);
   };
 
-  if (loading) return <div className="flex min-h-dvh items-center justify-center">Loading...</div>;
+  if (loading) return <RouteLoadingScreen />;
   if (!isSupabaseConfigured) return <MissingConfigScreen />;
 
   return (
