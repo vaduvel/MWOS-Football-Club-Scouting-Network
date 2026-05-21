@@ -1,11 +1,15 @@
 type BrandSplashScreenProps = {
   message?: string;
   eyebrow?: string;
+  loop?: boolean;
+  onEnded?: () => void;
 };
 
 export default function BrandSplashScreen({
   message = 'Loading your workspace…',
   eyebrow = 'MWOS Club Management',
+  loop = true,
+  onEnded,
 }: BrandSplashScreenProps) {
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#081126] px-5 py-6">
@@ -21,11 +25,12 @@ export default function BrandSplashScreen({
           <video
             className="block h-auto max-h-[72dvh] w-full object-contain"
             autoPlay
-            loop
+            loop={loop}
             muted
             playsInline
             preload="auto"
             poster="/branding/mwos-fc-300-2.png"
+            onEnded={onEnded}
           >
             <source src="/branding/mwos-loading-splash.mp4" type="video/mp4" />
           </video>

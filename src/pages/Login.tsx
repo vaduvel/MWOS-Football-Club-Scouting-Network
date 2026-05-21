@@ -5,7 +5,7 @@ import BrandSplashScreen from '../components/BrandSplashScreen';
 import { requestPasswordReset, signIn, signUp } from '../lib/data';
 import { useAuthStore } from '../store/auth';
 
-const LOGIN_ENTRY_SPLASH_MS = 1800;
+const LOGIN_ENTRY_SPLASH_FALLBACK_MS = 3200;
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -52,7 +52,7 @@ export default function Login() {
 
     const timeoutId = window.setTimeout(() => {
       setShowEntrySplash(false);
-    }, LOGIN_ENTRY_SPLASH_MS);
+    }, LOGIN_ENTRY_SPLASH_FALLBACK_MS);
 
     return () => window.clearTimeout(timeoutId);
   }, []);
@@ -109,6 +109,8 @@ export default function Login() {
       <BrandSplashScreen
         eyebrow="MWOS Football Club"
         message="Preparing your club workspace…"
+        loop={false}
+        onEnded={() => setShowEntrySplash(false)}
       />
     );
   }
