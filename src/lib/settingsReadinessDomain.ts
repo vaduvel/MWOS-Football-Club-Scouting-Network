@@ -69,7 +69,7 @@ export function buildLaunchReadiness({
           tone: 'ready',
           statusLabel: 'Ready',
           detail: 'Password reset, invitation acceptance and shared links point to a public HTTPS app URL.',
-          action: 'Keep this URL aligned with Supabase redirect settings and Netlify production.',
+          action: 'Keep this URL aligned with Supabase redirect settings and the active production host.',
           blocking: false,
         }
       : {
@@ -78,8 +78,8 @@ export function buildLaunchReadiness({
           tone: 'attention',
           statusLabel: 'Needs setup',
           detail:
-            'The app URL is missing or still local. Shared invite links and recovery links should point to the public Netlify site before launch.',
-          action: 'Set VITE_APP_URL and Netlify APP_BASE_URL to the public HTTPS app URL, then confirm Supabase redirect URLs match.',
+            'The app URL is missing or still local. Shared invite links and recovery links should point to the public hosted app before launch.',
+          action: 'Set VITE_APP_URL and APP_BASE_URL to the public HTTPS app URL, then confirm Supabase redirect URLs match.',
           blocking: true,
         },
     adminEmailStatus?.configured

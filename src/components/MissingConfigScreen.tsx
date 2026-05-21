@@ -18,13 +18,13 @@ export default function MissingConfigScreen() {
         <div className="mt-8 rounded-2xl bg-[var(--color-dark)] text-white p-5 font-mono text-sm overflow-x-auto">
           <p>VITE_SUPABASE_URL=...</p>
           <p>VITE_SUPABASE_ANON_KEY=...</p>
-          <p>VITE_NETLIFY_FUNCTIONS_BASE_URL=/.netlify/functions</p>
+          <p>VITE_SERVERLESS_FUNCTIONS_BASE_URL=/api or /.netlify/functions</p>
         </div>
 
         <div className="mt-8 space-y-3 text-sm text-[var(--color-dark)] font-semibold">
           <p>1. Create a Supabase project and run the SQL from `supabase/schema.sql`.</p>
           <p>2. Copy the project URL and anon key into your environment.</p>
-          <p>3. In Netlify, add the same variables in Site configuration.</p>
+          <p>3. In your hosting platform, add the same variables plus the serverless base URL.</p>
         </div>
       </div>
     </div>

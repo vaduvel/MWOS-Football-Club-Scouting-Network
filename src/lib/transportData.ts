@@ -5,6 +5,7 @@ import {
   userHasRole,
 } from './data';
 import { assertSupabaseConfigured, supabase } from './supabase';
+import { getServerFunctionsBaseUrl } from './utils';
 import {
   buildTransportDraft,
   detectMajorTransportChange,
@@ -207,7 +208,7 @@ async function callNotificationFunction(body: Record<string, unknown>) {
     throw new Error('You must be signed in to continue.');
   }
 
-  const baseUrl = (import.meta.env.VITE_NETLIFY_FUNCTIONS_BASE_URL || '/.netlify/functions').replace(/\/$/, '');
+  const baseUrl = getServerFunctionsBaseUrl();
   const url = new URL(`${baseUrl}/${NOTIFY_FUNCTION_NAME}`, window.location.origin).toString();
 
   const response = await fetch(url, {

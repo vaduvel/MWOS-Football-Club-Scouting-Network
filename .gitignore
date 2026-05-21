@@ -13,3 +13,4 @@ output/
 
 # Legacy local database
 *.db
+.vercel

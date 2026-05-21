@@ -1,12 +1,21 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "vite",
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist",
-  "rewrites": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "^/\\.netlify/functions(?:/(.*))?$",
+      "dest": "/api/[...slug]?slug=$1"
+    },
+    {
+      "src": "^/api(?:/(.*))?$",
+      "dest": "/api/[...slug]?slug=$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "^(?!/api).*$",
+      "dest": "/index.html"
     }
   ]
 }

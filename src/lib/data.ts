@@ -3,6 +3,7 @@ import type { Player, PlayerReview, Report } from '../store/report';
 import type { AppSettings } from '../store/settings';
 import { createId } from './ids';
 import { assertSupabaseConfigured, supabase } from './supabase';
+import { getServerFunctionsBaseUrl } from './utils';
 import {
   formatInvitationStatusLabel,
   normalizeInviteEmail,
@@ -2696,7 +2697,7 @@ export async function saveUserClubAccess(userId: string, roleSlugs: string[], te
 }
 
 function buildFunctionUrl(functionName: string, params?: Record<string, string>) {
-  const baseUrl = (import.meta.env.VITE_NETLIFY_FUNCTIONS_BASE_URL || '/.netlify/functions').replace(/\/$/, '');
+  const baseUrl = getServerFunctionsBaseUrl();
   const url = new URL(`${baseUrl}/${functionName}`, window.location.origin);
 
   if (params) {
@@ -2750,7 +2751,7 @@ async function callFunctionRequest<T>(
   if (!response.ok) {
     if (response.status === 404) {
       throw new Error(
-        'Netlify function not found. For local import testing, run the app with Netlify Dev or set VITE_NETLIFY_FUNCTIONS_BASE_URL.',
+        'Serverless function endpoint not found. For local testing, run the configured functions runtime or set VITE_SERVERLESS_FUNCTIONS_BASE_URL.',
       );
     }
 

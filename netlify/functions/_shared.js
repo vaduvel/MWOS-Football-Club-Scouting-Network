@@ -79,6 +79,8 @@ export function getPublicAppUrl(event) {
   const configuredUrl = normalizeRuntimeUrl(
     process.env.APP_BASE_URL ||
       process.env.VITE_APP_URL ||
+      getVercelPreviewUrl() ||
+      getVercelSiteUrl() ||
       process.env.URL ||
       process.env.DEPLOY_PRIME_URL ||
       '',
@@ -109,7 +111,7 @@ export function getEmailRuntimeStatus(event) {
     deliveryMode: configured ? 'transactional_email' : 'manual_link_fallback',
     setupHint: configured
       ? 'Transactional invite and alert emails are ready.'
-      : 'Add RESEND_API_KEY and NOTIFICATION_FROM_EMAIL to the Netlify server environment. Until then, use manual invite links or WhatsApp sharing from Settings.',
+      : 'Add RESEND_API_KEY and NOTIFICATION_FROM_EMAIL to the server environment. Until then, use manual invite links or WhatsApp sharing from Settings.',
   };
 }
 
@@ -130,7 +132,40 @@ function normalizeRuntimeUrl(value) {
   return trimmed.replace(/\/$/, '');
 }
 
+function normalizeVercelUrl(value) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) {
+    return normalizeRuntimeUrl(trimmed);
+  }
+
+  return normalizeRuntimeUrl(`https://${trimmed}`);
+}
+
+function getVercelSiteUrl() {
+  return (
+    normalizeVercelUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
+    normalizeVercelUrl(process.env.VERCEL_URL)
+  );
+}
+
+function getVercelPreviewUrl() {
+  return normalizeVercelUrl(process.env.VERCEL_BRANCH_URL);
+}
+
 function getRuntimeContext() {
+  const vercelTarget = String(process.env.VERCEL_TARGET_ENV || process.env.VERCEL_ENV || '')
+    .trim()
+    .toLowerCase();
+
+  if (vercelTarget === 'production') {
+    return 'production';
+  }
+
+  if (vercelTarget === 'preview') {
+    return process.env.VERCEL_BRANCH_URL ? 'branch-deploy' : 'deploy-preview';
+  }
+
   if (process.env.CONTEXT) {
     return String(process.env.CONTEXT).trim().toLowerCase();
   }
@@ -146,8 +181,8 @@ export function getAppRuntimeStatus(event) {
   const context = getRuntimeContext();
   const branch = String(process.env.BRANCH || process.env.HEAD || '').trim() || null;
   const commitRef = String(process.env.COMMIT_REF || '').trim() || null;
-  const siteUrl = normalizeRuntimeUrl(process.env.URL);
-  const deployPrimeUrl = normalizeRuntimeUrl(process.env.DEPLOY_PRIME_URL);
+  const siteUrl = normalizeRuntimeUrl(process.env.URL) || getVercelSiteUrl();
+  const deployPrimeUrl = normalizeRuntimeUrl(process.env.DEPLOY_PRIME_URL) || getVercelPreviewUrl();
   const publicAppUrl = normalizeRuntimeUrl(getPublicAppUrl(event));
   const releaseBranch = String(process.env.RELEASE_BRANCH || 'feat/club-management').trim() || null;
   const branchMatchesRelease = branch && releaseBranch ? branch === releaseBranch : null;
@@ -166,7 +201,7 @@ export function getAppRuntimeStatus(event) {
   if (!publicAppUrl) {
     setupHint = 'Set APP_BASE_URL or VITE_APP_URL so invite and reset links point to a real app URL.';
   } else if (context === 'local') {
-    setupHint = 'Local runtime is fine for development, but live invite links should be verified again on the public Netlify URL.';
+    setupHint = 'Local runtime is fine for development, but live invite links should be verified again on the public deployment URL.';
   } else if (
     (context === 'branch-deploy' || context === 'deploy-preview') &&
     recommendedPublicUrl &&

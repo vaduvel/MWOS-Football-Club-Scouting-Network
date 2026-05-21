@@ -45,7 +45,7 @@ export function buildAppRuntimeSummary(status: AdminAppRuntimeStatus | null): Ap
       tone: 'attention',
       headline: 'Local runtime is fine for dev, not final launch',
       detail:
-        'This environment is still local. Use the Netlify branch or production build when validating invite and password-reset links.',
+        'This environment is still local. Use a hosted preview or production build when validating invite and password-reset links.',
     };
   }
 
