@@ -48,7 +48,7 @@ export function getAdminAiRuntimeStatus() {
     acceptedEnvVars: ['GEMINI_API_KEY', 'GOOGLE_API_KEY'],
     setupHint: configuredEnvVar
       ? `${ADMIN_AI_PROVIDER} is ready for admin insights and chat.`
-      : `Add GEMINI_API_KEY (preferred) or GOOGLE_API_KEY to the Netlify server environment, then redeploy the site.`,
+      : `Add GEMINI_API_KEY (preferred) or GOOGLE_API_KEY to the server environment, then redeploy the site.`,
   };
 }
 
