@@ -90,19 +90,19 @@ export default function ResetPassword() {
                 alt="MWOS logo"
                 className="mx-auto h-14 w-14 rounded-full border border-white/20 bg-[var(--color-primary)]/5 p-0.5 shadow-[0_18px_45px_rgba(12,16,53,0.18)]"
               />
-              <p className="mt-4 text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-mid)]">
+              <p className="mwos-hero-kicker mt-4 text-[var(--color-mid)]">
                 MWOS Football Club
               </p>
-              <h1 className="mt-2 mwos-display text-3xl uppercase tracking-[0.06em] text-[var(--color-dark)]">
+              <h1 className="mwos-display mwos-hero-title mt-2 text-[var(--color-dark)]">
                 Reset Password
               </h1>
-              <p className="mt-3 text-sm font-semibold text-[var(--color-mid)]">
+              <p className="mwos-hero-copy mt-3 text-[var(--color-mid)]">
                   Set a new password for your club account.
               </p>
             </div>
 
             {checkingSession ? (
-              <div className="flex items-center justify-center gap-3 rounded-2xl bg-[var(--color-light)] px-4 py-5 text-sm font-semibold text-[var(--color-mid)]">
+              <div className="mwos-mobile-note flex items-center justify-center gap-3 border-0 bg-[var(--color-light)] text-sm font-semibold text-[var(--color-mid)]">
                 <Loader2 size={18} className="animate-spin" />
                 Preparing your recovery session...
               </div>
@@ -114,7 +114,7 @@ export default function ResetPassword() {
                   </div>
                 )}
                 {info && (
-                  <div className="mb-4 rounded-2xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
+                  <div className="mwos-card-tone-training mb-4 rounded-2xl border p-3 text-sm font-semibold text-[var(--color-primary-deep)]">
                     {info}
                   </div>
                 )}
@@ -130,7 +130,7 @@ export default function ResetPassword() {
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         autoComplete="new-password"
-                        className="w-full rounded-2xl border border-[var(--color-mid)]/30 p-3 outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                        className="mwos-mobile-input"
                       />
                     </div>
 
@@ -143,14 +143,14 @@ export default function ResetPassword() {
                         value={confirmPassword}
                         onChange={(event) => setConfirmPassword(event.target.value)}
                         autoComplete="new-password"
-                        className="w-full rounded-2xl border border-[var(--color-mid)]/30 p-3 outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                        className="mwos-mobile-input"
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-92 disabled:opacity-60"
+                      className="mwos-btn mwos-btn-primary w-full disabled:opacity-60"
                     >
                       {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
                       Save New Password
@@ -161,7 +161,7 @@ export default function ResetPassword() {
                     <button
                       type="button"
                       onClick={() => navigate('/login', { replace: true })}
-                      className="rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-92"
+                      className="mwos-btn mwos-btn-primary px-5"
                     >
                       Back to Login
                     </button>

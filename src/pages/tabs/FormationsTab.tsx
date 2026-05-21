@@ -346,7 +346,7 @@ export default function FormationsTab() {
               <select 
                 value={formationKey} 
                 onChange={(e) => applyFormation(e.target.value)}
-                className="rounded-md border border-[var(--color-mid)]/30 bg-[var(--color-light)] px-3 py-1.5 text-xs font-bold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)]"
+                className="mwos-select-field rounded-md border border-[var(--color-mid)]/30 bg-[var(--color-light)] px-3 py-1.5 text-xs font-bold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)]"
               >
                 {Object.keys(FORMATIONS).map(f => (
                   <option key={f} value={f}>{f}</option>
@@ -356,7 +356,7 @@ export default function FormationsTab() {
               <button 
                 onClick={() => setIsLocked(!isLocked)}
                 className={`px-3 py-1.5 flex items-center gap-1 text-xs font-bold rounded-md transition-colors ${
-                  isLocked ? 'bg-red-100 text-red-700' : 'bg-[var(--color-light)] text-[var(--color-dark)] hover:bg-[var(--color-mid)]/20'
+                  isLocked ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]' : 'bg-[var(--color-light)] text-[var(--color-dark)] hover:bg-[var(--color-mid)]/20'
                 }`}
                 title={isLocked ? "Unlock free movement" : "Lock to formation slots"}
               >

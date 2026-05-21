@@ -47,7 +47,7 @@ describe('buildClubHomeHero', () => {
       expect.objectContaining({
         eyebrow: 'Board Briefing',
         primaryLabel: 'Open oversight',
-        secondaryLabel: 'Open notifications',
+        secondaryLabel: 'Open alerts',
       }),
     );
   });
@@ -69,6 +69,8 @@ describe('buildClubHomeHero', () => {
         eyebrow: 'Driver Workspace',
         primaryLabel: 'Open transport plans',
         primaryPath: '/transport',
+        secondaryLabel: 'Open alerts',
+        secondaryPath: '/notifications',
       }),
     );
   });

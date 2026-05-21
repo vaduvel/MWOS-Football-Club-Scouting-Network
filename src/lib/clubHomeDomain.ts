@@ -78,7 +78,7 @@ export function buildClubHomeHero(view: ClubHomeViewMode, assignedTeams: number)
           'Review training publication, upcoming transport, scouting pulse, and key alerts without entering operational edit flows.',
         primaryLabel: 'Open oversight',
         primaryPath: '/oversight',
-        secondaryLabel: 'Open notifications',
+        secondaryLabel: 'Open alerts',
         secondaryPath: '/notifications',
       };
     case 'coach':
@@ -100,8 +100,8 @@ export function buildClubHomeHero(view: ClubHomeViewMode, assignedTeams: number)
           'Use the club workspace to stay ahead of upcoming trips and last-minute changes without chasing coaches manually.',
         primaryLabel: 'Open transport plans',
         primaryPath: '/transport',
-        secondaryLabel: 'Open notifications',
-        secondaryPath: '/settings',
+        secondaryLabel: 'Open alerts',
+        secondaryPath: '/notifications',
       };
     case 'scout':
       return {

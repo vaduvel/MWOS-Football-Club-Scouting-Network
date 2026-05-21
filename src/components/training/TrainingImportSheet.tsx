@@ -58,9 +58,9 @@ export default function TrainingImportSheet({
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Add training update</p>
-            <h2 id="training-import-sheet-title" className="mt-2 text-balance text-xl font-black text-[var(--color-dark)] md:text-2xl">{modeLabel(mode)}</h2>
-            <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
+            <p className="mwos-section-eyebrow text-[var(--color-mid)]">Add training update</p>
+            <h2 id="training-import-sheet-title" className="mwos-section-title mt-2 text-balance text-xl font-black text-[var(--color-dark)] md:text-2xl">{modeLabel(mode)}</h2>
+            <p className="mwos-section-copy mt-2 text-pretty text-[var(--color-mid)]">
               {mode === 'pdf_import'
                 ? 'Upload a training PDF. We will extract readable text first, then build a draft week for review.'
                 : 'Upload a WhatsApp screenshot, whiteboard photo, or handwritten plan. We will OCR the notes and convert them into editable day cards.'}
@@ -91,7 +91,7 @@ export default function TrainingImportSheet({
         </label>
 
         {error ? (
-          <div className="mt-4 rounded-[20px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          <div className="mwos-card-tone-danger mt-4 rounded-[20px] border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
             {error}
           </div>
         ) : null}
@@ -100,7 +100,7 @@ export default function TrainingImportSheet({
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-black text-[var(--color-dark)]"
+            className="mwos-btn mwos-btn-secondary w-full"
           >
             Cancel
           </button>
@@ -108,7 +108,7 @@ export default function TrainingImportSheet({
             type="button"
             onClick={onImport}
             disabled={!file || importing}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+            className="mwos-btn mwos-btn-primary w-full"
           >
             {importing ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
             Build draft

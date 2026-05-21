@@ -301,7 +301,7 @@ export default function ExportTab() {
       </div>
 
       {exportSuccess && (
-        <div className="flex items-center justify-center rounded-xl bg-green-50 p-4 text-sm font-bold text-green-700">
+        <div className="mwos-card-tone-training flex items-center justify-center rounded-xl border p-4 text-sm font-bold text-[var(--color-primary-deep)]">
           <CheckCircle size={18} className="mr-2" />
           PDF generated successfully. Check your downloads.
         </div>

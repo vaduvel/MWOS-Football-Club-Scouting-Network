@@ -26,11 +26,11 @@ import {
 import type { OversightAttentionItem } from './oversightDomain';
 import { assertSupabaseConfigured, supabase } from './supabase';
 import {
-  fetchTrainingNotificationCenter,
   fetchTrainingPlanSummaries,
   type TrainingNotificationItem,
   type TrainingPlanSummary,
 } from './trainingData';
+import { fetchNotificationWorkspace } from './notificationWorkspaceData';
 import {
   fetchTransportPlanSummaries,
   type TransportPlanSummary,
@@ -146,7 +146,7 @@ export async function fetchClubHomeWorkspace(): Promise<ClubHomeWorkspace> {
     representation: 'date',
   });
 
-  const notificationsPromise = fetchTrainingNotificationCenter(6);
+  const alertsPromise = fetchNotificationWorkspace(6);
   const trainingPromise = canAccessTrainingModule(authUser)
     ? fetchTrainingPlanSummaries(weekStart)
     : Promise.resolve([] as TrainingPlanSummary[]);
@@ -158,8 +158,8 @@ export async function fetchClubHomeWorkspace(): Promise<ClubHomeWorkspace> {
     ? fetchOversightWorkspace()
     : Promise.resolve(null as OversightWorkspace | null);
 
-  const [notifications, trainingPlans, transportPlans, reportsResult, leadership] = await Promise.all([
-    notificationsPromise,
+  const [alertsWorkspace, trainingPlans, transportPlans, reportsResult, leadership] = await Promise.all([
+    alertsPromise,
     trainingPromise,
     transportPromise,
     reportsPromise,
@@ -187,7 +187,7 @@ export async function fetchClubHomeWorkspace(): Promise<ClubHomeWorkspace> {
     hero: buildClubHomeHero(view, assignedTeamsCount),
     metrics: buildClubHomeMetricCards(view, {
       assignedTeams: assignedTeamsCount,
-      unreadNotifications: notifications.unreadCount,
+      unreadNotifications: alertsWorkspace.stats.unread,
       trainingPlansCurrentWeek,
       publishedTrainingPlansCurrentWeek,
       upcomingTransportPlans,
@@ -195,8 +195,8 @@ export async function fetchClubHomeWorkspace(): Promise<ClubHomeWorkspace> {
       pendingInvitations: pendingInvitations.length,
     }),
     assignedTeamsCount,
-    notifications: notifications.items,
-    unreadNotificationCount: notifications.unreadCount,
+    notifications: alertsWorkspace.notifications,
+    unreadNotificationCount: alertsWorkspace.stats.unread,
     trainingPlans: leadership?.currentWeekTrainingPlans.slice(0, 4) || trainingPlans.slice(0, 4),
     upcomingTransport: leadership
       ? leadership.upcomingTransport.map((item) => ({

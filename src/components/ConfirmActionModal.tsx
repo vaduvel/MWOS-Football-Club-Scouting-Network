@@ -44,8 +44,8 @@ export default function ConfirmActionModal({
 
   const confirmClass =
     tone === 'warning'
-      ? 'bg-amber-600 text-white hover:bg-amber-700'
-      : 'bg-red-600 text-white hover:bg-red-700';
+      ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-deep)]'
+      : 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-deep)]';
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(15,23,42,0.52)] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-4 backdrop-blur-sm sm:items-center sm:p-4">

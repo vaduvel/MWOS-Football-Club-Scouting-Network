@@ -35,26 +35,26 @@ export default function TransportPlanEditor({
   };
 
   return (
-    <article className="mwos-card-tone-transport rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
+    <article className="mwos-mobile-panel mwos-card-tone-transport md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+          <p className="mwos-section-eyebrow text-[var(--color-mid)]">
             Trip editor
           </p>
-          <h2 className="mt-1 text-balance text-lg font-black text-[var(--color-dark)] md:text-xl">
+          <h2 className="mwos-section-title mt-1 text-balance text-lg font-black text-[var(--color-dark)] md:text-xl">
             {workspace.id ? workspace.title || 'Transport plan' : 'New transport plan'}
           </h2>
-          <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
+          <p className="mwos-section-copy mt-2 text-pretty text-[var(--color-mid)]">
             Plan the departure, assign the driver and keep every important change attached to one transport record.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mwos-chip-tone-transport rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em]">
+        <div className="mwos-subcard-badges">
+          <span className="mwos-pill mwos-pill-transport">
             {workspace.status}
           </span>
           {workspace.driverName ? (
-            <span className="mwos-chip-tone-staff inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em]">
+            <span className="mwos-pill mwos-pill-staff">
               <Truck size={13} />
               {workspace.driverName}
             </span>
@@ -64,12 +64,12 @@ export default function TransportPlanEditor({
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <label className="space-y-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Team</span>
+          <span className="mwos-form-label mb-0 text-[var(--color-mid)]">Team</span>
           <select
             value={workspace.team.id}
             onChange={(event) => onChange('team', teams.find((team) => team.id === event.target.value) || workspace.team)}
             disabled={!workspace.canCreate || Boolean(workspace.id)}
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+            className="mwos-select-field mwos-mobile-input"
           >
             {teams.map((team) => (
               <option key={team.id} value={team.id}>
@@ -80,12 +80,12 @@ export default function TransportPlanEditor({
         </label>
 
         <label className="space-y-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Context</span>
+          <span className="mwos-form-label mb-0 text-[var(--color-mid)]">Context</span>
           <select
             value={workspace.contextType}
             onChange={(event) => onChange('contextType', event.target.value as TransportWorkspace['contextType'])}
             disabled={!workspace.canManage}
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+            className="mwos-select-field mwos-mobile-input"
           >
             <option value="match">Match</option>
             <option value="training">Training</option>
@@ -94,18 +94,18 @@ export default function TransportPlanEditor({
         </label>
 
         <label className="space-y-2 md:col-span-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Title</span>
+          <span className="mwos-form-label mb-0 text-[var(--color-mid)]">Title</span>
           <input
             value={workspace.title}
             onChange={(event) => onChange('title', event.target.value)}
             disabled={!workspace.canManage}
             placeholder="Example: U19 away transport to Harare"
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+            className="mwos-mobile-input"
           />
         </label>
 
         <label className="space-y-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Event date</span>
+          <span className="mwos-form-label mb-0 text-[var(--color-mid)]">Event date</span>
           <input
             type="text"
             inputMode="numeric"
@@ -118,12 +118,12 @@ export default function TransportPlanEditor({
             disabled={!workspace.canManage}
             maxLength={10}
             placeholder="YYYY-MM-DD"
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+            className="mwos-mobile-input"
           />
         </label>
 
         <label className="space-y-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Departure time</span>
+          <span className="mwos-form-label mb-0 text-[var(--color-mid)]">Departure time</span>
           <input
             type="text"
             inputMode="numeric"
@@ -136,12 +136,12 @@ export default function TransportPlanEditor({
             disabled={!workspace.canManage}
             maxLength={5}
             placeholder="HH:MM"
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+            className="mwos-mobile-input"
           />
         </label>
 
         <label className="space-y-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Arrival target</span>
+          <span className="mwos-form-label mb-0 text-[var(--color-mid)]">Arrival target</span>
           <input
             type="text"
             inputMode="numeric"
@@ -154,40 +154,40 @@ export default function TransportPlanEditor({
             disabled={!workspace.canManage}
             maxLength={5}
             placeholder="HH:MM"
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+            className="mwos-mobile-input"
           />
         </label>
 
         <label className="space-y-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Meeting point</span>
+          <span className="mwos-form-label mb-0 text-[var(--color-mid)]">Meeting point</span>
           <input
             value={workspace.meetingPoint}
             onChange={(event) => onChange('meetingPoint', event.target.value)}
             disabled={!workspace.canManage}
             placeholder="Main gate, academy, hotel..."
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+            className="mwos-mobile-input"
           />
         </label>
 
         <label className="space-y-2 md:col-span-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Destination</span>
+          <span className="mwos-form-label mb-0 text-[var(--color-mid)]">Destination</span>
           <input
             value={workspace.destination}
             onChange={(event) => onChange('destination', event.target.value)}
             disabled={!workspace.canManage}
             placeholder="Venue, city or pickup destination..."
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+            className="mwos-mobile-input"
           />
         </label>
 
         <label className="space-y-2 md:col-span-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Assigned driver</span>
+          <span className="mwos-form-label mb-0 text-[var(--color-mid)]">Assigned driver</span>
           {workspace.canAssignDriver ? (
             <select
               value={workspace.driverUserId}
               onChange={(event) => onChange('driverUserId', event.target.value)}
               disabled={!workspace.canManage}
-              className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+              className="mwos-select-field mwos-mobile-input"
             >
               <option value="">Select driver</option>
               {drivers.map((driver) => (
@@ -197,46 +197,46 @@ export default function TransportPlanEditor({
               ))}
             </select>
           ) : (
-            <div className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)]">
+            <div className="mwos-mobile-input flex items-center">
               {workspace.driverName || 'You will be assigned automatically'}
             </div>
           )}
         </label>
 
         {!workspace.canAssignDriver && workspace.canManage ? (
-          <div className="md:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+          <div className="mwos-card-tone-alert md:col-span-2 rounded-2xl border p-3 text-sm font-semibold text-[var(--color-accent-deep)]">
             Assigned drivers can update trip details and complete the trip, but only admin or technical staff can reassign the driver.
           </div>
         ) : null}
 
         <label className="space-y-2 md:col-span-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Contact notes</span>
+          <span className="mwos-form-label mb-0 text-[var(--color-mid)]">Contact notes</span>
           <textarea
             value={workspace.contactNotes}
             onChange={(event) => onChange('contactNotes', event.target.value)}
             disabled={!workspace.canManage}
             rows={3}
             placeholder="Useful phone numbers, who to call, or urgent coordination notes..."
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+            className="mwos-mobile-textarea"
           />
         </label>
 
         <label className="space-y-2 md:col-span-2">
-          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Travel notes</span>
+          <span className="mwos-form-label mb-0 text-[var(--color-mid)]">Travel notes</span>
           <textarea
             value={workspace.notes}
             onChange={(event) => onChange('notes', event.target.value)}
             disabled={!workspace.canManage}
             rows={4}
             placeholder="Luggage notes, route context, player timing, checkpoints..."
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
+            className="mwos-mobile-textarea"
           />
         </label>
       </div>
 
       {workspace.id && isPublished ? (
-        <div className="mwos-card-tone-alert mt-5 inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold text-[var(--color-dark)]">
-          <AlertCircle size={16} className="text-amber-700" />
+        <div className="mwos-mobile-note mwos-card-tone-alert mt-5 inline-flex items-center gap-2 border text-[var(--color-dark)]">
+          <AlertCircle size={16} className="text-[var(--color-accent)]" />
           Important changes to departure time, arrival target, destination or driver will trigger in-app and email alerts.
         </div>
       ) : null}
@@ -247,7 +247,7 @@ export default function TransportPlanEditor({
             type="button"
             onClick={() => onAction('draft')}
             disabled={savingState !== null}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-light)] px-4 py-3 text-sm font-black text-[var(--color-dark)] disabled:opacity-50 xl:w-auto"
+            className="mwos-btn mwos-btn-secondary w-full xl:w-auto"
           >
             {savingState === 'draft' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Save draft
@@ -259,7 +259,7 @@ export default function TransportPlanEditor({
             type="button"
             onClick={() => onAction('publish')}
             disabled={savingState !== null}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white disabled:opacity-50 xl:w-auto"
+            className="mwos-btn mwos-btn-primary w-full xl:w-auto"
           >
             {savingState === 'publish' ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
             {workspace.status === 'draft' ? 'Publish plan' : 'Save update'}
@@ -271,7 +271,7 @@ export default function TransportPlanEditor({
             type="button"
             onClick={() => onAction('complete')}
             disabled={savingState !== null || workspace.status === 'completed'}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50 xl:w-auto"
+            className="mwos-btn mwos-btn-success w-full xl:w-auto"
           >
             {savingState === 'complete' ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
             Mark completed
@@ -283,7 +283,7 @@ export default function TransportPlanEditor({
             type="button"
             onClick={() => onAction('cancel')}
             disabled={savingState !== null || workspace.status === 'cancelled'}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50 xl:w-auto"
+            className="mwos-btn mwos-btn-danger w-full xl:w-auto"
           >
             {savingState === 'cancel' ? <Loader2 size={16} className="animate-spin" /> : <Ban size={16} />}
             Cancel plan

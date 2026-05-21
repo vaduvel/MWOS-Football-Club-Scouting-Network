@@ -202,7 +202,7 @@ export default function NotificationCenter() {
               ) : null}
 
               {!loading && error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">
+                <div className="mwos-card-tone-danger rounded-2xl border p-5 text-sm font-semibold text-[var(--color-accent-deep)]">
                   {error}
                 </div>
               ) : null}

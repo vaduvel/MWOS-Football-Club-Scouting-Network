@@ -712,16 +712,16 @@ export default function SettingsPage() {
                   className="h-10 w-10 rounded-full border border-white/20 bg-white/10 p-0.5 md:h-12 md:w-12"
                 />
               </div>
-              <div className="mt-4 flex items-center gap-3 md:mt-5 md:gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-white md:h-11 md:w-11">
-                  <Settings size={22} />
+              <div className="mwos-surface-intro mt-4 md:mt-5">
+                <div className="mwos-surface-intro-icon flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-white md:h-11 md:w-11">
+                  <Settings size={20} />
                 </div>
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/65">MWOS Club Workspace</p>
-                  <h1 className="mt-1 mwos-display text-[2rem] uppercase leading-none tracking-[0.08em] text-white md:text-4xl">
+                <div className="mwos-surface-intro-copy">
+                  <p className="mwos-hero-kicker text-white/65">MWOS Club Workspace</p>
+                  <h1 className="mwos-display mwos-hero-title mt-1 text-white md:text-4xl">
                     Settings
                   </h1>
-                  <p className="mt-1.5 text-xs font-semibold text-white/75 md:mt-2 md:text-sm">
+                  <p className="mwos-hero-copy mt-1.5 text-white/75 md:mt-2">
                     Manage integrations and, for admins, assign club roles and teams.
                   </p>
                 </div>
@@ -732,7 +732,7 @@ export default function SettingsPage() {
           <div className="grid gap-4 xl:grid-cols-[0.85fr,1.15fr]">
             <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/20 bg-white shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
               <div className="border-b border-[var(--color-mid)]/20 bg-[var(--color-light)]/50 p-4 md:p-5">
-                <h2 className="flex items-center text-base font-black uppercase tracking-wider text-[var(--color-dark)]">
+                <h2 className="flex items-center text-base font-black uppercase tracking-[0.12em] text-[var(--color-dark)]">
                   <Database size={18} className="mr-2 text-[var(--color-primary)]" />
                   Data Provider Integration
                 </h2>
@@ -749,19 +749,19 @@ export default function SettingsPage() {
                 )}
 
                 {error && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                  <div className="mwos-card-tone-danger rounded-xl border p-4 text-sm font-semibold text-[var(--color-accent-deep)]">
                     {error}
                   </div>
                 )}
 
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-[var(--color-mid)]">
+                  <label className="mwos-form-label text-[var(--color-mid)]">
                     Football Data Provider
                   </label>
                   <select
                     value={localProvider}
                     onChange={(e) => setLocalProvider(e.target.value)}
-                    className="w-full rounded-2xl border border-[var(--color-mid)]/30 bg-white p-3 font-bold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                    className="mwos-select-field w-full rounded-2xl border border-[var(--color-mid)]/30 bg-white p-3 font-bold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                   >
                     <option value="api-football">API-Football (api-football.com)</option>
                     <option value="none">None (Manual Entry Only)</option>
@@ -770,7 +770,7 @@ export default function SettingsPage() {
 
                 {localProvider === 'api-football' && (
                   <div>
-                    <label className="mb-2 flex items-center text-xs font-bold uppercase tracking-wider text-[var(--color-mid)]">
+                    <label className="mwos-form-label mb-2 flex items-center text-[var(--color-mid)]">
                       <Key size={14} className="mr-1" /> API Key
                     </label>
                     <input
@@ -780,7 +780,7 @@ export default function SettingsPage() {
                       placeholder="Enter your API-Football key"
                       className="w-full rounded-2xl border border-[var(--color-mid)]/30 bg-white p-3 font-mono text-sm outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                     />
-                    <p className="mt-2 text-xs text-[var(--color-mid)]">
+                    <p className="mwos-form-helper mt-2 text-[var(--color-mid)]">
                       Get your API key from{' '}
                       <a href="https://dashboard.api-football.com/" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] hover:underline">
                         dashboard.api-football.com
@@ -793,11 +793,11 @@ export default function SettingsPage() {
                 <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
                   <div className="flex items-center gap-2">
                     <Bell size={16} className="text-[var(--color-primary)]" />
-                    <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
+                    <p className="mwos-section-eyebrow text-[var(--color-dark)]">
                       Important Email Alerts
                     </p>
                   </div>
-                  <p className="mt-2 text-xs font-semibold leading-6 text-[var(--color-mid)]">
+                  <p className="mwos-form-helper mt-2 text-[var(--color-mid)]">
                     In-app notifications are always kept in the workspace. These toggles decide which important training and transport events should also arrive by email.
                   </p>
 
@@ -840,7 +840,7 @@ export default function SettingsPage() {
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-black text-[var(--color-dark)]">{item.label}</p>
-                          <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                          <p className="mwos-form-helper mt-1 text-[var(--color-mid)]">
                             {item.description}
                           </p>
                         </div>
@@ -858,7 +858,7 @@ export default function SettingsPage() {
                 <div className="flex flex-col gap-3 border-t border-[var(--color-mid)]/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     {saveSuccess && (
-                      <span className="flex items-center text-sm font-bold text-green-600">
+                      <span className="flex items-center text-sm font-bold text-[var(--color-primary)]">
                         <CheckCircle size={16} className="mr-1" /> Settings saved successfully
                       </span>
                     )}
@@ -879,7 +879,7 @@ export default function SettingsPage() {
 
             <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/20 bg-white shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
               <div className="border-b border-[var(--color-mid)]/20 bg-[var(--color-light)]/50 p-4 md:p-5">
-                <h2 className="flex items-center text-base font-black uppercase tracking-wider text-[var(--color-dark)]">
+                <h2 className="flex items-center text-base font-black uppercase tracking-[0.12em] text-[var(--color-dark)]">
                   <ShieldCheck size={18} className="mr-2 text-[var(--color-primary)]" />
                   Club Access
                 </h2>
@@ -896,19 +896,19 @@ export default function SettingsPage() {
                 ) : (
                   <div className="space-y-4">
                     {accessError && (
-                      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                      <div className="mwos-card-tone-danger rounded-xl border p-4 text-sm font-semibold text-[var(--color-accent-deep)]">
                         {accessError}
                       </div>
                     )}
 
                     {inviteError && (
-                      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                      <div className="mwos-card-tone-danger rounded-xl border p-4 text-sm font-semibold text-[var(--color-accent-deep)]">
                         {inviteError}
                       </div>
                     )}
 
                     {inviteSuccess && (
-                      <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
+                      <div className="mwos-card-tone-training rounded-xl border p-4 text-sm font-semibold text-[var(--color-primary-deep)]">
                         {inviteSuccess}
                       </div>
                     )}
@@ -917,20 +917,24 @@ export default function SettingsPage() {
                       <div
                         className={`rounded-2xl border p-4 ${
                           activationNotice.tone === 'success'
-                            ? 'border-green-200 bg-green-50'
-                            : 'border-amber-200 bg-amber-50'
+                            ? 'mwos-card-tone-training'
+                            : 'mwos-card-tone-alert'
                         }`}
                       >
                         <p
                           className={`text-sm font-black ${
-                            activationNotice.tone === 'success' ? 'text-green-800' : 'text-amber-900'
+                            activationNotice.tone === 'success'
+                              ? 'text-[var(--color-primary-deep)]'
+                              : 'text-[var(--color-accent-deep)]'
                           }`}
                         >
                           {activationNotice.title}
                         </p>
                         <p
                           className={`mt-2 text-sm font-semibold leading-6 ${
-                            activationNotice.tone === 'success' ? 'text-green-700' : 'text-amber-800'
+                            activationNotice.tone === 'success'
+                              ? 'text-[var(--color-primary)]'
+                              : 'text-[var(--color-accent)]'
                           }`}
                         >
                           {activationNotice.message}
@@ -956,7 +960,7 @@ export default function SettingsPage() {
                               <button
                                 type="button"
                                 onClick={() => void copyActivationLink(activationNotice.activationLink!)}
-                                className="rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-bold text-white shadow-sm"
+                                className="mwos-btn mwos-btn-secondary text-sm"
                               >
                                 Copy {activationNotice.linkLabel?.toLowerCase() || 'activation link'}
                               </button>
@@ -964,7 +968,7 @@ export default function SettingsPage() {
                                 <button
                                   type="button"
                                   onClick={() => openWhatsAppShare(activationNotice.shareText!)}
-                                  className="rounded-2xl border border-[var(--color-primary)]/18 bg-white px-4 py-2.5 text-sm font-bold text-[var(--color-primary)]"
+                                  className="mwos-btn mwos-btn-primary text-sm"
                                 >
                                   Share on WhatsApp
                                 </button>
@@ -972,7 +976,7 @@ export default function SettingsPage() {
                               <button
                                 type="button"
                                 onClick={() => setActivationNotice(null)}
-                                className="rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-2.5 text-sm font-bold text-[var(--color-dark)]"
+                                className="mwos-btn mwos-btn-ghost text-sm"
                               >
                                 Dismiss
                               </button>
@@ -1007,7 +1011,7 @@ export default function SettingsPage() {
                           <select
                             value={staffRoleFilter}
                             onChange={(event) => setStaffRoleFilter(event.target.value)}
-                            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none shadow-sm"
+                            className="mwos-select-field w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none shadow-sm"
                           >
                             <option value="all">All roles</option>
                             {clubAccess?.roles.map((role) => (
@@ -1025,7 +1029,7 @@ export default function SettingsPage() {
                           <select
                             value={staffTeamFilter}
                             onChange={(event) => setStaffTeamFilter(event.target.value)}
-                            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none shadow-sm"
+                            className="mwos-select-field w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none shadow-sm"
                           >
                             <option value="all">All teams</option>
                             {clubAccess?.teams.map((team) => (
@@ -1085,17 +1089,17 @@ export default function SettingsPage() {
                       <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
                         <div className="flex items-center gap-2">
                           <UserPlus size={16} className="text-[var(--color-primary)]" />
-                          <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-dark)]">
+                          <p className="mwos-section-eyebrow text-[var(--color-dark)]">
                             Invite Staff
                           </p>
                         </div>
-                        <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                        <p className="mwos-form-helper mt-2 text-[var(--color-mid)]">
                           Choose one or more roles, select every team this person should access, then send the invite by email or share the activation link on WhatsApp.
                         </p>
 
                         <div className="mt-4 space-y-4">
                           <div>
-                            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-[var(--color-mid)]">
+                            <label className="mwos-form-label text-[var(--color-mid)]">
                               Full Name
                             </label>
                             <input
@@ -1108,7 +1112,7 @@ export default function SettingsPage() {
                           </div>
 
                           <div>
-                            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-[var(--color-mid)]">
+                            <label className="mwos-form-label text-[var(--color-mid)]">
                               Email
                             </label>
                             <input
@@ -1121,7 +1125,7 @@ export default function SettingsPage() {
                           </div>
 
                           <div>
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Roles (choose one or more)</p>
+                            <p className="mwos-form-label mb-0 text-[var(--color-mid)]">Roles (choose one or more)</p>
                             <div className="mt-3 grid gap-2 sm:grid-cols-2">
                               {clubAccess?.roles.map((role) => {
                                 const active = inviteRoleSlugs.includes(role.slug);
@@ -1136,7 +1140,7 @@ export default function SettingsPage() {
                                     }`}
                                   >
                                     <p className="text-sm font-black text-[var(--color-dark)]">{role.label}</p>
-                                    <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                                    <p className="mwos-form-helper mt-1 text-[var(--color-mid)]">
                                       {role.description}
                                     </p>
                                   </button>
@@ -1147,7 +1151,7 @@ export default function SettingsPage() {
 
                           <div>
                             <div className="flex items-center justify-between gap-3">
-                              <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Teams for this access</p>
+                              <p className="mwos-form-label mb-0 text-[var(--color-mid)]">Teams for this access</p>
                               {inviteNeedsTeam && (
                                 <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
                                   Required for coach / driver / scout
@@ -1168,7 +1172,7 @@ export default function SettingsPage() {
                                     }`}
                                   >
                                     <p className="text-sm font-black text-[var(--color-dark)]">{team.name}</p>
-                                    <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">
+                                    <p className="mwos-form-helper mt-1 text-[var(--color-mid)]">
                                       {team.is_active ? 'Active team' : 'Prepared for activation'}
                                     </p>
                                   </button>
@@ -1190,7 +1194,7 @@ export default function SettingsPage() {
                               <button
                                 onClick={() => void handleSendInvite('email')}
                                 disabled={inviteLoading}
-                                className="rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-90 disabled:opacity-50"
+                                className="mwos-btn mwos-btn-secondary text-sm"
                               >
                                 <span className="inline-flex items-center gap-2">
                                   <Mail size={16} />
@@ -1200,14 +1204,14 @@ export default function SettingsPage() {
                               <button
                                 onClick={() => void handleSendInvite('manual_link')}
                                 disabled={inviteLoading}
-                                className="rounded-2xl border border-[var(--color-primary)]/18 bg-white px-4 py-2.5 text-sm font-bold text-[var(--color-primary)] shadow-sm disabled:opacity-50"
+                                className="mwos-btn mwos-btn-tertiary text-sm"
                               >
                                 Create Share Link
                               </button>
                               <button
                                 onClick={() => void handleSendInvite('whatsapp_share')}
                                 disabled={inviteLoading}
-                                className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 shadow-sm disabled:opacity-50"
+                                className="mwos-btn mwos-btn-primary text-sm"
                               >
                                 Share on WhatsApp
                               </button>
@@ -1229,14 +1233,14 @@ export default function SettingsPage() {
 
                         <div className="mt-4 space-y-3">
                           {staffOperationsMetrics.stalePendingInvitationCount > 0 && (
-                            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                            <div className="mwos-card-tone-alert rounded-2xl border p-4">
                               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
-                                  <p className="text-sm font-black text-amber-900">
+                                  <p className="text-sm font-black text-[var(--color-accent-deep)]">
                                     {staffOperationsMetrics.stalePendingInvitationCount} expired invite
                                     {staffOperationsMetrics.stalePendingInvitationCount === 1 ? '' : 's'} need follow-up
                                   </p>
-                                  <p className="mt-2 text-sm font-semibold leading-6 text-amber-800">
+                                  <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-accent)]">
                                     These invites are already past their activation window. You can keep them for history, or move them out of the pending queue.
                                   </p>
                                 </div>
@@ -1244,7 +1248,7 @@ export default function SettingsPage() {
                                   type="button"
                                   onClick={() => void handleExpireStaleInvites()}
                                   disabled={invitationActionKey === 'expire-stale'}
-                                  className="rounded-2xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-bold text-amber-800 shadow-sm disabled:opacity-50"
+                                  className="mwos-btn mwos-btn-warning text-sm"
                                 >
                                   {invitationActionKey === 'expire-stale' ? 'Updating…' : 'Move expired invites'}
                                 </button>
@@ -1312,7 +1316,7 @@ export default function SettingsPage() {
                                   <button
                                     onClick={() => void handleShareInviteOnWhatsApp(invitation.id)}
                                     disabled={invitationActionKey === `share:${invitation.id}`}
-                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 disabled:opacity-50"
+                                    className="mwos-btn mwos-btn-primary text-sm"
                                   >
                                     <Mail size={16} />
                                     {invitationActionKey === `share:${invitation.id}` ? 'Working...' : 'Share on WhatsApp'}
@@ -1320,7 +1324,7 @@ export default function SettingsPage() {
                                   <button
                                     onClick={() => void handleResendInvite(invitation.id)}
                                     disabled={invitationActionKey === `resend:${invitation.id}`}
-                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-primary)]/18 bg-white px-4 py-2.5 text-sm font-bold text-[var(--color-primary)] shadow-sm disabled:opacity-50"
+                                    className="mwos-btn mwos-btn-secondary text-sm"
                                   >
                                     <RotateCcw size={16} />
                                     {invitationActionKey === `resend:${invitation.id}` ? 'Working...' : 'Resend Invite'}
@@ -1328,7 +1332,7 @@ export default function SettingsPage() {
                                   <button
                                     onClick={() => void handleCopyInviteLink(invitation.id)}
                                     disabled={invitationActionKey === `copy:${invitation.id}`}
-                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-2.5 text-sm font-bold text-[var(--color-dark)] shadow-sm disabled:opacity-50"
+                                    className="mwos-btn mwos-btn-tertiary text-sm"
                                   >
                                     <Mail size={16} />
                                     {invitationActionKey === `copy:${invitation.id}` ? 'Preparing...' : 'Copy Activation Link'}
@@ -1336,7 +1340,7 @@ export default function SettingsPage() {
                                   <button
                                     onClick={() => void handleCancelInvite(invitation.id)}
                                     disabled={invitationActionKey === `cancel:${invitation.id}`}
-                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 disabled:opacity-50"
+                                    className="mwos-btn mwos-btn-danger text-sm"
                                   >
                                     <XCircle size={16} />
                                     {invitationActionKey === `cancel:${invitation.id}` ? 'Working...' : 'Cancel Invite'}
@@ -1420,7 +1424,7 @@ export default function SettingsPage() {
                                   <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{member.email}</p>
                                   <p
                                     className={`mt-2 text-[11px] font-black uppercase tracking-[0.18em] ${
-                                      hasClubAccess ? 'text-[var(--color-mid)]' : 'text-amber-700'
+                                      hasClubAccess ? 'text-[var(--color-mid)]' : 'text-[var(--color-accent)]'
                                     }`}
                                   >
                                     {hasClubAccess
@@ -1506,7 +1510,7 @@ export default function SettingsPage() {
                             <div className="mt-5 flex flex-col gap-3 border-t border-[var(--color-mid)]/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
                               <div>
                                 {accessSuccess && (
-                                  <span className="flex items-center text-sm font-bold text-green-600">
+                                  <span className="flex items-center text-sm font-bold text-[var(--color-primary)]">
                                     <CheckCircle size={16} className="mr-1" /> {clubAccessActionLabels.successLabel}
                                   </span>
                                 )}
@@ -1515,7 +1519,7 @@ export default function SettingsPage() {
                                 <button
                                   onClick={() => void handleClearAccess()}
                                   disabled={accessLoading || clubAccessActionLabels.isClearing}
-                                  className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                  className="mwos-btn mwos-btn-danger px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                   <span className="inline-flex items-center gap-2">
                                     <XCircle size={16} />
@@ -1574,12 +1578,12 @@ export default function SettingsPage() {
                                   <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{event.targetEmail}</p>
                                 </div>
                                 <span
-                                  className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] shadow-sm ${
+                                  className={`mwos-pill ${
                                     event.tone === 'warning'
-                                      ? 'bg-amber-100 text-amber-800'
+                                      ? 'mwos-pill-alert'
                                       : event.tone === 'success'
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : 'bg-white text-[var(--color-dark)]'
+                                        ? 'mwos-pill-success'
+                                        : 'mwos-pill-neutral'
                                   }`}
                                 >
                                   {event.title}

@@ -56,7 +56,7 @@ export default function TrainingWhatsAppShareSheet({
           value={text}
           onChange={(event) => setText(event.target.value)}
           rows={12}
-          className="mt-5 w-full rounded-[24px] border border-emerald-200 bg-emerald-50/65 px-4 py-4 text-sm font-semibold leading-7 text-[var(--color-dark)] outline-none focus:border-emerald-500"
+          className="mwos-mobile-textarea mwos-card-tone-training mt-5 rounded-[24px] border px-4 py-4 text-sm font-semibold leading-7 focus:border-[var(--color-primary)]"
         />
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -71,7 +71,7 @@ export default function TrainingWhatsAppShareSheet({
           <button
             type="button"
             onClick={handleOpenWhatsApp}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white"
+            className="mwos-btn mwos-btn-primary"
           >
             <MessageCircleMore size={16} />
             Open WhatsApp

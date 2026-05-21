@@ -4,8 +4,8 @@ import type { ScoutingWorkspaceMetric } from '../../lib/scoutingWorkspaceDomain'
 const TONE_CLASSES: Record<ScoutingWorkspaceMetric['tone'], string> = {
   primary: 'border-[var(--color-primary)]/15 bg-[linear-gradient(135deg,rgba(49,39,131,0.10),rgba(255,255,255,0.96))]',
   accent: 'border-[var(--color-accent)]/12 bg-[linear-gradient(135deg,rgba(190,23,23,0.08),rgba(255,255,255,0.96))]',
-  gold: 'border-[#d5aa4d]/18 bg-[linear-gradient(135deg,rgba(213,170,77,0.12),rgba(255,255,255,0.96))]',
-  success: 'border-emerald-200 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),rgba(255,255,255,0.96))]',
+  gold: 'border-[var(--color-primary-deep)]/16 bg-[linear-gradient(135deg,rgba(34,27,102,0.12),rgba(255,255,255,0.96))]',
+  success: 'border-[var(--color-primary-border)] bg-[linear-gradient(135deg,rgba(49,39,131,0.08),rgba(255,255,255,0.96))]',
 };
 
 type ScoutingWorkspaceMetricsProps = {

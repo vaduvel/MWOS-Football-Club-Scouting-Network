@@ -103,9 +103,9 @@ export default function AdminDashboardPanel({
       hint: 'Users with at least one saved report',
       icon: BarChart3,
       surface:
-        'bg-[linear-gradient(135deg,rgba(213,170,77,0.16),rgba(255,255,255,0.95))] border-[#d5aa4d]/20',
-      iconSurface: 'bg-[#d5aa4d]/18 text-[#7c5b11]',
-      valueColor: 'text-[#7c5b11]',
+        'bg-[linear-gradient(135deg,rgba(34,27,102,0.12),rgba(255,255,255,0.95))] border-[var(--color-primary-deep)]/18',
+      iconSurface: 'bg-[var(--color-primary-deep)]/12 text-[var(--color-primary-deep)]',
+      valueColor: 'text-[var(--color-primary-deep)]',
     },
     {
       label: 'Last 7 Days',
@@ -113,9 +113,9 @@ export default function AdminDashboardPanel({
       hint: 'Fresh reports created recently',
       icon: Activity,
       surface:
-        'bg-[linear-gradient(135deg,rgba(35,76,112,0.12),rgba(255,255,255,0.96))] border-sky-700/15',
-      iconSurface: 'bg-sky-700/12 text-sky-700',
-      valueColor: 'text-sky-700',
+        'bg-[linear-gradient(135deg,rgba(49,39,131,0.09),rgba(255,255,255,0.96))] border-[var(--color-primary)]/14',
+      iconSurface: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+      valueColor: 'text-[var(--color-primary)]',
     },
   ];
 
@@ -198,18 +198,18 @@ export default function AdminDashboardPanel({
                 Checking assistant readiness...
               </div>
             ) : aiStatusError ? (
-              <div className="rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <div className="mwos-card-tone-danger rounded-[18px] border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
                 {aiStatusError}
               </div>
             ) : !aiConfigured ? (
-              <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-4">
+              <div className="mwos-card-tone-alert rounded-[18px] border px-4 py-4">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-2xl bg-amber-100 p-2 text-amber-800">
+                  <div className="rounded-2xl bg-[var(--color-accent)]/10 p-2 text-[var(--color-accent)]">
                     <AlertTriangle size={18} />
                   </div>
                   <div>
-                    <p className="text-sm font-black text-amber-900">Assistant insights are not active yet</p>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-amber-900/85">
+                    <p className="text-sm font-black text-[var(--color-accent-deep)]">Assistant insights are not active yet</p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-accent)]">
                       This optional assistant is not active for the club workspace yet.
                     </p>
                   </div>
@@ -221,18 +221,18 @@ export default function AdminDashboardPanel({
                 Generating suggestions from the report data...
               </div>
             ) : insightsError ? (
-              <div className="rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <div className="mwos-card-tone-danger rounded-[18px] border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
                 {insightsError}
               </div>
             ) : insights ? (
               <div className="space-y-5">
                 <div className="rounded-[20px] bg-[linear-gradient(135deg,rgba(49,39,131,0.10),rgba(73,62,179,0.04))] px-4 py-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 rounded-2xl bg-[var(--color-primary)]/12 p-2 text-[var(--color-primary)]">
+                  <div className="mwos-surface-intro">
+                    <div className="mwos-surface-intro-icon mt-0.5 rounded-2xl bg-[var(--color-primary)]/12 p-2 text-[var(--color-primary)]">
                       <Sparkles size={18} />
                     </div>
-                    <div>
-                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">
+                    <div className="mwos-surface-intro-copy">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
                         Headline
                       </p>
                       <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-dark)]">
@@ -262,14 +262,14 @@ export default function AdminDashboardPanel({
                 </div>
 
                 {insights.watchouts.length > 0 && (
-                  <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-4">
-                    <div className="flex items-center gap-2 text-amber-800">
+                  <div className="mwos-card-tone-alert rounded-[20px] border px-4 py-4">
+                    <div className="flex items-center gap-2 text-[var(--color-accent)]">
                       <AlertTriangle size={16} />
                       <p className="text-[11px] font-black uppercase tracking-[0.24em]">Watchouts</p>
                     </div>
                     <div className="mt-3 space-y-2">
                       {insights.watchouts.map((item) => (
-                        <p key={item} className="text-sm font-semibold leading-6 text-amber-900/85">
+                        <p key={item} className="text-sm font-semibold leading-6 text-[var(--color-accent-deep)]">
                           {item}
                         </p>
                       ))}
@@ -334,19 +334,19 @@ export default function AdminDashboardPanel({
             </div>
 
             {!aiStatusLoading && !aiConfigured && (
-              <div className="mt-3 rounded-[16px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900/85">
+              <div className="mwos-card-tone-alert mt-3 rounded-[16px] border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
                 Club assistant is not active yet.
               </div>
             )}
 
             {aiStatusError && (
-              <div className="mt-3 rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <div className="mwos-card-tone-danger mt-3 rounded-[16px] border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
                 {aiStatusError}
               </div>
             )}
 
             {chatError && (
-              <div className="mt-3 rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <div className="mwos-card-tone-danger mt-3 rounded-[16px] border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
                 {chatError}
               </div>
             )}
@@ -388,7 +388,7 @@ export default function AdminDashboardPanel({
                 Highest-rated monitored players
               </h3>
             </div>
-            <div className="rounded-2xl bg-[#d5aa4d]/18 p-3 text-[#7c5b11]">
+            <div className="rounded-2xl bg-[var(--color-primary-deep)]/10 p-3 text-[var(--color-primary-deep)]">
               <Trophy size={20} />
             </div>
           </div>
@@ -400,18 +400,18 @@ export default function AdminDashboardPanel({
                   key={player.player_id}
                   type="button"
                   onClick={() => onOpenReport(player.report_id)}
-                  className="rounded-[20px] border border-[#d5aa4d]/20 bg-[linear-gradient(135deg,rgba(213,170,77,0.14),rgba(255,255,255,0.96))] p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(124,91,17,0.10)] md:rounded-[22px] md:p-4"
+                  className="rounded-[20px] border border-[var(--color-primary-deep)]/18 bg-[linear-gradient(135deg,rgba(34,27,102,0.12),rgba(255,255,255,0.96))] p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(34,27,102,0.10)] md:rounded-[22px] md:p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-base font-black text-[var(--color-dark)] md:text-lg">
                         #{player.shirt_number || '-'} {player.name}
                       </p>
-                      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#7c5b11] md:text-xs">
+                      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-primary-deep)] md:text-xs">
                         {player.potential_level} • {player.team_side} side
                       </p>
                     </div>
-                    <div className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-[#7c5b11] shadow-sm">
+                    <div className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-[var(--color-primary-deep)] shadow-sm">
                       {player.average_score}/5
                     </div>
                   </div>

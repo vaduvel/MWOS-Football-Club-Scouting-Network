@@ -26,8 +26,8 @@ function getReviewTone(day: TrainingPlanDay, selected: boolean) {
   if (day.dayType === 'rest') {
     return {
       card: selected
-        ? 'border-slate-300 bg-slate-50'
-        : 'mwos-card-tone-report hover:border-slate-300',
+        ? 'border-[var(--color-border-report)] bg-white'
+        : 'mwos-card-tone-report hover:border-[var(--color-border-report)]',
       icon: 'mwos-icon-tone-report',
       badge: 'mwos-chip-tone-report',
     };
@@ -36,8 +36,8 @@ function getReviewTone(day: TrainingPlanDay, selected: boolean) {
   if (day.importReviewState === 'missing_info') {
     return {
       card: selected
-        ? 'border-rose-300 bg-rose-50'
-        : 'mwos-card-tone-alert hover:border-rose-300',
+        ? 'mwos-card-tone-danger border-[var(--color-accent)]/26'
+        : 'mwos-card-tone-danger hover:border-[var(--color-accent)]/32',
       icon: 'mwos-icon-tone-alert',
       badge: 'mwos-chip-tone-alert',
     };
@@ -46,8 +46,8 @@ function getReviewTone(day: TrainingPlanDay, selected: boolean) {
   if (day.importReviewState === 'needs_review') {
     return {
       card: selected
-        ? 'border-amber-300 bg-amber-50'
-        : 'mwos-card-tone-alert hover:border-amber-300',
+        ? 'mwos-card-tone-alert border-[var(--color-accent)]/18'
+        : 'mwos-card-tone-alert hover:border-[var(--color-accent)]/28',
       icon: 'mwos-icon-tone-alert',
       badge: 'mwos-chip-tone-alert',
     };
@@ -58,7 +58,7 @@ function getReviewTone(day: TrainingPlanDay, selected: boolean) {
       ? 'border-[var(--color-primary)]/26 bg-[var(--color-primary)]/5'
       : day.dayType === 'training'
         ? 'mwos-card-tone-training hover:border-[var(--color-primary)]/18'
-        : 'mwos-card-tone-transport hover:border-emerald-300',
+        : 'mwos-card-tone-transport hover:border-[var(--color-primary)]/18',
     icon: day.dayType === 'training'
       ? 'mwos-icon-tone-training'
       : 'mwos-icon-tone-transport',
@@ -92,28 +92,28 @@ export default function TrainingDayStatusCard({
     <button
       type="button"
       onClick={onSelect}
-      className={cn('rounded-[24px] border p-4 text-left shadow-[0_14px_34px_rgba(49,39,131,0.05)] transition-all', tone.card)}
+      className={cn('rounded-[22px] border p-3.5 text-left shadow-[0_14px_34px_rgba(49,39,131,0.05)] transition-all md:rounded-[24px] md:p-4', tone.card)}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)] md:text-[11px] md:tracking-[0.2em]">
             {day.weekday}
           </p>
-          <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">{day.date}</p>
+          <p className="mt-1 text-xs font-semibold text-[var(--color-mid)] md:text-sm">{day.date}</p>
         </div>
-        <div className={cn('flex h-10 w-10 items-center justify-center rounded-2xl', tone.icon)}>
+        <div className={cn('flex h-9 w-9 items-center justify-center rounded-2xl md:h-10 md:w-10', tone.icon)}>
           <DayIcon dayType={day.dayType} />
         </div>
       </div>
 
-      <h3 className="mt-4 text-base font-black text-[var(--color-dark)]">{typeLabel(day)}</h3>
-      <p className="mt-2 min-h-[40px] text-sm font-semibold leading-6 text-[var(--color-mid)]">
+      <h3 className="mt-3 text-sm font-black text-[var(--color-dark)] md:mt-4 md:text-base">{typeLabel(day)}</h3>
+      <p className="mt-1.5 min-h-[32px] text-sm font-semibold leading-5 text-[var(--color-mid)] md:mt-2 md:min-h-[40px] md:leading-6">
         {day.dayType === 'training'
           ? `${day.startTime || '--:--'}${day.location ? ` · ${day.location}` : ''}`
           : day.notes || 'No extra notes added yet.'}
       </p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em]">
+      <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] md:mt-4 md:gap-2 md:text-[11px] md:tracking-[0.14em]">
         <span className={cn('rounded-full px-2 py-1', tone.badge)}>
           {day.importReviewState ? reviewLabel(day) : 'Structured'}
         </span>
@@ -128,27 +128,27 @@ export default function TrainingDayStatusCard({
       </div>
 
       {day.reminderSentAt ? (
-        <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">
+        <div className="mwos-pill mwos-pill-success mt-3 inline-flex items-center gap-1 md:mt-4">
           <CalendarClock size={12} />
           Reminder sent
         </div>
       ) : day.importReviewState === 'missing_info' ? (
-        <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-rose-700">
+        <div className="mwos-pill mwos-pill-danger mt-3 inline-flex items-center gap-1 md:mt-4">
           <AlertTriangle size={12} />
           Needs manual completion
         </div>
       ) : day.importReviewState === 'needs_review' ? (
-        <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-amber-700">
+        <div className="mwos-pill mwos-pill-alert mt-3 inline-flex items-center gap-1 md:mt-4">
           <AlertTriangle size={12} />
           Review before publish
         </div>
       ) : day.importReviewState === 'ready' && day.importedExcerpt ? (
-        <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">
+        <div className="mwos-pill mwos-pill-success mt-3 inline-flex items-center gap-1 md:mt-4">
           <CheckCircle2 size={12} />
           Draft extracted
         </div>
       ) : day.dayType === 'training' ? (
-        <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--color-primary)]">
+        <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--color-primary)] md:mt-4">
           <CheckCircle2 size={12} />
           Open editor
         </div>

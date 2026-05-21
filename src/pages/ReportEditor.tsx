@@ -446,7 +446,7 @@ export default function ReportEditor() {
                 'Add details to save'
               ) : lastSaved ? (
                 <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle size={12} className="text-emerald-300" />
+                  <CheckCircle size={12} className="text-[var(--color-primary-soft)]" />
                   Saved
                 </span>
               ) : (
@@ -508,7 +508,7 @@ export default function ReportEditor() {
               </span>
             ) : lastSaved ? (
               <span className="inline-flex items-center text-xs font-semibold text-white/72">
-                <CheckCircle size={14} className="mr-1 text-emerald-300" />
+                <CheckCircle size={14} className="mr-1 text-[var(--color-primary-soft)]" />
                 Saved {lastSaved.toLocaleTimeString()}
               </span>
             ) : null}
@@ -552,8 +552,8 @@ export default function ReportEditor() {
                   <span
                     className={`mt-1 h-2.5 w-2.5 rounded-full md:ml-auto md:mt-0 ${
                       progressItem.status === 'complete'
-                        ? 'bg-emerald-500'
-                        : 'bg-amber-400'
+                        ? 'bg-[var(--color-primary)]'
+                        : 'bg-[var(--color-accent)]'
                     }`}
                   />
                 ) : null}
@@ -587,8 +587,8 @@ export default function ReportEditor() {
                       key={item.key}
                       className={`rounded-2xl border p-4 ${
                         item.status === 'complete'
-                          ? 'border-emerald-200 bg-emerald-50'
-                          : 'border-amber-200 bg-amber-50'
+                          ? 'border-[var(--color-primary-border)] bg-[var(--color-primary-soft)]/70'
+                          : 'border-[var(--color-accent-border)] bg-[var(--color-accent-soft)]/75'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -596,8 +596,8 @@ export default function ReportEditor() {
                         <span
                           className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
                             item.status === 'complete'
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-amber-500 text-white'
+                              ? 'bg-[var(--color-primary)] text-white'
+                              : 'bg-[var(--color-accent)] text-white'
                           }`}
                         >
                           {item.status === 'complete' ? 'Ready' : 'Needs attention'}
@@ -614,7 +614,7 @@ export default function ReportEditor() {
 
             <Suspense fallback={<ReportTabLoadingState />}>
               {readOnlyPreviewTab ? (
-                <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                <div className="mwos-card-tone-alert mb-4 rounded-2xl border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
                   Technical Director review mode is active. This report can be inspected and exported here, while editing stays with admins and scouts.
                 </div>
               ) : null}
@@ -669,7 +669,7 @@ export default function ReportEditor() {
                           {progressItem ? (
                             <span
                               className={`h-2 w-2 rounded-full ${
-                                progressItem.status === 'complete' ? 'bg-emerald-500' : 'bg-amber-400'
+                                progressItem.status === 'complete' ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-accent)]'
                               }`}
                             />
                           ) : null}

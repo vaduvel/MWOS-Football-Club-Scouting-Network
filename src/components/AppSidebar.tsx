@@ -45,7 +45,7 @@ type SidebarItem = {
 function buildSidebarItems(user: AppUser | null): SidebarItem[] {
   const items: SidebarItem[] = [
     { key: 'home', label: 'Club Home', mobileLabel: 'Home', path: '/', icon: Home },
-    { key: 'notifications', label: 'Notifications', mobileLabel: 'Alerts', path: '/notifications', icon: Bell },
+    { key: 'notifications', label: 'Alerts', mobileLabel: 'Alerts', path: '/notifications', icon: Bell },
   ];
 
   if (canAccessTrainingModule(user)) {
@@ -163,7 +163,7 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
   const baseNavClass =
     'w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all';
   const mobileNavClass =
-    'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-black uppercase tracking-[0.08em] transition-all';
+    'mwos-bottom-nav-item flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-center transition-all';
   const roleSlug = getPrimaryRoleSlug(user);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
 
@@ -375,8 +375,8 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
         </div>
       ) : null}
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-[rgba(21,18,83,0.96)] px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 text-white shadow-[0_-12px_28px_rgba(12,16,53,0.22)] backdrop-blur-xl md:hidden">
-        <div className={`mx-auto grid max-w-md ${mobileColumnClass} gap-1 rounded-[22px] border border-white/10 bg-white/5 p-1`}>
+      <nav className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 text-white md:hidden">
+        <div className={`mwos-bottom-nav-shell mwos-bottom-nav-grid mx-auto grid max-w-md ${mobileColumnClass}`}>
           {mobileItems.map((item) => {
             const Icon = item.icon;
             const active = current === item.key;
@@ -388,11 +388,11 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
                 aria-label={item.label}
                 title={item.label}
                 className={`${mobileNavClass} ${
-                  active ? 'bg-white text-[var(--color-primary)] shadow-sm' : 'text-white/72'
+                  active ? 'mwos-bottom-nav-item-active' : 'mwos-bottom-nav-item-inactive'
                 }`}
               >
-                <Icon size={15} />
-                <span>{item.mobileLabel || item.label}</span>
+                <Icon size={18} />
+                <span className="mwos-bottom-nav-label">{item.mobileLabel || item.label}</span>
               </button>
             );
           })}
@@ -404,12 +404,12 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
             title="More navigation"
             className={`${mobileNavClass} ${
               overflowItems.some((item) => item.key === current)
-                ? 'bg-white text-[var(--color-primary)] shadow-sm'
-                : 'text-white/72'
+                ? 'mwos-bottom-nav-item-active'
+                : 'mwos-bottom-nav-item-inactive'
             }`}
           >
-            <MoreHorizontal size={15} />
-            <span>More</span>
+            <MoreHorizontal size={18} />
+            <span className="mwos-bottom-nav-label">More</span>
           </button>
         </div>
       </nav>

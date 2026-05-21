@@ -1,12 +1,47 @@
 import type { ChangeEvent, ReactNode } from 'react';
-import { FileText, Loader2, PenSquare, Save, ScanLine } from 'lucide-react';
+import { CalendarRange, ClipboardList, FileText, Loader2, PenSquare, Save, ScanLine, Sparkles } from 'lucide-react';
 import type { TrainingPlanDay } from '../../lib/trainingData';
 
 function FieldLabel({ children }: { children: ReactNode }) {
   return (
-    <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+    <label className="mwos-form-label text-[var(--color-mid)]/92">
       {children}
     </label>
+  );
+}
+
+function SectionIntro({
+  step,
+  title,
+  description,
+  icon,
+}: {
+  step: string;
+  title: string;
+  description: string;
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="mb-4 md:mb-5">
+      <div className="mwos-surface-intro">
+        {icon ? (
+          <div className="mwos-surface-intro-icon flex size-9 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+            {icon}
+          </div>
+        ) : null}
+        <div className="mwos-surface-intro-copy">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
+            {step}
+          </p>
+          <h3 className="mt-1 text-balance text-lg font-black text-[var(--color-dark)] md:text-[1.15rem]">
+            {title}
+          </h3>
+          <p className="mt-1.5 max-w-2xl text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
+            {description}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -128,10 +163,10 @@ export default function TrainingDayEditor({
   const trainingLikeDay = day.dayType === 'training' || day.dayType === 'active_recovery';
 
   return (
-    <article className="rounded-[28px] border border-[var(--color-primary)]/18 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.07)] md:p-6">
+    <article className="mwos-mobile-panel border-[var(--color-primary)]/18 md:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="inline-flex rounded-full bg-[var(--color-primary)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white">
+          <p className="mwos-pill bg-[var(--color-primary)] text-white shadow-none">
             Training plan
           </p>
           <h2 className="mt-3 text-balance text-2xl font-black text-[var(--color-dark)]">
@@ -141,24 +176,27 @@ export default function TrainingDayEditor({
             Start from a WhatsApp screenshot, a PDF, a paper photo, or write the session manually in the form below.
           </p>
         </div>
-        <span className="w-fit rounded-full bg-[var(--color-light)] px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+        <span className="mwos-pill mwos-pill-neutral w-fit">
           {reviewLabel(day)}
         </span>
       </div>
 
       {canEdit && (onScanPhoto || onImportPdf || onTypeManual) ? (
-        <section className="mt-5 rounded-[24px] border border-[var(--color-primary)]/12 bg-[var(--color-light)]/54 p-3 md:p-4">
+        <section className="mwos-mobile-panel-soft mt-5 border-[var(--color-primary)]/12 md:p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
                 Choose input
               </p>
-              <p className="mt-1 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+              <h3 className="mt-1 text-base font-black text-[var(--color-dark)]">
+                Start from an existing plan or write from scratch
+              </h3>
+              <p className="mt-1.5 text-sm font-semibold leading-6 text-[var(--color-mid)]">
                 If the coach already wrote it, import it. If not, type it below.
               </p>
             </div>
             {issueDayCount ? (
-              <span className="w-fit rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-amber-800">
+              <span className="mwos-pill mwos-pill-alert w-fit">
                 {issueDayCount} to review
               </span>
             ) : null}
@@ -169,7 +207,7 @@ export default function TrainingDayEditor({
               <button
                 type="button"
                 onClick={onScanPhoto}
-                className="inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-white px-3 py-3 text-sm font-black text-[var(--color-primary)] shadow-sm"
+                className="mwos-btn mwos-btn-tertiary w-full"
               >
                 <ScanLine size={17} />
                 Scan photo
@@ -179,7 +217,7 @@ export default function TrainingDayEditor({
               <button
                 type="button"
                 onClick={onImportPdf}
-                className="inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-white px-3 py-3 text-sm font-black text-[var(--color-primary)] shadow-sm"
+                className="mwos-btn mwos-btn-secondary w-full"
               >
                 <FileText size={17} />
                 Import PDF
@@ -189,7 +227,7 @@ export default function TrainingDayEditor({
               <button
                 type="button"
                 onClick={onTypeManual}
-                className="inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-3 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(4,120,87,0.18)]"
+                className="mwos-btn mwos-btn-primary w-full"
               >
                 <PenSquare size={17} />
                 Write manually
@@ -200,10 +238,13 @@ export default function TrainingDayEditor({
       ) : null}
 
       <div className="mt-4 grid gap-4 md:mt-6">
-        <section className="rounded-[24px] bg-[var(--color-light)]/50 p-4">
-          <p className="mb-4 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
-            1. Team and day
-          </p>
+        <section className="mwos-mobile-panel-soft">
+          <SectionIntro
+            step="Step 1"
+            title="Team and day"
+            description="Choose the team, week and exact day before you fill the session details."
+            icon={<CalendarRange size={18} />}
+          />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="min-w-0">
               <FieldLabel>Team</FieldLabel>
@@ -212,7 +253,7 @@ export default function TrainingDayEditor({
                   value={teamId}
                   onChange={(event) => onSelectTeam(event.target.value)}
                   disabled={!canEdit}
-                  className="block h-14 w-full min-w-0 max-w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-sm font-black text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] sm:text-base"
+                  className="mwos-select-field mwos-mobile-input block w-full min-w-0 max-w-full font-black sm:text-base"
                 >
                   {teams.map((team) => (
                     <option key={team.id} value={team.id}>
@@ -221,7 +262,7 @@ export default function TrainingDayEditor({
                   ))}
                 </select>
               ) : (
-                <div className="min-h-[52px] rounded-2xl border border-[var(--color-mid)]/16 bg-white px-4 py-3 text-sm font-black text-[var(--color-dark)] sm:text-base">
+                <div className="mwos-mobile-input flex min-h-[52px] items-center font-black sm:text-base">
                   {teamName || 'Assigned team'}
                 </div>
               )}
@@ -234,10 +275,10 @@ export default function TrainingDayEditor({
                 value={weekStart || ''}
                 onChange={(event) => onSelectWeek?.(event.target.value)}
                 disabled={!canEdit || !onSelectWeek}
-                className="block h-14 w-full min-w-0 max-w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-sm font-black text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] sm:text-base"
+                className="mwos-date-field mwos-mobile-input block w-full min-w-0 max-w-full font-black sm:text-base"
               />
               {weekLabel ? (
-                <p className="mt-2 text-xs font-semibold text-[var(--color-mid)]">{weekLabel}</p>
+                <p className="mwos-form-helper mt-2 text-[var(--color-mid)]">{weekLabel}</p>
               ) : null}
             </div>
 
@@ -247,7 +288,7 @@ export default function TrainingDayEditor({
                 value={day.dayIndex}
                 onChange={(event) => onSelectDay?.(Number(event.target.value))}
                 disabled={!canEdit || !onSelectDay}
-                className="block h-14 w-full min-w-0 max-w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-sm font-black text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] sm:text-base"
+                className="mwos-select-field mwos-mobile-input block w-full min-w-0 max-w-full font-black sm:text-base"
               >
                 {(days.length ? days : [day]).map((option) => (
                   <option key={option.dayIndex} value={option.dayIndex}>
@@ -263,7 +304,7 @@ export default function TrainingDayEditor({
                 value={day.dayType}
                 onChange={(event) => handleDayTypeChange(event.target.value as TrainingPlanDay['dayType'])}
                 disabled={!canEdit}
-                className="block h-14 w-full min-w-0 max-w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-sm font-black text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)] sm:text-base"
+                className="mwos-select-field mwos-mobile-input block w-full min-w-0 max-w-full font-black sm:text-base"
               >
                 <option value="training">Training</option>
                 <option value="active_recovery">Active recovery</option>
@@ -273,10 +314,17 @@ export default function TrainingDayEditor({
           </div>
         </section>
 
-        <section className="rounded-[24px] border border-[var(--color-mid)]/12 bg-white p-4 shadow-sm">
-          <p className="mb-4 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
-            2. Session details
-          </p>
+        <section className="mwos-mobile-panel border-[var(--color-mid)]/12 shadow-sm">
+          <SectionIntro
+            step="Step 2"
+            title="Session details"
+            description={
+              trainingLikeDay
+                ? 'Add the title, timing, objective and plan for this session.'
+                : 'Name the rest day and only add notes if staff or players need a recovery instruction.'
+            }
+            icon={<ClipboardList size={18} />}
+          />
 
           <div className="grid gap-4">
             <div>
@@ -286,7 +334,7 @@ export default function TrainingDayEditor({
                 onChange={(event) => update('sessionTitle', event.target.value)}
                 disabled={!canEdit}
                 placeholder={day.dayType === 'training' ? 'Training starts @ 9:00am' : dayTypeLabel(day.dayType)}
-                className="w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-base font-semibold outline-none focus:border-[var(--color-primary)]"
+                className="mwos-mobile-input"
               />
             </div>
 
@@ -299,7 +347,7 @@ export default function TrainingDayEditor({
                     value={day.startTime}
                     onChange={(event) => update('startTime', event.target.value)}
                     disabled={!canEdit}
-                    className="w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-base font-semibold outline-none focus:border-[var(--color-primary)]"
+                    className="mwos-mobile-input"
                   />
                 </div>
                 <div>
@@ -309,12 +357,12 @@ export default function TrainingDayEditor({
                     onChange={(event) => update('location', event.target.value)}
                     disabled={!canEdit}
                     placeholder="Ngoni Stadium / Main pitch"
-                    className="w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-base font-semibold outline-none focus:border-[var(--color-primary)]"
+                    className="mwos-mobile-input"
                   />
                 </div>
               </div>
             ) : (
-              <p className="rounded-2xl bg-[var(--color-light)]/64 px-4 py-3 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+              <p className="mwos-mobile-note">
                 Rest days stay light. Add a note only if players or staff need a recovery instruction.
               </p>
             )}
@@ -328,7 +376,7 @@ export default function TrainingDayEditor({
                   disabled={!canEdit}
                   rows={3}
                   placeholder="Example: improve transition speed, finishing, recovery load, or match preparation."
-                  className="w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-base font-semibold leading-7 outline-none focus:border-[var(--color-primary)]"
+                  className="mwos-mobile-textarea"
                 />
               </div>
             ) : null}
@@ -342,7 +390,7 @@ export default function TrainingDayEditor({
                   disabled={!canEdit}
                   rows={6}
                   placeholder="Write it like a WhatsApp plan: warm-up, technical work, small-sided game, finishing, cooldown."
-                  className="w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-base font-semibold leading-7 outline-none focus:border-[var(--color-primary)]"
+                  className="mwos-mobile-textarea"
                 />
               </div>
             ) : null}
@@ -355,16 +403,31 @@ export default function TrainingDayEditor({
                 disabled={!canEdit}
                 rows={3}
                 placeholder="Bring water bottles, recovery instruction, transport note, or coach context."
-                className="w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-base font-semibold leading-7 outline-none focus:border-[var(--color-primary)]"
+                className="mwos-mobile-textarea"
               />
             </div>
           </div>
         </section>
 
         {trainingLikeDay || day.importedExcerpt ? (
-          <details className="rounded-[24px] border border-[var(--color-mid)]/12 bg-[var(--color-light)]/45 p-4">
-            <summary className="cursor-pointer list-none text-sm font-black text-[var(--color-primary)]">
-              Optional details
+          <details className="mwos-mobile-panel-soft border-[var(--color-mid)]/12">
+            <summary className="cursor-pointer list-none">
+              <div className="mwos-surface-intro">
+                <div className="mwos-surface-intro-icon mt-0.5 flex size-9 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+                  <Sparkles size={18} />
+                </div>
+                <div className="mwos-surface-intro-copy">
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
+                    Step 3
+                  </p>
+                  <h3 className="mt-1 text-base font-black text-[var(--color-primary)]">
+                    Optional details
+                  </h3>
+                  <p className="mt-1.5 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                    Open this only if you need extra session metadata like focus tags, end time or imported text review.
+                  </p>
+                </div>
+              </div>
             </summary>
             <div className="mt-4 grid gap-4">
               {trainingLikeDay ? (
@@ -377,7 +440,7 @@ export default function TrainingDayEditor({
                         value={day.endTime}
                         onChange={(event) => update('endTime', event.target.value)}
                         disabled={!canEdit}
-                        className="w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-base font-semibold outline-none focus:border-[var(--color-primary)]"
+                        className="mwos-mobile-input"
                       />
                     </div>
                     <div>
@@ -386,7 +449,7 @@ export default function TrainingDayEditor({
                         value={day.sessionType}
                         onChange={(event) => update('sessionType', event.target.value as TrainingPlanDay['sessionType'])}
                         disabled={!canEdit}
-                        className="w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-base font-semibold outline-none focus:border-[var(--color-primary)]"
+                        className="mwos-select-field mwos-mobile-input"
                       >
                         <option value="field">Field</option>
                         <option value="gym">Gym</option>
@@ -405,7 +468,7 @@ export default function TrainingDayEditor({
                       onChange={handleFocusTags}
                       disabled={!canEdit}
                       placeholder="Speed, finishing, lower body"
-                      className="w-full rounded-2xl border border-[var(--color-mid)]/24 bg-white px-4 py-3 text-base font-semibold outline-none focus:border-[var(--color-primary)]"
+                      className="mwos-mobile-input"
                     />
                   </div>
 
@@ -441,9 +504,9 @@ export default function TrainingDayEditor({
               ) : null}
 
               {day.importedExcerpt ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-                  <p className="text-sm font-black text-amber-800">Text extracted from the source</p>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-amber-900">{day.importedExcerpt}</p>
+                <div className="mwos-subcard mwos-subcard-alert">
+                  <p className="mwos-subcard-kicker text-[var(--color-accent)]">Text extracted from the source</p>
+                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--color-dark)]">{day.importedExcerpt}</p>
                 </div>
               ) : null}
             </div>
@@ -456,7 +519,7 @@ export default function TrainingDayEditor({
           type="button"
           onClick={onSaveDraft}
           disabled={isSavingDraft}
-          className="mt-4 hidden w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-4 text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_14px_28px_rgba(49,39,131,0.18)] disabled:opacity-60 md:inline-flex md:w-auto md:px-6"
+          className="mwos-btn mwos-btn-secondary mt-4 hidden w-full uppercase tracking-[0.14em] md:inline-flex md:w-auto md:px-6"
         >
           {isSavingDraft ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
           Save this day

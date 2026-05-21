@@ -121,29 +121,29 @@ const SECTION_TONE_CLASSES: Record<
     accent: 'text-[var(--color-primary)]',
   },
   training: {
-    shell: 'border-indigo-200 bg-indigo-50/70',
-    icon: 'bg-indigo-100 text-indigo-700',
-    accent: 'text-indigo-700',
+    shell: 'mwos-card-tone-training',
+    icon: 'mwos-icon-tone-training',
+    accent: 'text-[var(--color-primary)]',
   },
   transport: {
-    shell: 'border-teal-200 bg-teal-50/75',
-    icon: 'bg-teal-100 text-teal-700',
-    accent: 'text-teal-700',
+    shell: 'mwos-card-tone-transport',
+    icon: 'mwos-icon-tone-transport',
+    accent: 'text-[var(--color-primary-deep)]',
   },
   reports: {
-    shell: 'border-slate-200 bg-slate-50/85',
-    icon: 'bg-slate-200 text-slate-700',
-    accent: 'text-slate-700',
+    shell: 'mwos-card-tone-report',
+    icon: 'mwos-icon-tone-report',
+    accent: 'text-[var(--color-primary-deep)]',
   },
   alerts: {
-    shell: 'border-amber-200 bg-amber-50/80',
-    icon: 'bg-amber-100 text-amber-700',
-    accent: 'text-amber-700',
+    shell: 'mwos-card-tone-alert',
+    icon: 'mwos-icon-tone-alert',
+    accent: 'text-[var(--color-accent)]',
   },
   staff: {
-    shell: 'border-fuchsia-200 bg-fuchsia-50/75',
-    icon: 'bg-fuchsia-100 text-fuchsia-700',
-    accent: 'text-fuchsia-700',
+    shell: 'mwos-card-tone-staff',
+    icon: 'mwos-icon-tone-staff',
+    accent: 'text-[var(--color-primary)]',
   },
 };
 
@@ -176,34 +176,40 @@ function formatTimeValue(value: string | null | undefined) {
   return value?.trim() ? value : 'Time not set';
 }
 
-function EmptyState({ message }: { message: string }) {
+function EmptyState({
+  message,
+  tone = 'mwos-subcard-neutral',
+}: {
+  message: string;
+  tone?: string;
+}) {
   return (
-    <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/18 bg-[var(--color-light)]/60 p-5">
-      <p className="text-sm font-semibold text-[var(--color-mid)]">{message}</p>
+    <div className={`mwos-subcard ${tone} border-dashed p-5`}>
+      <p className="mwos-subcard-copy mt-0">{message}</p>
     </div>
   );
 }
 
 function MetricStrip({ items }: { items: ClubHomeWorkspace['metrics'] }) {
   const toneClasses = [
-    'border-indigo-200 bg-indigo-50/75',
-    'border-teal-200 bg-teal-50/75',
-    'border-amber-200 bg-amber-50/75',
-    'border-slate-200 bg-slate-50/85',
+    'mwos-card-tone-training',
+    'mwos-card-tone-transport',
+    'mwos-card-tone-alert',
+    'mwos-card-tone-report',
   ];
 
   return (
-    <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+    <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
       {items.map((item, index) => (
         <article
           key={item.label}
-          className={`rounded-[24px] border p-4 shadow-[0_16px_35px_rgba(49,39,131,0.06)] md:p-5 ${toneClasses[index % toneClasses.length]}`}
+          className={`rounded-[22px] border p-4 shadow-[0_14px_30px_rgba(49,39,131,0.06)] md:rounded-[24px] md:p-5 md:shadow-[0_16px_35px_rgba(49,39,131,0.06)] ${toneClasses[index % toneClasses.length]}`}
         >
-          <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)] md:text-[11px] md:tracking-[0.28em]">
             {item.label}
           </p>
-          <p className="mt-4 text-3xl font-black text-[var(--color-dark)] md:text-4xl">{item.value}</p>
-          <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.detail}</p>
+          <p className="mt-3 text-3xl font-black leading-none text-[var(--color-dark)] md:mt-4 md:text-4xl">{item.value}</p>
+          <p className="mt-2 hidden text-sm font-semibold leading-6 text-[var(--color-mid)] sm:block">{item.detail}</p>
         </article>
       ))}
     </section>
@@ -226,17 +232,17 @@ function SectionShell({
   const toneClasses = SECTION_TONE_CLASSES[tone];
 
   return (
-    <article className={`rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5 ${toneClasses.shell}`}>
-      <div className="flex items-start gap-3 md:gap-4">
-        <div className={`flex size-10 items-center justify-center rounded-2xl md:size-12 ${toneClasses.icon}`}>
-          <Icon size={22} />
+    <article className={`rounded-[24px] border p-3.5 shadow-[0_16px_36px_rgba(49,39,131,0.06)] md:rounded-[28px] md:p-5 md:shadow-[0_18px_45px_rgba(49,39,131,0.06)] ${toneClasses.shell}`}>
+      <div className="mwos-surface-intro">
+        <div className={`mwos-surface-intro-icon flex size-9 items-center justify-center rounded-2xl md:size-12 ${toneClasses.icon}`}>
+          <Icon size={18} />
         </div>
-        <div>
-          <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">{title}</h2>
-          <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">{description}</p>
+        <div className="mwos-surface-intro-copy">
+          <h2 className="text-base font-black text-[var(--color-dark)] md:text-xl">{title}</h2>
+          <p className="mt-2 line-clamp-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:line-clamp-none md:leading-7">{description}</p>
         </div>
       </div>
-      <div className="mt-5">{children}</div>
+      <div className="mt-4 md:mt-5">{children}</div>
     </article>
   );
 }
@@ -257,7 +263,7 @@ function NotificationsFeed({
       icon={Bell}
       tone="alerts"
     >
-      <div className="mb-4 flex items-center justify-between rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 px-4 py-3">
+      <div className="mwos-inline-strip mwos-inline-strip-alert mb-4">
         <p className="text-sm font-semibold text-[var(--color-mid)]">Unread updates</p>
         <span className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary)]">
           {unreadCount}
@@ -268,21 +274,21 @@ function NotificationsFeed({
           items.map((item) => (
             <div
               key={item.id}
-              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+              className={`mwos-subcard mwos-subcard-alert ${interactive ? 'mwos-subcard-interactive' : ''} group flex items-start gap-3 ${
                 interactive ? 'hover:border-[var(--color-primary)]/22' : ''
               }`}
             >
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-black text-[var(--color-dark)]">{item.title}</p>
+                <div className="mwos-subcard-head">
+                  <p className="mwos-subcard-title mt-0">{item.title}</p>
                   {!item.readAt ? (
-                    <span className="rounded-full bg-[var(--color-accent)]/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-accent)]">
-                      New
-                    </span>
+                    <div className="mwos-subcard-badges">
+                      <span className="mwos-pill mwos-pill-alert">New</span>
+                    </div>
                   ) : null}
                 </div>
-                <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.message}</p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                <p className="mwos-subcard-copy mt-2">{item.message}</p>
+                <p className="mwos-subcard-meta mt-2">
                   {item.teamName} · {formatIsoDate(item.createdAt)}
                 </p>
               </div>
@@ -296,7 +302,7 @@ function NotificationsFeed({
             </div>
           ))
         ) : (
-          <EmptyState message="No notifications yet. They will appear here as training, transport, and staff updates happen." />
+          <EmptyState tone="mwos-subcard-alert" message="No notifications yet. They will appear here as training, transport, and staff updates happen." />
         )}
       </div>
     </SectionShell>
@@ -316,21 +322,21 @@ function TrainingFeed({ plans, interactive = true }: { plans: TrainingPlanSummar
           plans.map((plan) => (
             <div
               key={plan.id}
-              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+              className={`mwos-subcard mwos-subcard-training ${interactive ? 'mwos-subcard-interactive' : ''} group flex items-start gap-3 ${
                 interactive ? 'hover:border-[var(--color-primary)]/22' : ''
               }`}
             >
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-black text-[var(--color-dark)]">{plan.teamName}</p>
-                  <span className="rounded-full bg-[var(--color-primary)]/8 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]">
-                    {plan.status}
-                  </span>
+                <div className="mwos-subcard-head">
+                  <p className="mwos-subcard-title mt-0">{plan.teamName}</p>
+                  <div className="mwos-subcard-badges">
+                    <span className="mwos-pill mwos-pill-training">{plan.status}</span>
+                  </div>
                 </div>
-                <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                <p className="mwos-subcard-copy mt-2">
                   {plan.headline || 'Training plan without headline yet.'}
                 </p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                <p className="mwos-subcard-meta mt-2">
                   Week of {formatIsoDate(plan.weekStart)}
                 </p>
               </div>
@@ -344,7 +350,7 @@ function TrainingFeed({ plans, interactive = true }: { plans: TrainingPlanSummar
             </div>
           ))
         ) : (
-          <EmptyState message="No current-week training plans are visible from this account yet." />
+          <EmptyState tone="mwos-subcard-training" message="No current-week training plans are visible from this account yet." />
         )}
       </div>
     </SectionShell>
@@ -364,22 +370,22 @@ function TransportFeed({ plans, interactive = true }: { plans: ClubHomeTransport
           plans.map((plan) => (
             <div
               key={plan.id}
-              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+              className={`mwos-subcard mwos-subcard-transport ${interactive ? 'mwos-subcard-interactive' : ''} group flex items-start gap-3 ${
                 interactive ? 'hover:border-[var(--color-primary)]/22' : ''
               }`}
             >
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-black text-[var(--color-dark)]">{plan.teamName}</p>
-                  <span className="rounded-full bg-[var(--color-accent)]/8 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-accent)]">
-                    {plan.status}
-                  </span>
+                <div className="mwos-subcard-head">
+                  <p className="mwos-subcard-title mt-0">{plan.teamName}</p>
+                  <div className="mwos-subcard-badges">
+                    <span className="mwos-pill mwos-pill-transport">{plan.status}</span>
+                  </div>
                 </div>
-                <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{plan.title}</p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                <p className="mwos-subcard-copy mt-2">{plan.title}</p>
+                <p className="mwos-subcard-meta mt-2">
                   {formatIsoDate(plan.eventDate)} · {formatTimeValue(plan.departureTime)} · {plan.destination}
                 </p>
-                <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">Driver: {plan.driverName}</p>
+                <p className="mwos-subcard-copy mt-2">Driver: {plan.driverName}</p>
               </div>
               {interactive ? (
                 <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
@@ -391,7 +397,7 @@ function TransportFeed({ plans, interactive = true }: { plans: ClubHomeTransport
             </div>
           ))
         ) : (
-          <EmptyState message="No active transport plans are visible from this account yet." />
+          <EmptyState tone="mwos-subcard-transport" message="No active transport plans are visible from this account yet." />
         )}
       </div>
     </SectionShell>
@@ -417,14 +423,14 @@ function ReportsFeed({
           items.map((item) => (
             <div
               key={item.id}
-              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+              className={`mwos-subcard mwos-subcard-report ${interactive ? 'mwos-subcard-interactive' : ''} group flex items-start gap-3 ${
                 interactive ? 'hover:border-[var(--color-primary)]/22' : ''
               }`}
             >
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-black text-[var(--color-dark)]">{item.fixture}</p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.competition}</p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                <p className="mwos-subcard-title mt-0">{item.fixture}</p>
+                <p className="mwos-subcard-copy mt-2">{item.competition}</p>
+                <p className="mwos-subcard-meta mt-2">
                   {formatIsoDate(item.date || item.createdAt)}
                 </p>
               </div>
@@ -438,7 +444,7 @@ function ReportsFeed({
             </div>
           ))
         ) : (
-          <EmptyState message="No recent reports are visible from this account yet." />
+          <EmptyState tone="mwos-subcard-report" message="No recent reports are visible from this account yet." />
         )}
       </div>
     </SectionShell>
@@ -459,35 +465,31 @@ function AttentionFeed({ workspace }: { workspace: ClubHomeWorkspace }) {
             <Link
               key={item.id}
               to={item.linkPath}
-              className="group block rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition hover:border-[var(--color-primary)]/22"
+              className={`mwos-subcard ${item.severity === 'high' ? 'mwos-subcard-danger' : 'mwos-subcard-alert'} mwos-subcard-interactive group block transition hover:border-[var(--color-primary)]/22`}
             >
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-black text-[var(--color-dark)]">{item.title}</p>
-                    <span
-                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
-                        item.severity === 'high'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}
-                    >
-                      {item.severity}
-                    </span>
+                  <div className="mwos-subcard-head">
+                    <p className="mwos-subcard-title mt-0">{item.title}</p>
+                    <div className="mwos-subcard-badges">
+                      <span className={`mwos-pill ${item.severity === 'high' ? 'mwos-pill-danger' : 'mwos-pill-alert'}`}>
+                        {item.severity}
+                      </span>
+                      {item.teamName ? (
+                        <span className="mwos-pill mwos-pill-training">
+                          {item.teamName}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.detail}</p>
-                  {item.teamName ? (
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
-                      {item.teamName}
-                    </p>
-                  ) : null}
+                  <p className="mwos-subcard-copy mt-2">{item.detail}</p>
                 </div>
                 <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
               </div>
             </Link>
           ))
         ) : (
-          <EmptyState message="No critical club attention items right now." />
+          <EmptyState tone="mwos-subcard-alert" message="No critical club attention items right now." />
         )}
       </div>
     </SectionShell>
@@ -508,13 +510,13 @@ function PendingInvitesFeed({ items }: { items: ClubHomeWorkspace['pendingInvita
             <Link
               key={item.id}
               to="/settings"
-              className="group block rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition hover:border-[var(--color-primary)]/22"
+              className="mwos-subcard mwos-subcard-staff mwos-subcard-interactive group block transition hover:border-[var(--color-primary)]/22"
             >
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-black text-[var(--color-dark)]">{item.fullName || item.email}</p>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.email}</p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                  <p className="mwos-subcard-title mt-0">{item.fullName || item.email}</p>
+                  <p className="mwos-subcard-copy mt-2">{item.email}</p>
+                  <p className="mwos-subcard-meta mt-2">
                     {item.roles.map((role) => role.label).join(', ') || 'Pending roles'} · {formatIsoDate(item.createdAt)}
                   </p>
                 </div>
@@ -523,7 +525,7 @@ function PendingInvitesFeed({ items }: { items: ClubHomeWorkspace['pendingInvita
             </Link>
           ))
         ) : (
-          <EmptyState message="No pending invitations right now." />
+          <EmptyState tone="mwos-subcard-staff" message="No pending invitations right now." />
         )}
       </div>
     </SectionShell>
@@ -536,6 +538,7 @@ function StaffingHealthFeed({ workspace }: { workspace: ClubHomeWorkspace }) {
   }
 
   const cards = buildStaffingHealthCards(workspace.staffingHealth);
+  const toneClasses = ['mwos-subcard-staff', 'mwos-subcard-training', 'mwos-subcard-alert', 'mwos-subcard-report'];
 
   return (
     <SectionShell
@@ -545,14 +548,14 @@ function StaffingHealthFeed({ workspace }: { workspace: ClubHomeWorkspace }) {
       tone="staff"
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        {cards.map((card) => (
+        {cards.map((card, index) => (
           <div
             key={card.label}
-            className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4"
+            className={`mwos-subcard ${toneClasses[index % toneClasses.length]}`}
           >
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">{card.label}</p>
-            <p className="mt-2 text-lg font-black text-[var(--color-dark)]">{card.value}</p>
-            <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">{card.detail}</p>
+            <p className="mwos-subcard-kicker">{card.label}</p>
+            <p className="mwos-subcard-value text-lg md:text-[1.75rem]">{card.value}</p>
+            <p className="mwos-subcard-copy mt-2 text-sm leading-6">{card.detail}</p>
           </div>
         ))}
       </div>
@@ -574,26 +577,34 @@ function StaffAccessActivityFeed({ items }: { items: StaffAccessEventRecord[] })
             <Link
               key={item.id}
               to="/settings"
-              className="group block rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition hover:border-[var(--color-primary)]/22"
+              className={`mwos-subcard ${
+                item.tone === 'warning'
+                  ? 'mwos-subcard-alert'
+                  : item.tone === 'success'
+                    ? 'mwos-subcard-success'
+                    : 'mwos-subcard-staff'
+              } mwos-subcard-interactive group block transition hover:border-[var(--color-primary)]/22`}
             >
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-black text-[var(--color-dark)]">{item.targetName}</p>
-                    <span
-                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
-                        item.tone === 'warning'
-                          ? 'bg-amber-100 text-amber-700'
-                          : item.tone === 'success'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-white text-[var(--color-dark)]'
-                      }`}
-                    >
-                      {item.title}
-                    </span>
+                  <div className="mwos-subcard-head">
+                    <p className="mwos-subcard-title mt-0">{item.targetName}</p>
+                    <div className="mwos-subcard-badges">
+                      <span
+                        className={`mwos-pill ${
+                          item.tone === 'warning'
+                            ? 'mwos-pill-alert'
+                            : item.tone === 'success'
+                              ? 'mwos-pill-success'
+                              : 'mwos-pill-neutral'
+                        }`}
+                      >
+                        {item.title}
+                      </span>
+                    </div>
                   </div>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.detail}</p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                  <p className="mwos-subcard-copy mt-2">{item.detail}</p>
+                  <p className="mwos-subcard-meta mt-2">
                     {item.targetEmail} · {formatIsoDate(item.createdAt)}
                   </p>
                 </div>
@@ -602,7 +613,7 @@ function StaffAccessActivityFeed({ items }: { items: StaffAccessEventRecord[] })
             </Link>
           ))
         ) : (
-          <EmptyState message="No recent staff access activity yet." />
+          <EmptyState tone="mwos-subcard-staff" message="No recent staff access activity yet." />
         )}
       </div>
     </SectionShell>
@@ -612,8 +623,8 @@ function StaffAccessActivityFeed({ items }: { items: StaffAccessEventRecord[] })
 function LeadershipModeCallout({ view }: { view: ClubHomeViewMode }) {
   if (view === 'technical_director') {
     return (
-      <section className="rounded-[28px] border border-indigo-200 bg-indigo-50/70 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-indigo-700">
+      <section className="mwos-card-tone-training rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-primary)]">
           Technical Director Mode
         </p>
         <p className="mt-3 text-lg font-black text-[var(--color-dark)]">
@@ -628,8 +639,8 @@ function LeadershipModeCallout({ view }: { view: ClubHomeViewMode }) {
 
   if (view === 'board_observer') {
     return (
-      <section className="rounded-[28px] border border-amber-200 bg-amber-50/75 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">
+      <section className="mwos-card-tone-alert rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-accent)]">
           Board Briefing Mode
         </p>
         <p className="mt-3 text-lg font-black text-[var(--color-dark)]">
@@ -643,8 +654,8 @@ function LeadershipModeCallout({ view }: { view: ClubHomeViewMode }) {
   }
 
   return (
-    <section className="rounded-[28px] border border-fuchsia-200 bg-fuchsia-50/65 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-      <p className="text-[11px] font-black uppercase tracking-[0.24em] text-fuchsia-700">
+    <section className="mwos-card-tone-staff rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+      <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-primary)]">
         Admin Operations Mode
       </p>
       <p className="mt-3 text-lg font-black text-[var(--color-dark)]">
@@ -747,15 +758,15 @@ export default function ClubHomePage() {
       <main className="flex-1 overflow-auto p-3 pb-28 md:p-6">
         <div className="mx-auto max-w-7xl space-y-5 md:space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface relative overflow-hidden px-4 py-5 text-white md:px-8 md:py-8">
+            <div className="mwos-ribbon-surface relative overflow-hidden px-4 py-4 text-white md:px-8 md:py-8">
               <div className="max-w-4xl">
-                <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/70">
+                <p className="mwos-hero-kicker text-white/70">
                   MWOS Football Club
                 </p>
-                <h1 className="mt-3 mwos-display text-balance text-[2rem] uppercase leading-none tracking-[0.08em] text-white md:text-[4rem]">
+                <h1 className="mwos-display mwos-hero-title mt-2.5 text-white md:mt-3">
                   Club Home
                 </h1>
-                <p className="mt-4 max-w-3xl text-pretty text-sm font-semibold leading-6 text-white/82 md:text-base md:leading-7">
+                <p className="mwos-hero-copy mt-3 max-w-3xl text-pretty text-white/82 md:mt-4">
                   {workspace?.hero.description ||
                     'Your workspace adapts to the teams, roles, and modules currently assigned to your account.'}
                 </p>
@@ -798,8 +809,8 @@ export default function ClubHomePage() {
           ) : null}
 
           {!loading && error ? (
-            <section className="rounded-[28px] border border-red-200 bg-red-50 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-              <p className="text-sm font-semibold text-red-700">{error}</p>
+            <section className="mwos-card-tone-danger rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+              <p className="text-sm font-semibold text-[var(--color-accent-deep)]">{error}</p>
             </section>
           ) : null}
 

@@ -212,7 +212,7 @@ export default function MatchReportTab() {
 
               <div className="flex-1 space-y-4">
                 {ocrError && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                  <div className="mwos-card-tone-danger rounded-xl border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
                     {ocrError}
                   </div>
                 )}
@@ -313,7 +313,7 @@ export default function MatchReportTab() {
           </div>
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Date</label>
-            <input type="date" name="date" value={currentReport.date} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold" />
+            <input type="date" name="date" value={currentReport.date} onChange={handleChange} className="mwos-date-field w-full rounded-xl border border-[var(--color-mid)]/30 p-3 font-semibold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]" />
           </div>
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Venue</label>
@@ -449,7 +449,7 @@ export default function MatchReportTab() {
         {(!isCompact || openSections.video) && (
           <div className="mt-6">
             {videoError && (
-              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <div className="mwos-card-tone-danger mb-4 rounded-xl border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
                 {videoError}
               </div>
             )}
@@ -474,7 +474,7 @@ export default function MatchReportTab() {
                     type="button"
                     onClick={() => setVideoDeleteConfirmOpen(true)}
                     disabled={videoDeleting}
-                    className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
+                    className="mwos-btn mwos-btn-danger px-3 py-2 text-sm disabled:opacity-50"
                   >
                     {videoDeleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                     Remove Video

@@ -4,15 +4,15 @@ import type { TransportPlanSummary } from '../../lib/transportData';
 function statusTone(status: TransportPlanSummary['status']) {
   switch (status) {
     case 'published':
-      return 'bg-emerald-100 text-emerald-700';
+      return 'mwos-pill-success';
     case 'updated':
-      return 'bg-amber-100 text-amber-700';
+      return 'mwos-pill-alert';
     case 'completed':
-      return 'bg-slate-100 text-slate-700';
+      return 'mwos-pill-neutral';
     case 'cancelled':
-      return 'bg-rose-100 text-rose-700';
+      return 'mwos-pill-danger';
     default:
-      return 'bg-[var(--color-light)] text-[var(--color-mid)]';
+      return 'mwos-pill-neutral';
   }
 }
 
@@ -55,7 +55,7 @@ export default function TransportPlanList({
                 </p>
                 <h3 className="mt-2 text-lg font-black text-[var(--color-dark)]">{plan.title}</h3>
               </div>
-              <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${statusTone(plan.status)}`}>
+              <span className={`mwos-pill ${statusTone(plan.status)}`}>
                 {plan.status}
               </span>
             </div>

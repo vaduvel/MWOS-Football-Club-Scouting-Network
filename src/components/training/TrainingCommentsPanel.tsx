@@ -28,13 +28,13 @@ export default function TrainingCommentsPanel({
   };
 
   return (
-    <article className="mwos-card-tone-staff rounded-[28px] border p-5 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
-      <div className="flex items-start gap-3">
-        <div className="mwos-icon-tone-staff flex h-11 w-11 items-center justify-center rounded-2xl">
+    <article className="mwos-mobile-panel mwos-card-tone-staff md:p-6">
+      <div className="mwos-surface-intro">
+        <div className="mwos-surface-intro-icon mwos-icon-tone-staff flex h-11 w-11 items-center justify-center rounded-2xl">
           <MessageSquareText size={20} />
         </div>
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+        <div className="mwos-surface-intro-copy">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
             Training comments
           </p>
           <h2 className="mt-1 text-xl font-black text-[var(--color-dark)]">Coach and TD discussion</h2>
@@ -45,13 +45,13 @@ export default function TrainingCommentsPanel({
       </div>
 
       {selectedDayLabel ? (
-        <div className="mt-4 inline-flex items-center rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-dark)]">
+        <div className="mwos-pill mwos-pill-neutral mt-4 inline-flex items-center">
           Current day · {selectedDayLabel}
         </div>
       ) : null}
 
       {canComment ? (
-        <div className="mt-5 rounded-[24px] border border-[var(--color-mid)]/14 bg-white/70 p-4">
+        <div className="mwos-mobile-panel-soft mt-5">
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
@@ -61,14 +61,14 @@ export default function TrainingCommentsPanel({
                 ? `Add a comment about ${selectedDayLabel.toLowerCase()}...`
                 : 'Add a comment or question about this week’s plan…'
             }
-            className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-3 py-3 text-sm font-semibold leading-6 outline-none focus:border-[var(--color-primary)]"
+            className="mwos-mobile-textarea"
           />
           <div className="mt-3 flex justify-end">
             <button
               type="button"
               onClick={() => void handleSubmit()}
               disabled={isSubmitting || draft.trim().length === 0}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
+              className="mwos-btn mwos-btn-primary"
             >
               {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               Post comment
@@ -83,34 +83,34 @@ export default function TrainingCommentsPanel({
             <div
               key={comment.id}
               className={cn(
-                'rounded-[24px] border p-4',
+                'mwos-subcard',
                 comment.isAuthor
                   ? 'mwos-card-tone-training'
                   : comment.authorRoleLabel.toLowerCase().includes('technical')
                     ? 'mwos-card-tone-alert'
-                    : 'border-[var(--color-mid)]/14 bg-white',
+                    : 'mwos-subcard-neutral',
               )}
             >
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm font-black text-[var(--color-dark)]">{comment.authorName}</p>
                 <span
                   className={cn(
-                    'rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em]',
+                    'mwos-pill',
                     comment.authorRoleLabel.toLowerCase().includes('technical')
-                      ? 'mwos-chip-tone-alert'
+                      ? 'mwos-pill-alert'
                       : comment.isAuthor
-                        ? 'mwos-chip-tone-training'
-                        : 'bg-[var(--color-light)] text-[var(--color-mid)]',
+                        ? 'mwos-pill-training'
+                        : 'mwos-pill-neutral',
                   )}
                 >
                   {comment.authorRoleLabel}
                 </span>
                 {comment.dayId ? (
-                  <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--color-mid)]">
+                  <span className="mwos-pill mwos-pill-neutral">
                     {dayLabelsById?.[comment.dayId] || 'Specific day'}
                   </span>
                 ) : (
-                  <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--color-mid)]">
+                  <span className="mwos-pill mwos-pill-neutral">
                     Whole plan
                   </span>
                 )}
@@ -127,8 +127,10 @@ export default function TrainingCommentsPanel({
             </div>
           ))
         ) : (
-          <div className="rounded-[24px] border border-[var(--color-mid)]/14 bg-white p-5 text-sm font-semibold text-[var(--color-mid)]">
-            No comments yet. This is where the Technical Director can add questions, ideas or adjustments.
+          <div className="mwos-subcard mwos-subcard-neutral border-dashed p-5">
+            <p className="mwos-subcard-copy mt-0">
+              No comments yet. This is where the Technical Director can add questions, ideas or adjustments.
+            </p>
           </div>
         )}
       </div>

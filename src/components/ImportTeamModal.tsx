@@ -137,7 +137,7 @@ export default function ImportTeamModal({ isOpen, onClose, teamSide }: { isOpen:
                 </button>
               </div>
 
-              {error && <p className="text-red-500 text-sm font-semibold">{error}</p>}
+              {error && <p className="text-sm font-semibold text-[var(--color-accent)]">{error}</p>}
 
               <div className="space-y-2">
                 {teams.map(team => (

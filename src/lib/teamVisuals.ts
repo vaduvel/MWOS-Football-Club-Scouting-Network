@@ -6,6 +6,14 @@ export interface TeamVisualTone {
 
 const TEAM_TONES: Array<{ patterns: RegExp[]; tone: TeamVisualTone }> = [
   {
+    patterns: [/\bqueens\b/i, /\bgirls\b/i, /\bwomen\b/i],
+    tone: {
+      accentClass: 'bg-fuchsia-600',
+      badgeClass: 'bg-fuchsia-100 text-fuchsia-700',
+      cardClass: 'border-fuchsia-200 bg-fuchsia-50/75',
+    },
+  },
+  {
     patterns: [/\bfirst\b/i, /\bsenior/i],
     tone: {
       accentClass: 'bg-indigo-600',

@@ -4,20 +4,17 @@ function readinessMeta(readiness: OversightTeamSnapshot['readiness']) {
   if (readiness === 'action') {
     return {
       label: 'Action needed',
-      className: 'bg-red-100 text-red-700',
     };
   }
 
   if (readiness === 'watch') {
     return {
       label: 'Watch',
-      className: 'bg-amber-100 text-amber-700',
     };
   }
 
   return {
     label: 'Ready',
-    className: 'bg-emerald-100 text-emerald-700',
   };
 }
 
@@ -41,7 +38,7 @@ function transportMeta(status: OversightTeamSnapshot['nextTransportStatus']) {
 
 export default function OversightTeamMatrix({ teams }: { teams: OversightTeamSnapshot[] }) {
   return (
-    <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
+    <section className="mwos-card-tone-report rounded-[28px] border p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-black text-[var(--color-dark)]">Team readiness</h2>
@@ -57,30 +54,38 @@ export default function OversightTeamMatrix({ teams }: { teams: OversightTeamSna
           return (
             <article
               key={team.teamId}
-              className="rounded-[24px] border border-[var(--color-mid)]/12 bg-[var(--color-light)]/58 p-5"
+              className="mwos-subcard mwos-subcard-report p-5"
             >
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="mwos-subcard-head">
                 <div>
-                  <p className="text-lg font-black text-[var(--color-dark)]">{team.teamName}</p>
-                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                  <p className="mwos-subcard-title mt-0 text-lg">{team.teamName}</p>
+                  <p className="mwos-subcard-meta mt-2">
                     {team.coachCount === null ? 'Leadership read-only view' : `${team.coachCount} coach${team.coachCount === 1 ? '' : 'es'} assigned`}
                   </p>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${readiness.className}`}>
-                  {readiness.label}
-                </span>
+                <div className="mwos-subcard-badges">
+                  <span className={`mwos-pill ${
+                    team.readiness === 'action'
+                      ? 'mwos-pill-danger'
+                      : team.readiness === 'watch'
+                        ? 'mwos-pill-alert'
+                        : 'mwos-pill-success'
+                  }`}>
+                    {readiness.label}
+                  </span>
+                </div>
               </div>
 
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border border-[var(--color-mid)]/12 bg-white p-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Training</p>
-                  <p className="mt-2 text-sm font-black text-[var(--color-dark)]">{trainingMeta(team.trainingStatus)}</p>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{team.trainingHeadline}</p>
+                <div className="mwos-subcard mwos-subcard-training p-4">
+                  <p className="mwos-subcard-kicker">Training</p>
+                  <p className="mwos-subcard-title mt-2">{trainingMeta(team.trainingStatus)}</p>
+                  <p className="mwos-subcard-copy mt-2">{team.trainingHeadline}</p>
                 </div>
-                <div className="rounded-2xl border border-[var(--color-mid)]/12 bg-white p-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Transport</p>
-                  <p className="mt-2 text-sm font-black text-[var(--color-dark)]">{transportMeta(team.nextTransportStatus)}</p>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{team.nextTransportLabel}</p>
+                <div className="mwos-subcard mwos-subcard-transport p-4">
+                  <p className="mwos-subcard-kicker">Transport</p>
+                  <p className="mwos-subcard-title mt-2">{transportMeta(team.nextTransportStatus)}</p>
+                  <p className="mwos-subcard-copy mt-2">{team.nextTransportLabel}</p>
                 </div>
               </div>
 
@@ -89,10 +94,10 @@ export default function OversightTeamMatrix({ teams }: { teams: OversightTeamSna
                   {team.issues.map((issue) => (
                     <span
                       key={`${team.teamId}-${issue.title}`}
-                      className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
+                      className={`mwos-pill ${
                         issue.severity === 'high'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-amber-100 text-amber-700'
+                          ? 'mwos-pill-danger'
+                          : 'mwos-pill-alert'
                       }`}
                     >
                       {issue.title}

@@ -55,7 +55,7 @@ const METRIC_META = [
 
 export default function OversightMetricStrip({ metrics }: { metrics: OversightMetricSummary }) {
   return (
-    <section className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+    <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
       {METRIC_META.map((item) => {
         const Icon = item.icon;
         return (
@@ -65,12 +65,12 @@ export default function OversightMetricStrip({ metrics }: { metrics: OversightMe
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">{item.label}</p>
-                <p className="mt-3 text-2xl font-black text-[var(--color-dark)] md:text-3xl">{metrics[item.key]}</p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.help}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)] md:text-[11px] md:tracking-[0.2em]">{item.label}</p>
+                <p className="mt-2 text-2xl font-black leading-none text-[var(--color-dark)] md:mt-3 md:text-3xl">{metrics[item.key]}</p>
+                <p className="mt-2 hidden text-sm font-semibold leading-6 text-[var(--color-mid)] sm:block">{item.help}</p>
               </div>
-              <div className={`flex size-10 items-center justify-center rounded-2xl md:size-11 ${item.iconTone}`}>
-                <Icon size={20} />
+              <div className={`flex size-9 items-center justify-center rounded-2xl md:size-11 ${item.iconTone}`}>
+                <Icon size={18} />
               </div>
             </div>
           </article>

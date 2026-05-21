@@ -281,19 +281,19 @@ export default function TransportPage() {
       <main className="flex-1 overflow-auto p-3 pb-28 md:p-6">
         <div className="mx-auto max-w-7xl space-y-5 md:space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface px-4 py-5 text-white md:px-8 md:py-8">
-              <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/68">
+            <div className="mwos-ribbon-surface px-4 py-4 text-white md:px-8 md:py-8">
+              <p className="mwos-hero-kicker text-white/68">
                 Club Module
               </p>
-              <div className="mt-4 flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/12 text-white">
-                  <Bus size={22} />
+              <div className="mwos-surface-intro mt-4">
+                <div className="mwos-surface-intro-icon flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 text-white md:h-12 md:w-12">
+                  <Bus size={20} />
                 </div>
-                <div className="min-w-0">
-                  <h1 className="mwos-display text-balance text-[2rem] uppercase leading-none tracking-[0.08em] text-white md:text-[3.4rem]">
+                <div className="mwos-surface-intro-copy">
+                  <h1 className="mwos-display mwos-hero-title text-white">
                     Transport Plans
                   </h1>
-                  <p className="mt-3 max-w-3xl text-pretty text-sm font-semibold leading-6 text-white/82 md:text-base md:leading-7">
+                  <p className="mwos-hero-copy mt-2.5 max-w-3xl text-pretty text-white/82 md:mt-3">
                     Coordinate departures, keep assigned drivers aligned and surface important travel changes in one place for the whole club.
                   </p>
                 </div>
@@ -302,34 +302,34 @@ export default function TransportPage() {
           </section>
 
           {error ? (
-            <section className="rounded-[24px] border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            <section className="mwos-card-tone-danger rounded-[24px] border p-4 text-sm font-semibold text-[var(--color-accent-deep)]">
               {error}
             </section>
           ) : null}
 
           {warning ? (
-            <section className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+            <section className="mwos-card-tone-alert rounded-[24px] border p-4 text-sm font-semibold text-[var(--color-accent-deep)]">
               {warning}
             </section>
           ) : null}
 
           {success ? (
-            <section className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
+            <section className="mwos-card-tone-training rounded-[24px] border p-4 text-sm font-semibold text-[var(--color-primary-deep)]">
               {success}
             </section>
           ) : null}
 
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+          <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
             <article className="mwos-card-tone-transport rounded-[22px] border p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Active trips</p>
-              <p className="mt-3 text-3xl font-black text-[var(--color-dark)]">{activePlansCount}</p>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)] md:text-[11px] md:tracking-[0.2em]">Active trips</p>
+              <p className="mt-2 text-3xl font-black leading-none text-[var(--color-dark)]">{activePlansCount}</p>
+              <p className="mt-2 hidden text-sm font-semibold leading-6 text-[var(--color-mid)] sm:block">
                 Published and in-progress transport work that still needs attention.
               </p>
             </article>
-            <article className="mwos-card-tone-alert rounded-[22px] border p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Next departure</p>
-              <p className="mt-3 text-xl font-black text-[var(--color-dark)]">
+            <article className="mwos-card-tone-alert col-span-2 rounded-[22px] border p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)] md:col-span-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)] md:text-[11px] md:tracking-[0.2em]">Next departure</p>
+              <p className="mt-2 text-lg font-black leading-tight text-[var(--color-dark)] md:mt-3 md:text-xl">
                 {nextTrip ? `${nextTrip.eventDate} · ${nextTrip.departureTime || 'TBD'}` : 'No upcoming trip'}
               </p>
               <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
@@ -337,9 +337,9 @@ export default function TransportPage() {
               </p>
             </article>
             <article className="mwos-card-tone-staff rounded-[22px] border p-4 shadow-[0_14px_34px_rgba(49,39,131,0.05)]">
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Assigned drivers</p>
-              <p className="mt-3 text-3xl font-black text-[var(--color-dark)]">{assignedDriversCount}</p>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)] md:text-[11px] md:tracking-[0.2em]">Assigned drivers</p>
+              <p className="mt-2 text-3xl font-black leading-none text-[var(--color-dark)]">{assignedDriversCount}</p>
+              <p className="mt-2 hidden text-sm font-semibold leading-6 text-[var(--color-mid)] sm:block">
                 Trips that already have a named driver and are ready for execution updates.
               </p>
             </article>
@@ -358,7 +358,7 @@ export default function TransportPage() {
                       draft: null,
                     })
                   }
-                  className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)]"
+                  className="mwos-select-field w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)]"
                 >
                   <option value="">All accessible teams</option>
                   {teams.map((team) => (
@@ -374,7 +374,7 @@ export default function TransportPage() {
                 <select
                   value={statusFilter}
                   onChange={(event) => updateSearch({ status: event.target.value || 'all', plan: null, draft: null })}
-                  className="w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)]"
+                  className="mwos-select-field w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)]"
                 >
                   <option value="all">All statuses</option>
                   <option value="draft">Draft</option>

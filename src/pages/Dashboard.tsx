@@ -5,6 +5,7 @@ import AdminDashboardPanel from '../components/AdminDashboardPanel';
 import AppSidebar from '../components/AppSidebar';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 import ScoutingWorkspaceActions from '../components/scouting/ScoutingWorkspaceActions';
+import ScoutCodeOfConductCard from '../components/scouting/ScoutCodeOfConductCard';
 import ScoutingWorkspaceHero from '../components/scouting/ScoutingWorkspaceHero';
 import ScoutingWorkspaceMetrics from '../components/scouting/ScoutingWorkspaceMetrics';
 import {
@@ -104,10 +105,10 @@ const REPORT_CARD_VARIANTS = [
   },
   {
     shell:
-      'border-[#d5aa4d]/18 bg-[linear-gradient(180deg,rgba(213,170,77,0.055),rgba(255,255,255,1))] hover:border-[#d5aa4d]/45',
-    badge: 'bg-[#d5aa4d]/18 text-[#7c5b11]',
-    score: 'text-[#7c5b11]',
-    surface: 'bg-[linear-gradient(180deg,rgba(213,170,77,0.09),rgba(213,170,77,0.02))]',
+      'border-[var(--color-primary-deep)]/16 bg-[linear-gradient(180deg,rgba(34,27,102,0.045),rgba(255,255,255,1))] hover:border-[var(--color-primary-deep)]/38',
+    badge: 'bg-[var(--color-primary-deep)]/10 text-[var(--color-primary-deep)]',
+    score: 'text-[var(--color-primary-deep)]',
+    surface: 'bg-[linear-gradient(180deg,rgba(34,27,102,0.08),rgba(34,27,102,0.02))]',
   },
 ];
 
@@ -387,13 +388,13 @@ export default function Dashboard() {
           <ScoutingWorkspaceMetrics metrics={workspaceMetrics} />
 
           {isAdmin && adminLoadError && (
-            <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <div className="mwos-card-tone-danger rounded-[24px] border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
               {adminLoadError}
             </div>
           )}
 
           {deleteError && (
-            <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <div className="mwos-card-tone-danger rounded-[24px] border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
               {deleteError}
             </div>
           )}
@@ -420,6 +421,8 @@ export default function Dashboard() {
             actions={workspaceActions}
             onOpen={(path) => navigate(path)}
           />
+
+          <ScoutCodeOfConductCard />
 
           {/* Mobile compact list */}
           <div className="md:hidden">
@@ -478,7 +481,7 @@ export default function Dashboard() {
                             type="button"
                             onClick={(event) => handleRequestDeleteReport(event, report.id!)}
                             disabled={deletingReportId === report.id}
-                            className="rounded-lg p-2 text-[var(--color-mid)] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                            className="rounded-lg p-2 text-[var(--color-mid)] transition-colors hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)] disabled:opacity-50"
                             aria-label="Delete report"
                           >
                             <Trash2 size={15} />
@@ -526,7 +529,7 @@ export default function Dashboard() {
                             type="button"
                             onClick={(event) => handleRequestDeleteReport(event, report.id!)}
                             disabled={deletingReportId === report.id}
-                            className="rounded-lg p-1.5 text-[var(--color-mid)] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                            className="rounded-lg p-1.5 text-[var(--color-mid)] transition-colors hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)] disabled:opacity-50"
                             aria-label="Delete report"
                             title="Delete report"
                           >

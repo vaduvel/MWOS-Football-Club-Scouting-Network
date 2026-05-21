@@ -22,19 +22,19 @@ export default function ScoutingWorkspaceHero({
 }: ScoutingWorkspaceHeroProps) {
   return (
     <div className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-      <div className="mwos-ribbon-surface relative overflow-hidden px-4 py-4 text-white md:px-6 md:py-5">
+      <div className="mwos-ribbon-surface relative overflow-hidden px-4 py-3.5 text-white md:px-6 md:py-5">
         <div className="flex flex-col gap-3 border-b border-white/10 pb-4 xl:flex-row xl:items-start xl:justify-between xl:gap-5 xl:pb-5">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <img
               src="/branding/mwos-fc-300-2.png"
               alt="MWOS logo"
-              className="h-9 w-9 rounded-full border border-white/20 bg-white/10 p-0.5 md:h-12 md:w-12"
+              className="h-8 w-8 rounded-full border border-white/20 bg-white/10 p-0.5 md:h-12 md:w-12"
             />
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/68 md:text-[11px] md:tracking-[0.32em]">
+            <div className="min-w-0">
+              <p className="mwos-hero-kicker text-white/68">
                 {hero.eyebrow}
               </p>
-              <h2 className="mt-1 mwos-display text-[2rem] uppercase leading-none tracking-[0.05em] text-white md:mt-2 md:text-4xl xl:text-5xl">
+              <h2 className="mwos-display mwos-hero-title mt-1 text-white md:mt-2 xl:text-5xl">
                 {hero.title}
               </h2>
             </div>
@@ -71,7 +71,7 @@ export default function ScoutingWorkspaceHero({
           </div>
         </div>
 
-        <p className="mt-4 max-w-3xl text-sm font-semibold text-white/76">
+        <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-white/76 md:mt-4">
           {hero.description}
         </p>
       </div>

@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
+  ArrowRight,
   CalendarRange,
   FileSearch,
+  FileText,
+  LayoutGrid,
   Loader2,
   MessageCircleMore,
   PenSquare,
@@ -51,12 +54,12 @@ function normalizeDayIndex(value: string | null) {
 
 function getCoachPrimaryActionClass(kind: TrainingCoachFlowActionKind) {
   if (kind === 'review_missing_info') {
-    return 'border-amber-200 bg-amber-50 text-amber-800';
+    return 'mwos-btn-warning';
   }
   if (kind === 'share_plan') {
-    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    return 'mwos-btn-success';
   }
-  return 'border-[var(--color-primary)]/18 bg-[var(--color-primary)] text-white';
+  return 'mwos-btn-primary';
 }
 
 function getCoachPrimaryActionIcon(kind: TrainingCoachFlowActionKind) {
@@ -574,6 +577,7 @@ export default function TrainingPage() {
 
   const primaryActionKind = coachFlow?.primaryAction.kind || 'add_sessions';
   const PrimaryActionIcon = getCoachPrimaryActionIcon(primaryActionKind);
+  const shareIsPrimary = primaryActionKind === 'share_plan';
 
   return (
     <div className="min-h-dvh bg-[var(--color-light)] md:flex">
@@ -582,19 +586,19 @@ export default function TrainingPage() {
       <main className="flex-1 overflow-auto px-3 pb-28 pt-[calc(env(safe-area-inset-top)+0.75rem)] md:p-6">
         <div className="mx-auto max-w-7xl space-y-5 md:space-y-6">
           <section className="hidden overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)] sm:block">
-            <div className="mwos-ribbon-surface px-4 py-5 text-white md:px-8 md:py-8">
-              <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/68">
+            <div className="mwos-ribbon-surface px-4 py-4 text-white md:px-8 md:py-8">
+              <p className="mwos-hero-kicker text-white/68">
                 Club Module
               </p>
-              <div className="mt-4 flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/12 text-white">
-                  <CalendarRange size={22} />
+              <div className="mwos-surface-intro mt-4">
+                <div className="mwos-surface-intro-icon flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 text-white md:h-12 md:w-12">
+                  <CalendarRange size={20} />
                 </div>
-                <div className="min-w-0">
-                  <h1 className="mwos-display text-balance text-[2rem] uppercase leading-none tracking-[0.08em] text-white md:text-[3.4rem]">
+                <div className="mwos-surface-intro-copy">
+                  <h1 className="mwos-display mwos-hero-title text-white">
                     Training Schedule
                   </h1>
-                  <p className="mt-3 hidden max-w-3xl text-pretty text-sm font-semibold leading-6 text-white/82 sm:block md:text-base md:leading-7">
+                  <p className="mwos-hero-copy mt-2.5 hidden max-w-3xl text-pretty text-white/82 sm:block md:mt-3">
                     Build the weekly microcycle, adjust sessions live, keep Technical Director feedback in one place and deliver staff reminders without leaving the club workspace.
                   </p>
                 </div>
@@ -603,19 +607,19 @@ export default function TrainingPage() {
           </section>
 
           {error ? (
-            <section className="rounded-[24px] border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            <section className="mwos-card-tone-danger rounded-[24px] border p-4 text-sm font-semibold text-[var(--color-accent-deep)]">
               {error}
             </section>
           ) : null}
 
           {warning ? (
-            <section className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-700">
+            <section className="mwos-card-tone-alert rounded-[24px] border p-4 text-sm font-semibold text-[var(--color-accent)]">
               {warning}
             </section>
           ) : null}
 
           {success ? (
-            <section className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
+            <section className="mwos-card-tone-training rounded-[24px] border p-4 text-sm font-semibold text-[var(--color-primary-deep)]">
               {success}
             </section>
           ) : null}
@@ -677,12 +681,22 @@ export default function TrainingPage() {
 
               {workspace.canManage ? (
                 <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:hidden">
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
-                    Next step
-                  </p>
-                  <h2 className="mt-2 text-lg font-black text-[var(--color-dark)]">
-                    Save your work, then move the plan forward
-                  </h2>
+                  <div className="mwos-surface-intro">
+                    <div className="mwos-surface-intro-icon flex size-9 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+                      <ArrowRight size={18} />
+                    </div>
+                    <div className="mwos-surface-intro-copy">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
+                        Next step
+                      </p>
+                      <h2 className="mt-1 text-lg font-black text-[var(--color-dark)]">
+                        Save your work, then move the plan forward
+                      </h2>
+                      <p className="mt-1.5 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                        Use Save for progress. Use the main action only when you are ready to review, publish or share.
+                      </p>
+                    </div>
+                  </div>
                   <div
                     className={cn(
                       'mt-4 grid gap-2',
@@ -694,7 +708,7 @@ export default function TrainingPage() {
                         type="button"
                         onClick={() => void handleSave('draft')}
                         disabled={loading || savingState !== null}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-white disabled:opacity-50"
+                        className="mwos-btn mwos-btn-secondary w-full uppercase tracking-[0.12em]"
                       >
                         {savingState === 'draft' ? (
                           <Loader2 size={16} className="animate-spin" />
@@ -710,7 +724,7 @@ export default function TrainingPage() {
                       onClick={handleCoachPrimaryAction}
                       disabled={loading || savingState !== null}
                       className={cn(
-                        'inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-black uppercase tracking-[0.12em] disabled:opacity-50',
+                        'mwos-btn w-full uppercase tracking-[0.12em]',
                         getCoachPrimaryActionClass(primaryActionKind),
                       )}
                     >
@@ -727,13 +741,21 @@ export default function TrainingPage() {
 
               <details className="group hidden rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:block md:p-6">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
-                      Optional weekly notes
-                    </p>
-                    <h2 className="mt-1 text-xl font-black text-[var(--color-dark)]">
-                      Add a headline only if staff need the weekly context
-                    </h2>
+                  <div className="mwos-surface-intro">
+                    <div className="mwos-surface-intro-icon flex size-9 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+                      <FileText size={18} />
+                    </div>
+                    <div className="mwos-surface-intro-copy">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
+                        Optional weekly notes
+                      </p>
+                      <h2 className="mt-1 text-xl font-black text-[var(--color-dark)]">
+                        Add a headline only if staff need the weekly context
+                      </h2>
+                      <p className="mt-1.5 max-w-2xl text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                        Keep this light. Coaches should spend most of their time in the daily session form, not in extra weekly copy.
+                      </p>
+                    </div>
                   </div>
                   <span className="rounded-full bg-[var(--color-light)] px-3 py-1 text-xs font-black text-[var(--color-primary)]">
                     Open
@@ -741,7 +763,7 @@ export default function TrainingPage() {
                 </summary>
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                    <label className="mwos-form-label text-[var(--color-mid)]">
                       Weekly headline
                     </label>
                     <input
@@ -757,7 +779,7 @@ export default function TrainingPage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                    <label className="mwos-form-label text-[var(--color-mid)]">
                       Weekly objective
                     </label>
                     <textarea
@@ -778,13 +800,21 @@ export default function TrainingPage() {
 
               <details className="group hidden rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:block md:p-6">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
-                      Week overview
-                    </p>
-                    <h2 className="mt-2 text-balance text-xl font-black text-[var(--color-dark)]">
-                      Preview the week after filling the form
-                    </h2>
+                  <div className="mwos-surface-intro">
+                    <div className="mwos-surface-intro-icon flex size-9 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+                      <LayoutGrid size={18} />
+                    </div>
+                    <div className="mwos-surface-intro-copy">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
+                        Week overview
+                      </p>
+                      <h2 className="mt-1 text-balance text-xl font-black text-[var(--color-dark)]">
+                        Preview the week after filling the form
+                      </h2>
+                      <p className="mt-1.5 max-w-2xl text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                        This is a reading view of the week, not another place to edit it.
+                      </p>
+                    </div>
                   </div>
                   <span className="shrink-0 rounded-full bg-[var(--color-light)] px-3 py-1 text-xs font-black text-[var(--color-primary)]">
                     Open
@@ -821,18 +851,28 @@ export default function TrainingPage() {
 
               <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
                 <article className="hidden rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:block md:p-6">
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
-                    Plan actions
-                  </p>
-                  <h2 className="mt-2 text-xl font-black text-[var(--color-dark)]">
-                    Save, publish, then share
-                  </h2>
+                  <div className="mwos-surface-intro">
+                    <div className="mwos-surface-intro-icon flex size-9 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+                      <Save size={18} />
+                    </div>
+                    <div className="mwos-surface-intro-copy">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
+                        Plan actions
+                      </p>
+                      <h2 className="mt-1 text-xl font-black text-[var(--color-dark)]">
+                        Save, publish, then share
+                      </h2>
+                      <p className="mt-1.5 max-w-2xl text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                        Publish is the main forward action. Save keeps progress. Share comes after the plan is ready for staff.
+                      </p>
+                    </div>
+                  </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
                     <button
                       type="button"
                       onClick={() => void handleSave('draft')}
                       disabled={!workspace.canManage || savingState !== null}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+                      className="mwos-btn mwos-btn-tertiary"
                     >
                       {savingState === 'draft' ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
                       Save draft
@@ -841,7 +881,7 @@ export default function TrainingPage() {
                       type="button"
                       onClick={() => void handleSave('publish')}
                       disabled={!workspace.canManage || savingState !== null}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-primary)]/18 bg-white px-4 py-3 text-sm font-black text-[var(--color-primary)] disabled:opacity-50"
+                      className={cn('mwos-btn', shareIsPrimary ? 'mwos-btn-secondary' : 'mwos-btn-primary')}
                     >
                       {savingState === 'publish' ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
                       Publish
@@ -850,7 +890,7 @@ export default function TrainingPage() {
                       type="button"
                       onClick={handleOpenWhatsAppShare}
                       disabled={savingState !== null}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 disabled:opacity-50"
+                      className={cn('mwos-btn', shareIsPrimary ? 'mwos-btn-success' : 'mwos-btn-secondary')}
                     >
                       <MessageCircleMore size={17} />
                       Share WhatsApp
@@ -860,7 +900,7 @@ export default function TrainingPage() {
                         type="button"
                         onClick={() => void handleSave('archive')}
                         disabled={!workspace.canManage || savingState !== null}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/60 px-4 py-3 text-sm font-black text-[var(--color-mid)] disabled:opacity-50 sm:col-span-3 xl:col-span-1"
+                        className="mwos-btn mwos-btn-danger sm:col-span-3 xl:col-span-1"
                       >
                         {savingState === 'archive' ? <Loader2 size={17} className="animate-spin" /> : <ShieldCheck size={17} />}
                         Archive
@@ -880,9 +920,11 @@ export default function TrainingPage() {
                   />
                 ) : (
                   <article className="hidden rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:block md:p-6">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="mt-0.5 text-[var(--color-primary)]" size={20} />
-                      <div>
+                    <div className="mwos-surface-intro">
+                      <div className="mwos-surface-intro-icon mt-0.5 text-[var(--color-primary)]">
+                        <AlertCircle size={20} />
+                      </div>
+                      <div className="mwos-surface-intro-copy">
                         <h2 className="text-lg font-black text-[var(--color-dark)]">Comments unlock after first save</h2>
                         <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
                           Save or publish the plan first. Once the plan exists in the database, coaches and the Technical Director can discuss it here.

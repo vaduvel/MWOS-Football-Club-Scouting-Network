@@ -759,6 +759,10 @@ export function canAccessOversightModule(user: Pick<AppUser, 'roles'> | null | u
   return userHasAnyRole(user, ['admin', 'technical_director', 'board_observer']);
 }
 
+export function canManageAnnouncements(user: Pick<AppUser, 'roles'> | null | undefined) {
+  return userHasAnyRole(user, ['admin', 'technical_director']);
+}
+
 export function getPrimaryRoleSlug(user: Pick<AppUser, 'roles'> | null | undefined) {
   if (!user) return 'pending';
   return normalizeRoleList(user.roles)[0] || 'pending';

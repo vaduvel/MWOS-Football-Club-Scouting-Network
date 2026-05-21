@@ -127,7 +127,7 @@ export default function PlayerReviewsTab() {
                     <select 
                       value={review.player_id} 
                       onChange={e => updateReview(review.id, { player_id: e.target.value })}
-                      className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-bold bg-white"
+                      className="mwos-select-field w-full rounded-xl border border-[var(--color-mid)]/30 bg-white p-3 font-bold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                     >
                       <option value="">-- Select a player from team sheets --</option>
                       <optgroup label="Home Team">
@@ -218,7 +218,7 @@ export default function PlayerReviewsTab() {
                         <select 
                           value={review.potential_level} 
                           onChange={e => updateReview(review.id, { potential_level: e.target.value })}
-                          className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-bold bg-white"
+                          className="mwos-select-field w-full rounded-xl border border-[var(--color-mid)]/30 bg-white p-3 font-bold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                         >
                           <option value="Academy">Academy</option>
                           <option value="Semi-pro">Semi-pro</option>

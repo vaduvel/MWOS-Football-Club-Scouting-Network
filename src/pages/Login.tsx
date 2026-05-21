@@ -125,7 +125,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={() => setIsInstallGuideOpen(true)}
-                        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-primary)]/16 bg-[var(--color-light)] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-primary)] shadow-sm"
+                        className="mwos-pill mwos-pill-training shadow-sm"
                       >
                         <Info size={16} />
                         Install help
@@ -140,7 +140,7 @@ export default function Login() {
                       </div>
                     )}
                     {info && (
-                      <div className="rounded-2xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
+                      <div className="mwos-card-tone-training rounded-2xl border p-3 text-sm font-semibold text-[var(--color-primary-deep)]">
                         {info}
                       </div>
                     )}
@@ -157,7 +157,7 @@ export default function Login() {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             autoComplete="name"
-                            className="w-full rounded-2xl border border-[var(--color-mid)]/30 p-3 outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                            className="mwos-mobile-input"
                           />
                         </div>
                         <div>
@@ -169,10 +169,10 @@ export default function Login() {
                             value={organization}
                             onChange={(e) => setOrganization(e.target.value)}
                             autoComplete="organization"
-                            className="w-full rounded-2xl border border-[var(--color-mid)]/30 p-3 outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                            className="mwos-mobile-input"
                           />
                         </div>
-                        <div className="rounded-2xl bg-[var(--color-light)] p-3 text-xs font-semibold text-[var(--color-mid)]">
+                        <div className="mwos-mobile-note text-xs">
                           Club access is assigned after account creation. The same login can later receive one or more roles and team assignments.
                         </div>
                       </>
@@ -190,7 +190,7 @@ export default function Login() {
                         autoComplete="email"
                         autoCapitalize="none"
                         autoCorrect="off"
-                        className="w-full rounded-2xl border border-[var(--color-mid)]/30 p-3 outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                        className="mwos-mobile-input"
                       />
                     </div>
 
@@ -205,14 +205,14 @@ export default function Login() {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           autoComplete={isLogin ? 'current-password' : 'new-password'}
-                          className="w-full rounded-2xl border border-[var(--color-mid)]/30 p-3 outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                          className="mwos-mobile-input"
                         />
                       </div>
                     )}
 
                     <button
                       type="submit"
-                      className="w-full rounded-2xl bg-[var(--color-primary)] py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-92"
+                      className="mwos-btn mwos-btn-primary w-full"
                     >
                       {isRecoveryMode ? 'Send Reset Link' : isLogin ? 'Log In' : 'Create Account'}
                     </button>
@@ -323,16 +323,16 @@ export default function Login() {
                   alt="MWOS logo"
                   className="mx-auto hidden h-20 w-20 rounded-full border border-white/20 bg-white/10 p-0.5 shadow-[0_18px_45px_rgba(12,16,53,0.28)] md:block"
                 />
-                <p className="mt-3 text-[10px] font-black uppercase tracking-[0.32em] text-white/68 md:mt-4 md:text-[11px] md:tracking-[0.34em]">
+                <p className="mwos-hero-kicker mt-3 text-white/68 md:mt-4">
                   MWOS Football Club
                 </p>
                 <p className="mt-2 mwos-display text-lg uppercase leading-none tracking-[0.12em] text-white md:text-2xl md:tracking-[0.14em]">
                   Club Management
                 </p>
-                <p className="mt-4 mwos-display text-[2rem] uppercase leading-[0.94] tracking-[0.05em] text-white md:mt-5 md:text-5xl md:tracking-[0.07em]">
+                <p className="mwos-display mwos-hero-title mt-4 text-white md:mt-5">
                   One workspace for the whole MWOS staff.
                 </p>
-                <p className="mx-auto mt-3 max-w-xl text-xs font-semibold leading-6 text-white/82 md:text-[15px]">
+                <p className="mwos-hero-copy mx-auto mt-3 max-w-xl text-white/82">
                   Plan training, coordinate transport, manage scouting reports and keep coaches, drivers and leadership aligned in one branded club system.
                 </p>
               </div>

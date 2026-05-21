@@ -106,11 +106,11 @@ function FeedShell({
 
   return (
     <article className={`rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5 ${shellTone}`}>
-      <div className="flex items-start gap-3 md:gap-4">
-        <div className={`flex size-10 items-center justify-center rounded-2xl md:size-12 ${iconTone}`}>
+      <div className="mwos-surface-intro">
+        <div className={`mwos-surface-intro-icon flex size-10 items-center justify-center rounded-2xl md:size-12 ${iconTone}`}>
           <Icon size={22} />
         </div>
-        <div>
+        <div className="mwos-surface-intro-copy">
           <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">{title}</h2>
           <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">{description}</p>
         </div>
@@ -120,10 +120,16 @@ function FeedShell({
   );
 }
 
-function EmptyState({ message }: { message: string }) {
+function EmptyState({
+  message,
+  tone = 'mwos-subcard-neutral',
+}: {
+  message: string;
+  tone?: string;
+}) {
   return (
-    <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/18 bg-[var(--color-light)]/55 p-5">
-      <p className="text-sm font-semibold text-[var(--color-mid)]">{message}</p>
+    <div className={`mwos-subcard ${tone} border-dashed p-5`}>
+      <p className="mwos-subcard-copy mt-0">{message}</p>
     </div>
   );
 }
@@ -137,14 +143,22 @@ function RoleCoverageCard({ summary }: { summary: OversightRoleSummary }) {
     { label: 'Scout', value: summary.scouts },
     { label: 'Board Observer', value: summary.boardObservers },
   ];
+  const toneClasses = [
+    'mwos-subcard-staff',
+    'mwos-subcard-training',
+    'mwos-subcard-alert',
+    'mwos-subcard-transport',
+    'mwos-subcard-report',
+    'mwos-subcard-neutral',
+  ];
 
   return (
     <article className="mwos-card-tone-staff rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-      <div className="flex items-start gap-3 md:gap-4">
-        <div className="mwos-icon-tone-staff flex size-10 items-center justify-center rounded-2xl md:size-12">
+      <div className="mwos-surface-intro">
+        <div className="mwos-surface-intro-icon mwos-icon-tone-staff flex size-10 items-center justify-center rounded-2xl md:size-12">
           <Users size={22} />
         </div>
-        <div>
+        <div className="mwos-surface-intro-copy">
           <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Staff coverage</h2>
           <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
             A quick view of role distribution across the club workspace.
@@ -153,13 +167,13 @@ function RoleCoverageCard({ summary }: { summary: OversightRoleSummary }) {
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <div
             key={item.label}
-            className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/60 p-4"
+            className={`mwos-subcard ${toneClasses[index % toneClasses.length]}`}
           >
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">{item.label}</p>
-            <p className="mt-2 text-lg font-black text-[var(--color-dark)]">{formatRoleLabelCount(item.label, item.value)}</p>
+            <p className="mwos-subcard-kicker">{item.label}</p>
+            <p className="mwos-subcard-title mt-3">{formatRoleLabelCount(item.label, item.value)}</p>
           </div>
         ))}
       </div>
@@ -169,14 +183,15 @@ function RoleCoverageCard({ summary }: { summary: OversightRoleSummary }) {
 
 function StaffingHealthCard({ summary }: { summary: OversightStaffingHealth }) {
   const cards = buildStaffingHealthCards(summary);
+  const toneClasses = ['mwos-subcard-staff', 'mwos-subcard-training', 'mwos-subcard-alert', 'mwos-subcard-report'];
 
   return (
     <article className="mwos-card-tone-staff rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-      <div className="flex items-start gap-3 md:gap-4">
-        <div className="mwos-icon-tone-staff flex size-10 items-center justify-center rounded-2xl md:size-12">
+      <div className="mwos-surface-intro">
+        <div className="mwos-surface-intro-icon mwos-icon-tone-staff flex size-10 items-center justify-center rounded-2xl md:size-12">
           <Shield size={22} />
         </div>
-        <div>
+        <div className="mwos-surface-intro-copy">
           <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Staffing health</h2>
           <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
             A quick read on access coverage, pending onboarding, and how much staff load is spread across teams.
@@ -185,14 +200,14 @@ function StaffingHealthCard({ summary }: { summary: OversightStaffingHealth }) {
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {cards.map((card) => (
+        {cards.map((card, index) => (
           <div
             key={card.label}
-            className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/60 p-4"
+            className={`mwos-subcard ${toneClasses[index % toneClasses.length]}`}
           >
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">{card.label}</p>
-            <p className="mt-2 text-lg font-black text-[var(--color-dark)]">{card.value}</p>
-            <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">{card.detail}</p>
+            <p className="mwos-subcard-kicker">{card.label}</p>
+            <p className="mwos-subcard-value text-lg md:text-[1.75rem]">{card.value}</p>
+            <p className="mwos-subcard-copy mt-2 text-sm leading-6">{card.detail}</p>
           </div>
         ))}
       </div>
@@ -213,33 +228,39 @@ function StaffAccessActivityFeed({ items }: { items: StaffAccessEventRecord[] })
           items.map((item) => (
             <div
               key={item.id}
-              className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4"
+              className={`mwos-subcard ${
+                item.tone === 'warning'
+                  ? 'mwos-subcard-alert'
+                  : item.tone === 'success'
+                    ? 'mwos-subcard-success'
+                    : 'mwos-subcard-staff'
+              }`}
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm font-black text-[var(--color-dark)]">{item.targetName}</p>
-                  <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{item.targetEmail}</p>
+                  <p className="mwos-subcard-title mt-0">{item.targetName}</p>
+                  <p className="mwos-subcard-meta mt-1 normal-case tracking-normal">{item.targetEmail}</p>
                 </div>
                 <span
-                  className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] shadow-sm ${
+                  className={`mwos-pill ${
                     item.tone === 'warning'
-                      ? 'bg-amber-100 text-amber-800'
+                      ? 'mwos-pill-alert'
                       : item.tone === 'success'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-white text-[var(--color-dark)]'
+                        ? 'mwos-pill-success'
+                        : 'mwos-pill-neutral'
                   }`}
                 >
                   {item.title}
                 </span>
               </div>
-              <p className="mt-3 text-sm font-semibold leading-6 text-[var(--color-dark)]">{item.detail}</p>
-              <p className="mt-2 text-[11px] font-semibold text-[var(--color-mid)]">
+              <p className="mwos-subcard-copy mt-3 text-[var(--color-dark)]">{item.detail}</p>
+              <p className="mwos-subcard-meta mt-2 normal-case tracking-normal">
                 By {item.actorName} · {formatIsoDate(item.createdAt)}
               </p>
             </div>
           ))
         ) : (
-          <EmptyState message="No recent access activity yet." />
+          <EmptyState tone="mwos-subcard-staff" message="No recent access activity yet." />
         )}
       </div>
     </FeedShell>
@@ -259,21 +280,21 @@ function TrainingFeed({ plans, interactive = true }: { plans: TrainingPlanSummar
           plans.map((plan) => (
             <div
               key={plan.id}
-              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+              className={`mwos-subcard mwos-subcard-training ${interactive ? 'mwos-subcard-interactive' : ''} group flex items-start gap-3 transition ${
                 interactive ? 'hover:border-[var(--color-primary)]/22' : ''
               }`}
             >
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-black text-[var(--color-dark)]">{plan.teamName}</p>
-                  <span className="rounded-full bg-[var(--color-primary)]/8 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]">
-                    {plan.status}
-                  </span>
+                <div className="mwos-subcard-head">
+                  <p className="mwos-subcard-title mt-0">{plan.teamName}</p>
+                  <div className="mwos-subcard-badges">
+                    <span className="mwos-pill mwos-pill-training">{plan.status}</span>
+                  </div>
                 </div>
-                <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                <p className="mwos-subcard-copy mt-2">
                   {plan.headline || 'Training plan without headline yet.'}
                 </p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                <p className="mwos-subcard-meta mt-2">
                   Week of {formatIsoDate(plan.weekStart)}
                 </p>
               </div>
@@ -287,7 +308,7 @@ function TrainingFeed({ plans, interactive = true }: { plans: TrainingPlanSummar
             </div>
           ))
         ) : (
-          <EmptyState message="No current-week training plans yet." />
+          <EmptyState tone="mwos-subcard-training" message="No current-week training plans yet." />
         )}
       </div>
     </FeedShell>
@@ -307,14 +328,14 @@ function ReportsFeed({ items, interactive = true }: { items: OversightRecentRepo
           items.map((item) => (
             <div
               key={item.id}
-              className={`group flex items-start gap-3 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4 transition ${
+              className={`mwos-subcard mwos-subcard-report ${interactive ? 'mwos-subcard-interactive' : ''} group flex items-start gap-3 transition ${
                 interactive ? 'hover:border-[var(--color-primary)]/22' : ''
               }`}
             >
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-black text-[var(--color-dark)]">{item.fixture}</p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.competition}</p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                <p className="mwos-subcard-title mt-0">{item.fixture}</p>
+                <p className="mwos-subcard-copy mt-2">{item.competition}</p>
+                <p className="mwos-subcard-meta mt-2">
                   {formatIsoDate(item.date)} · {item.ownerName}
                 </p>
               </div>
@@ -328,7 +349,7 @@ function ReportsFeed({ items, interactive = true }: { items: OversightRecentRepo
             </div>
           ))
         ) : (
-          <EmptyState message="No recent scouting reports available yet." />
+          <EmptyState tone="mwos-subcard-report" message="No recent scouting reports available yet." />
         )}
       </div>
     </FeedShell>
@@ -358,16 +379,16 @@ function InvitationFeedWithActions({
           items.map((item) => (
             <div
               key={item.id}
-              className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4"
+              className="mwos-subcard mwos-subcard-staff"
             >
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-black text-[var(--color-dark)]">{item.fullName || item.email}</p>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.email}</p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                  <p className="mwos-subcard-title mt-0">{item.fullName || item.email}</p>
+                  <p className="mwos-subcard-copy mt-2">{item.email}</p>
+                  <p className="mwos-subcard-meta mt-2">
                     Sent {formatIsoDate(item.createdAt)} · expires {formatIsoDate(item.expiresAt)}
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">
+                  <p className="mwos-subcard-copy mt-2">
                     {item.roles.map((role) => role.label).join(', ') || 'No roles selected yet'}
                   </p>
                 </div>
@@ -392,7 +413,7 @@ function InvitationFeedWithActions({
                   type="button"
                   onClick={() => onCancel(item.id)}
                   disabled={busyKey === `invite:cancel:${item.id}`}
-                  className="rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-bold text-red-700 transition hover:border-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mwos-btn mwos-btn-danger min-h-[2.5rem] px-3 py-2 text-sm"
                 >
                   {busyKey === `invite:cancel:${item.id}` ? 'Cancelling…' : 'Cancel'}
                 </button>
@@ -400,7 +421,7 @@ function InvitationFeedWithActions({
             </div>
           ))
         ) : (
-          <EmptyState message="No pending invitations right now." />
+          <EmptyState tone="mwos-subcard-staff" message="No pending invitations right now." />
         )}
       </div>
     </FeedShell>
@@ -434,21 +455,21 @@ function TransportFeedWithActions({
           items.map((item) => (
             <div
               key={item.id}
-              className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/65 p-4"
+              className="mwos-subcard mwos-subcard-transport"
             >
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-black text-[var(--color-dark)]">{item.teamName}</p>
-                    <span className="rounded-full bg-[var(--color-accent)]/8 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-accent)]">
-                      {item.status}
-                    </span>
+                  <div className="mwos-subcard-head">
+                    <p className="mwos-subcard-title mt-0">{item.teamName}</p>
+                    <div className="mwos-subcard-badges">
+                      <span className="mwos-pill mwos-pill-transport">{item.status}</span>
+                    </div>
                   </div>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">{item.title}</p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                  <p className="mwos-subcard-copy mt-2">{item.title}</p>
+                  <p className="mwos-subcard-meta mt-2">
                     {formatIsoDate(item.eventDate)} · {formatTimeValue(item.departureTime)} · {item.destination}
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">
+                  <p className="mwos-subcard-copy mt-2">
                     Driver: {item.driverName}
                   </p>
                 </div>
@@ -472,7 +493,7 @@ function TransportFeedWithActions({
                     type="button"
                     onClick={() => onComplete(item.id)}
                     disabled={busyKey === `transport:complete:${item.id}`}
-                    className="rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-700 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mwos-btn mwos-btn-success min-h-[2.5rem] px-3 py-2 text-sm"
                   >
                     {busyKey === `transport:complete:${item.id}` ? 'Updating…' : 'Mark completed'}
                   </button>
@@ -480,7 +501,7 @@ function TransportFeedWithActions({
                     type="button"
                     onClick={() => onCancel(item.id)}
                     disabled={busyKey === `transport:cancel:${item.id}`}
-                    className="rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-bold text-red-700 transition hover:border-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mwos-btn mwos-btn-danger min-h-[2.5rem] px-3 py-2 text-sm"
                   >
                     {busyKey === `transport:cancel:${item.id}` ? 'Cancelling…' : 'Cancel trip'}
                   </button>
@@ -489,7 +510,7 @@ function TransportFeedWithActions({
             </div>
           ))
         ) : (
-          <EmptyState message="No upcoming transport plans right now." />
+          <EmptyState tone="mwos-subcard-transport" message="No upcoming transport plans right now." />
         )}
       </div>
     </FeedShell>
@@ -499,11 +520,11 @@ function TransportFeedWithActions({
 function LeadershipReadOnlyNote() {
   return (
     <article className="mwos-card-tone-report rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-      <div className="flex items-start gap-3 md:gap-4">
-        <div className="mwos-icon-tone-report flex size-10 items-center justify-center rounded-2xl md:size-12">
+      <div className="mwos-surface-intro">
+        <div className="mwos-surface-intro-icon mwos-icon-tone-report flex size-10 items-center justify-center rounded-2xl md:size-12">
           <ClipboardList size={22} />
         </div>
-        <div>
+        <div className="mwos-surface-intro-copy">
           <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Leadership read-only view</h2>
           <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
             This role can review club readiness, transport and scouting output without touching staffing assignments or invitation handling.
@@ -518,11 +539,11 @@ function OversightModeNote({ mode }: { mode: ReturnType<typeof getLeadershipWork
   if (mode === 'technical_director') {
     return (
       <article className="mwos-card-tone-training rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-        <div className="flex items-start gap-3 md:gap-4">
-          <div className="mwos-icon-tone-training flex size-10 items-center justify-center rounded-2xl md:size-12">
+        <div className="mwos-surface-intro">
+          <div className="mwos-surface-intro-icon mwos-icon-tone-training flex size-10 items-center justify-center rounded-2xl md:size-12">
             <ClipboardList size={22} />
           </div>
-          <div>
+          <div className="mwos-surface-intro-copy">
             <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Technical review mode</h2>
             <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
               Use this leadership view to review training publication, transport readiness, and activity across all teams, then move into the planning modules when coaches need feedback or direction.
@@ -536,11 +557,11 @@ function OversightModeNote({ mode }: { mode: ReturnType<typeof getLeadershipWork
   if (mode === 'board_observer') {
     return (
       <article className="mwos-card-tone-alert rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-        <div className="flex items-start gap-3 md:gap-4">
-          <div className="mwos-icon-tone-alert flex size-10 items-center justify-center rounded-2xl md:size-12">
+        <div className="mwos-surface-intro">
+          <div className="mwos-surface-intro-icon mwos-icon-tone-alert flex size-10 items-center justify-center rounded-2xl md:size-12">
             <ClipboardList size={22} />
           </div>
-          <div>
+          <div className="mwos-surface-intro-copy">
             <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Board briefing mode</h2>
             <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
               This view stays read-only by design. It surfaces club progress, transport readiness, and recent football activity without exposing staffing or planning controls.
@@ -553,11 +574,11 @@ function OversightModeNote({ mode }: { mode: ReturnType<typeof getLeadershipWork
 
   return (
     <article className="mwos-card-tone-staff rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-      <div className="flex items-start gap-3 md:gap-4">
-        <div className="mwos-icon-tone-staff flex size-10 items-center justify-center rounded-2xl md:size-12">
+      <div className="mwos-surface-intro">
+        <div className="mwos-surface-intro-icon mwos-icon-tone-staff flex size-10 items-center justify-center rounded-2xl md:size-12">
           <ClipboardList size={22} />
         </div>
-        <div>
+        <div className="mwos-surface-intro-copy">
           <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Admin operations mode</h2>
           <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
             Staff access, invitation follow-up, and transport interventions stay available here so club operations can be unblocked quickly.
@@ -645,17 +666,17 @@ export default function OversightPage() {
       <main className="flex-1 overflow-auto p-3 pb-28 md:p-6">
         <div className="mx-auto max-w-7xl space-y-5 md:space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface px-4 py-5 text-white md:px-8 md:py-8">
-              <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/68">{heroCopy.eyebrow}</p>
-              <div className="mt-4 flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/12 text-white">
-                  <Shield size={22} />
+            <div className="mwos-ribbon-surface px-4 py-4 text-white md:px-8 md:py-8">
+              <p className="mwos-hero-kicker text-white/68">{heroCopy.eyebrow}</p>
+              <div className="mwos-surface-intro mt-4">
+                <div className="mwos-surface-intro-icon flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 text-white md:h-12 md:w-12">
+                  <Shield size={20} />
                 </div>
-                <div>
-                  <h1 className="mwos-display text-balance text-[2rem] uppercase leading-none tracking-[0.08em] text-white md:text-[3.4rem]">
+                <div className="mwos-surface-intro-copy">
+                  <h1 className="mwos-display mwos-hero-title text-white">
                     {heroCopy.title}
                   </h1>
-                  <p className="mt-3 max-w-3xl text-pretty text-sm font-semibold leading-6 text-white/82 md:text-base md:leading-7">
+                  <p className="mwos-hero-copy mt-2.5 max-w-3xl text-pretty text-white/82 md:mt-3">
                     {heroCopy.description}
                   </p>
                   {workspace ? (
@@ -683,20 +704,20 @@ export default function OversightPage() {
           ) : null}
 
           {!loading && error ? (
-            <section className="rounded-[28px] border border-red-200 bg-red-50 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-              <p className="text-sm font-semibold text-red-700">{error}</p>
+            <section className="mwos-card-tone-danger rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+              <p className="text-sm font-semibold text-[var(--color-accent-deep)]">{error}</p>
             </section>
           ) : null}
 
           {!loading && !error && actionMessage ? (
-            <section className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-              <p className="text-sm font-semibold text-emerald-700">{actionMessage}</p>
+            <section className="mwos-card-tone-training rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+              <p className="text-sm font-semibold text-[var(--color-primary-deep)]">{actionMessage}</p>
             </section>
           ) : null}
 
           {!loading && !error && actionError ? (
-            <section className="rounded-[28px] border border-red-200 bg-red-50 p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
-              <p className="text-sm font-semibold text-red-700">{actionError}</p>
+            <section className="mwos-card-tone-danger rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+              <p className="text-sm font-semibold text-[var(--color-accent-deep)]">{actionError}</p>
             </section>
           ) : null}
 

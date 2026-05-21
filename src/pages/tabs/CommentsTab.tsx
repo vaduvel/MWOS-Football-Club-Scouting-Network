@@ -138,7 +138,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
 
         <div className="space-y-5 p-4 md:p-6">
           {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            <div className="mwos-card-tone-danger rounded-2xl border p-4 text-sm font-semibold text-[var(--color-accent-deep)]">
               {error}
             </div>
           )}

@@ -47,19 +47,19 @@ function StatusPill({
       ? 'mwos-card-tone-training'
       : tone === 'review'
         ? 'mwos-card-tone-alert'
-        : 'border-rose-200 bg-rose-50/85';
+        : 'mwos-card-tone-danger';
 
   const valueClass =
     tone === 'ready'
-      ? 'text-emerald-700'
+      ? 'text-[var(--color-primary)]'
       : tone === 'review'
-        ? 'text-amber-700'
-        : 'text-rose-700';
+        ? 'text-[var(--color-accent)]'
+        : 'text-[var(--color-accent-deep)]';
 
   return (
-    <div className={cn('rounded-[20px] border px-3 py-3', shellClass)}>
-      <p className="text-[10px] font-black uppercase text-[var(--color-mid)]">{label}</p>
-      <p className={cn('mt-2 text-2xl font-black tabular-nums', valueClass)}>{value}</p>
+    <div className={cn('rounded-[18px] border px-3 py-2.5 md:rounded-[20px] md:py-3', shellClass)}>
+      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)] md:text-[10px] md:tracking-normal">{label}</p>
+      <p className={cn('mt-1.5 text-xl font-black tabular-nums md:mt-2 md:text-2xl', valueClass)}>{value}</p>
     </div>
   );
 }
@@ -110,30 +110,36 @@ export default function TrainingReviewSummaryCard({
             title: 'Imported draft looks publishable',
             iconNode: <CheckCircle2 size={18} />,
           };
+  const actionClass =
+    counts.missingInfo > 0
+      ? 'mwos-btn-warning'
+      : counts.needsReview > 0
+        ? 'mwos-btn-secondary'
+        : 'mwos-btn-primary';
 
   return (
-    <section className={cn('rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5', statusTone.shell)}>
-      <div className="flex items-start gap-3">
-        <div className={cn('flex size-11 items-center justify-center rounded-2xl shadow-[0_8px_20px_rgba(15,23,42,0.08)]', statusTone.icon)}>
+    <section className={cn('rounded-[24px] border p-3.5 shadow-[0_16px_36px_rgba(49,39,131,0.06)] md:rounded-[28px] md:p-5 md:shadow-[0_18px_45px_rgba(49,39,131,0.06)]', statusTone.shell)}>
+      <div className="mwos-surface-intro">
+        <div className={cn('mwos-surface-intro-icon flex size-10 items-center justify-center rounded-2xl shadow-[0_8px_20px_rgba(15,23,42,0.08)] md:size-11', statusTone.icon)}>
           {statusTone.iconNode}
         </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase text-[var(--color-mid)]">Imported review</p>
-          <h2 className="mt-2 text-balance text-lg font-black text-[var(--color-dark)]">{statusTone.title}</h2>
+        <div className="mwos-surface-intro-copy">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)] md:text-[11px] md:tracking-normal">Imported review</p>
+          <h2 className="mt-1.5 text-balance text-base font-black text-[var(--color-dark)] md:mt-2 md:text-lg">{statusTone.title}</h2>
           <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">{statusCopy}</p>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <div className="mt-3 grid grid-cols-3 gap-2 md:mt-4 md:gap-3">
         <StatusPill label="Ready" value={counts.ready} tone="ready" />
         <StatusPill label="Review" value={counts.needsReview} tone="review" />
         <StatusPill label="Missing" value={counts.missingInfo} tone="missing" />
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="rounded-[20px] border border-white/70 bg-white/80 px-4 py-3">
-          <p className="text-[10px] font-black uppercase text-[var(--color-mid)]">Next action</p>
-          <p className="mt-2 text-sm font-black text-[var(--color-dark)]">
+      <div className="mt-3 flex flex-col gap-2.5 md:mt-4 md:flex-row md:items-center md:justify-between md:gap-3">
+        <div className="rounded-[18px] border border-white/70 bg-white/80 px-3.5 py-2.5 md:rounded-[20px] md:px-4 md:py-3">
+          <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)] md:text-[10px] md:tracking-normal">Next action</p>
+          <p className="mt-1.5 text-sm font-black text-[var(--color-dark)] md:mt-2">
             {nextReviewDayLabel
               ? `Continue with ${nextReviewDayLabel}`
               : 'Draft review is complete'}
@@ -144,13 +150,13 @@ export default function TrainingReviewSummaryCard({
           <button
             type="button"
             onClick={onJumpToNextIssue}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-dark)] px-4 py-3 text-sm font-black text-white"
+            className={cn('mwos-btn', actionClass)}
           >
             {nextReviewDayLabel ? 'Jump to next issue' : 'Open first day'}
             <ArrowRight size={16} />
           </button>
         ) : (
-          <div className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-sm font-black text-[var(--color-dark)]">
+          <div className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/70 bg-white/80 px-4 py-2.5 text-sm font-black text-[var(--color-dark)] md:py-3">
             <ShieldCheck size={16} />
             Read-only review
           </div>

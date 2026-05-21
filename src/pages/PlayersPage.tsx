@@ -58,7 +58,7 @@ function getTrendMeta(entry: PlayerHubEntry) {
     return {
       icon: TrendingUp,
       label: `Improving +${entry.trendDelta.toFixed(1)}`,
-      className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      className: 'bg-[var(--color-primary-soft)] text-[var(--color-primary)] border-[var(--color-primary-border)]',
     };
   }
 
@@ -66,7 +66,7 @@ function getTrendMeta(entry: PlayerHubEntry) {
     return {
       icon: TrendingDown,
       label: `Needs follow-up ${entry.trendDelta.toFixed(1)}`,
-      className: 'bg-amber-50 text-amber-700 border-amber-200',
+      className: 'bg-[var(--color-accent-soft)] text-[var(--color-accent)] border-[var(--color-accent-border)]',
     };
   }
 
@@ -369,7 +369,7 @@ export default function PlayersPage() {
                   <select
                     value={potentialFilter}
                     onChange={(event) => setPotentialFilter(event.target.value)}
-                    className="rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
+                    className="mwos-select-field mwos-select-field-inverse rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
                   >
                     <option value="all" className="text-slate-900">
                       All potential levels
@@ -493,7 +493,7 @@ export default function PlayersPage() {
                   <select
                     value={potentialFilter}
                     onChange={(event) => setPotentialFilter(event.target.value)}
-                    className="rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
+                    className="mwos-select-field mwos-select-field-inverse rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
                   >
                     <option value="all" className="text-slate-900">
                       All potential levels
@@ -552,7 +552,7 @@ export default function PlayersPage() {
                 <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.totalTrackedPlayers || 0}</p>
                 <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Players</p>
               </div>
-              <div className="min-w-[148px] rounded-[22px] border border-[#d5aa4d]/20 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(213,170,77,0.05)]">
+              <div className="min-w-[148px] rounded-[22px] border border-[var(--color-primary-deep)]/16 bg-[linear-gradient(180deg,rgba(34,27,102,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(34,27,102,0.05)]">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Shortlist</p>
                 <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.watchlistCount || 0}</p>
                 <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Ready now</p>
@@ -562,7 +562,7 @@ export default function PlayersPage() {
                 <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.pendingReviewCount || 0}</p>
                 <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Need check</p>
               </div>
-              <div className="min-w-[148px] rounded-[22px] border border-emerald-200 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(16,185,129,0.05)]">
+              <div className="min-w-[148px] rounded-[22px] border border-[var(--color-primary-border)] bg-[linear-gradient(180deg,rgba(49,39,131,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.05)]">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">This Week</p>
                 <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.reportsThisWeek || 0}</p>
                 <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Reports</p>
@@ -576,7 +576,7 @@ export default function PlayersPage() {
               <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.totalTrackedPlayers || 0}</p>
               <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Player profiles tracked.</p>
             </div>
-            <div className="rounded-[22px] border border-[#d5aa4d]/20 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(213,170,77,0.05)]">
+            <div className="rounded-[22px] border border-[var(--color-primary-deep)]/16 bg-[linear-gradient(180deg,rgba(34,27,102,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(34,27,102,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Shortlisted</p>
               <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.watchlistCount || 0}</p>
               <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Ready for follow-up.</p>
@@ -586,7 +586,7 @@ export default function PlayersPage() {
               <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.pendingReviewCount || 0}</p>
               <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Need another look.</p>
             </div>
-            <div className="rounded-[22px] border border-emerald-200 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(16,185,129,0.05)]">
+            <div className="rounded-[22px] border border-[var(--color-primary-border)] bg-[linear-gradient(180deg,rgba(49,39,131,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Reports This Week</p>
               <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.reportsThisWeek || 0}</p>
               <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Recent scouting activity.</p>
@@ -594,7 +594,7 @@ export default function PlayersPage() {
           </section>
 
           {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            <div className="mwos-card-tone-danger rounded-2xl border p-4 text-sm font-semibold text-[var(--color-accent-deep)]">
               {error}
             </div>
           )}
@@ -714,18 +714,18 @@ export default function PlayersPage() {
 
                 <button
                   onClick={handleOpenComparison}
-                  className="inline-flex items-center justify-between rounded-[22px] border border-[#d5aa4d]/18 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))] px-4 py-4 text-left"
+                  className="inline-flex items-center justify-between rounded-[22px] border border-[var(--color-primary-deep)]/16 bg-[linear-gradient(180deg,rgba(34,27,102,0.08),rgba(255,255,255,1))] px-4 py-4 text-left"
                 >
                   <div>
                     <p className="text-sm font-black text-[var(--color-dark)]">Compare Players</p>
                     <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Open the comparison panel to decide between candidates.</p>
                   </div>
-                  <GitCompareArrows size={18} className="text-[#7c5b11]" />
+                  <GitCompareArrows size={18} className="text-[var(--color-primary-deep)]" />
                 </button>
 
                 <button
                   onClick={handleOpenExport}
-                  className="inline-flex items-center justify-between rounded-[22px] border border-emerald-200 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,1))] px-4 py-4 text-left"
+                  className="inline-flex items-center justify-between rounded-[22px] border border-[var(--color-primary-border)] bg-[linear-gradient(180deg,rgba(49,39,131,0.08),rgba(255,255,255,1))] px-4 py-4 text-left"
                 >
                   <div>
                     <p className="text-sm font-black text-[var(--color-dark)]">Export Dossier</p>
@@ -733,7 +733,7 @@ export default function PlayersPage() {
                       {primaryExportReportId ? 'Jump straight into export for the strongest available report.' : 'Create a report first, then export a player dossier.'}
                     </p>
                   </div>
-                  <FileDown size={18} className="text-emerald-700" />
+                  <FileDown size={18} className="text-[var(--color-primary)]" />
                 </button>
               </div>
             </div>
@@ -760,7 +760,7 @@ export default function PlayersPage() {
                         ? 'border-[var(--color-primary)]/18 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))]'
                         : index === 1
                           ? 'border-[var(--color-accent)]/16 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))]'
-                          : 'border-[#d5aa4d]/18 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))]'
+                          : 'border-[var(--color-primary-deep)]/18 bg-[linear-gradient(180deg,rgba(34,27,102,0.08),rgba(255,255,255,1))]'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -776,7 +776,7 @@ export default function PlayersPage() {
                           disabled={updatingWatchlistKey === entry.playerKey}
                           className={`rounded-full border p-2 transition-colors ${
                             entry.isWatchlisted
-                              ? 'border-[#d5aa4d]/40 bg-[#d5aa4d]/12 text-[#7c5b11]'
+                              ? 'border-[var(--color-primary-deep)]/40 bg-[var(--color-primary-deep)]/12 text-[var(--color-primary-deep)]'
                               : 'border-[var(--color-mid)]/20 text-[var(--color-mid)] hover:border-[var(--color-primary)]/30 hover:text-[var(--color-primary)]'
                           }`}
                         >
@@ -847,7 +847,7 @@ export default function PlayersPage() {
                 <select
                   value={comparisonLeft}
                   onChange={(event) => setComparisonLeft(event.target.value)}
-                  className="w-full rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-3 text-sm font-semibold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                  className="mwos-select-field w-full rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-3 text-sm font-semibold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                 >
                   {allEntries.map((entry) => (
                     <option key={entry.playerKey} value={entry.playerKey}>
@@ -859,7 +859,7 @@ export default function PlayersPage() {
                 <select
                   value={comparisonRight}
                   onChange={(event) => setComparisonRight(event.target.value)}
-                  className="w-full rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-3 text-sm font-semibold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                  className="mwos-select-field w-full rounded-2xl border border-[var(--color-mid)]/20 bg-white px-4 py-3 text-sm font-semibold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                 >
                   {allEntries.map((entry) => (
                     <option key={entry.playerKey} value={entry.playerKey}>
@@ -952,7 +952,7 @@ export default function PlayersPage() {
                                 <TrendIcon size={12} className="mr-1 inline-flex" />
                                 {trendMeta.label}
                               </span>
-                              <span className="rounded-full bg-[#d5aa4d]/18 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-[#7c5b11]">
+                              <span className="rounded-full bg-[var(--color-primary-deep)]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-deep)]">
                                 {entry.bestPotential}
                               </span>
                             </div>
@@ -978,7 +978,7 @@ export default function PlayersPage() {
                                 disabled={updatingWatchlistKey === entry.playerKey}
                                 className={`col-span-2 rounded-2xl px-4 py-3 text-sm font-black transition-all sm:col-span-1 ${
                                   entry.isWatchlisted
-                                    ? 'bg-[#d5aa4d] text-[#3b2d06] shadow-[0_14px_30px_rgba(213,170,77,0.22)]'
+                                    ? 'bg-[var(--color-primary-deep)] text-white shadow-[0_14px_30px_rgba(34,27,102,0.22)]'
                                     : 'border border-[var(--color-mid)]/20 bg-white text-[var(--color-primary)] hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5'
                                 }`}
                               >
@@ -1071,7 +1071,7 @@ export default function PlayersPage() {
                     <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Trial Shortlist</p>
                     <h2 className="mt-1 text-xl font-black text-[var(--color-dark)] md:text-2xl">Priority Follow-up</h2>
                   </div>
-                  <div className="rounded-2xl bg-[#d5aa4d]/18 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-[#7c5b11]">
+                  <div className="rounded-2xl bg-[var(--color-primary-deep)]/10 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary-deep)]">
                     {overview?.watchlistCount || 0} saved
                   </div>
                 </div>
@@ -1080,7 +1080,7 @@ export default function PlayersPage() {
                   {(overview?.watchlist || []).map((entry) => (
                     <div
                       key={entry.playerKey}
-                      className="rounded-2xl border border-[var(--color-mid)]/12 bg-[linear-gradient(180deg,rgba(213,170,77,0.08),rgba(255,255,255,1))] p-4"
+                      className="rounded-2xl border border-[var(--color-primary-deep)]/16 bg-[linear-gradient(180deg,rgba(34,27,102,0.08),rgba(255,255,255,1))] p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -1090,7 +1090,7 @@ export default function PlayersPage() {
                         {canManageWatchlist ? (
                           <button
                             onClick={() => void handleWatchlistToggle(entry)}
-                            className="rounded-full bg-white/80 p-2 text-[#7c5b11] transition-opacity hover:opacity-80"
+                            className="rounded-full bg-white/80 p-2 text-[var(--color-primary-deep)] transition-opacity hover:opacity-80"
                           >
                             <Star size={15} fill="currentColor" />
                           </button>
@@ -1108,7 +1108,7 @@ export default function PlayersPage() {
                         </button>
                         <button
                           onClick={() => navigate(`/report/${entry.latestReportId}?tab=export`)}
-                          className="inline-flex items-center gap-2 text-sm font-black text-[#7c5b11] transition-opacity hover:opacity-80"
+                          className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-deep)] transition-opacity hover:opacity-80"
                         >
                           Export dossier
                           <FileDown size={15} />
@@ -1127,7 +1127,7 @@ export default function PlayersPage() {
 
               <div className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
                 <div className="flex items-center gap-3 border-b border-[var(--color-mid)]/12 pb-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                     <TrendingUp size={22} />
                   </div>
                   <div>

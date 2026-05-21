@@ -57,7 +57,7 @@ export default function TrainingSourceCard({
             </span>
           </div>
         </div>
-        <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">
+        <div className="mwos-pill mwos-pill-alert inline-flex items-center gap-2 px-3 py-1">
           <FileSearch size={14} />
           Review before publish
         </div>
@@ -72,7 +72,7 @@ export default function TrainingSourceCard({
           <button
             type="button"
             onClick={() => setExpanded((current) => !current)}
-            className="mt-3 text-sm font-black text-[var(--color-primary)]"
+            className="mwos-btn mwos-btn-ghost mt-3 text-sm"
           >
             {expanded ? 'Show less' : 'Show more'}
           </button>
@@ -83,7 +83,7 @@ export default function TrainingSourceCard({
         <button
           type="button"
           onClick={onViewSource}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/16 bg-white px-4 py-3 text-sm font-black text-[var(--color-dark)] sm:w-auto"
+          className="mwos-btn mwos-btn-secondary w-full sm:w-auto"
           aria-label="View original training source"
         >
           <Eye size={16} />
@@ -94,7 +94,7 @@ export default function TrainingSourceCard({
             <button
               type="button"
               onClick={onReplaceSource}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--color-mid)]/16 bg-white px-4 py-3 text-sm font-black text-[var(--color-dark)] sm:w-auto"
+              className="mwos-btn mwos-btn-tertiary w-full sm:w-auto"
               aria-label="Replace imported training source"
             >
               <FilePenLine size={16} />
@@ -103,7 +103,7 @@ export default function TrainingSourceCard({
             <button
               type="button"
               onClick={onClearSource}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-black text-rose-700 sm:w-auto"
+              className="mwos-btn mwos-btn-danger w-full sm:w-auto"
               aria-label="Clear imported training source"
             >
               <Trash2 size={16} />
