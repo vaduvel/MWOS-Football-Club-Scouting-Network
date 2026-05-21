@@ -77,28 +77,33 @@ function EmptyState({
 
 function StatCard({
   label,
+  mobileLabel,
   value,
   detail,
   tone,
   icon: Icon,
 }: {
   label: string;
+  mobileLabel?: string;
   value: number;
   detail: string;
   tone: string;
   icon: typeof Bell;
 }) {
   return (
-    <article className={`mwos-subcard ${tone} md:p-5`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="mwos-subcard-kicker">{label}</p>
-          <p className="mwos-subcard-value md:text-4xl">{value}</p>
-          <p className="mwos-subcard-copy mt-2 hidden sm:block">{detail}</p>
+    <article className={`mwos-subcard ${tone} p-4 md:p-5`}>
+      <div className="mwos-subcard-head">
+        <div className="flex items-start justify-between gap-3">
+          <p className="mwos-subcard-kicker">
+            <span className="sm:hidden">{mobileLabel || label}</span>
+            <span className="hidden sm:inline">{label}</span>
+          </p>
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-2xl bg-white/82 text-[var(--color-primary)] shadow-[0_8px_18px_rgba(49,39,131,0.07)] sm:size-9">
+            <Icon size={16} />
+          </div>
         </div>
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-[var(--color-primary)] shadow-[0_10px_22px_rgba(49,39,131,0.08)]">
-          <Icon size={18} />
-        </div>
+        <p className="mwos-subcard-value mt-0 tabular-nums md:text-4xl">{value}</p>
+        <p className="mwos-subcard-copy mt-0 hidden sm:block">{detail}</p>
       </div>
       <p className="mwos-subcard-copy mt-2 sm:hidden">{detail}</p>
     </article>
@@ -108,11 +113,13 @@ function StatCard({
 function FilterChip({
   active,
   label,
+  mobileLabel,
   count,
   onClick,
 }: {
   active: boolean;
   label: string;
+  mobileLabel?: string;
   count: number;
   onClick: () => void;
 }) {
@@ -120,13 +127,25 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl px-4 py-2 text-sm font-black uppercase tracking-[0.1em] transition ${
+      aria-pressed={active}
+      className={`mwos-filter-chip text-sm font-black ${
         active
-          ? 'bg-[var(--color-primary)] text-white shadow-[0_14px_28px_rgba(49,39,131,0.18)]'
-          : 'border border-[var(--color-mid)]/16 bg-white text-[var(--color-dark)]'
+          ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-[0_14px_28px_rgba(49,39,131,0.18)]'
+          : 'text-[var(--color-dark)]'
       }`}
+      title={label}
     >
-      {label} · {count}
+      <span className="sm:hidden">{mobileLabel || label}</span>
+      <span className="hidden sm:inline">{label}</span>
+      <span
+        className={`mwos-filter-chip-count ${
+          active
+            ? 'bg-white/18 text-white'
+            : ''
+        }`}
+      >
+        {count}
+      </span>
     </button>
   );
 }
@@ -479,14 +498,14 @@ export default function NotificationsPage() {
     <div className="min-h-dvh bg-[var(--color-light)] md:flex">
       <AppSidebar current="notifications" user={user} onLogout={() => void logout()} />
 
-      <main className="flex-1 overflow-auto p-4 pb-28 md:p-6">
+      <main className="flex-1 overflow-auto px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1rem)] md:p-6">
         <div className="mx-auto max-w-7xl space-y-6">
           <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)]">
-            <div className="mwos-ribbon-surface px-4 py-4 text-white md:px-8 md:py-8">
+            <div className="mwos-ribbon-surface px-4 py-5 text-white md:px-8 md:py-8">
               <p className="mwos-hero-kicker text-white/68">Club Alerts</p>
               <div className="mwos-surface-intro mt-4">
-                <div className="mwos-surface-intro-icon flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 text-white md:h-12 md:w-12">
-                  <Bell size={20} />
+                <div className="mwos-surface-intro-icon flex h-9 w-9 items-center justify-center rounded-2xl bg-white/12 text-white md:h-12 md:w-12">
+                  <Bell size={18} />
                 </div>
                 <div className="mwos-surface-intro-copy">
                   <h1 className="mwos-display mwos-hero-title text-white">
@@ -501,10 +520,10 @@ export default function NotificationsPage() {
           </section>
 
           <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-            <StatCard label="All Alerts" value={stats.total} detail="Everything currently visible in the alerts workspace." tone="mwos-subcard-report" icon={Bell} />
+            <StatCard label="All Alerts" mobileLabel="All" value={stats.total} detail="Everything currently visible in the alerts workspace." tone="mwos-subcard-report" icon={Bell} />
             <StatCard label="Unread" value={stats.unread} detail="Announcements or updates that still need attention." tone="mwos-subcard-alert" icon={Mail} />
-            <StatCard label="Announcements" value={stats.announcements} detail="Internal posts shared with the club or selected teams." tone="mwos-subcard-staff" icon={Megaphone} />
-            <StatCard label="Operational" value={stats.notifications} detail="Training and transport notifications generated by real activity." tone="mwos-subcard-training" icon={Send} />
+            <StatCard label="Announcements" mobileLabel="Posts" value={stats.announcements} detail="Internal posts shared with the club or selected teams." tone="mwos-subcard-staff" icon={Megaphone} />
+            <StatCard label="Operational" mobileLabel="Ops" value={stats.notifications} detail="Training and transport notifications generated by real activity." tone="mwos-subcard-training" icon={Send} />
           </section>
 
           {setupNotice ? (
@@ -667,19 +686,19 @@ export default function NotificationsPage() {
             </section>
           ) : null}
 
-          <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-xl font-black text-[var(--color-dark)]">Feed filters</h2>
-                <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-mid)]">
+                <p className="mt-2 max-w-2xl text-sm font-semibold leading-7 text-[var(--color-mid)]">
                   Move between internal announcements and operational notifications without leaving the same surface.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 <button
                   type="button"
                   onClick={() => void refresh()}
-                  className="mwos-btn mwos-btn-ghost text-sm"
+                  className="mwos-btn mwos-btn-ghost w-full text-sm sm:w-auto"
                 >
                   <RefreshCcw size={16} />
                   Refresh
@@ -688,7 +707,7 @@ export default function NotificationsPage() {
                   type="button"
                   onClick={() => void handleMarkAll()}
                   disabled={busy || stats.unread === 0}
-                  className="mwos-btn mwos-btn-secondary text-sm"
+                  className="mwos-btn mwos-btn-secondary w-full text-sm sm:w-auto"
                 >
                   <CheckCheck size={16} />
                   Mark all read
@@ -696,13 +715,13 @@ export default function NotificationsPage() {
               </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              <FilterChip active={filter === 'all'} label="All" count={stats.total} onClick={() => setFilter('all')} />
+            <div className="mwos-filter-rail mt-5">
+              <FilterChip active={filter === 'all'} label="All alerts" mobileLabel="All" count={stats.total} onClick={() => setFilter('all')} />
               <FilterChip active={filter === 'unread'} label="Unread" count={stats.unread} onClick={() => setFilter('unread')} />
-              <FilterChip active={filter === 'announcements'} label="Announcements" count={stats.announcements} onClick={() => setFilter('announcements')} />
-              <FilterChip active={filter === 'notifications'} label="Operational" count={stats.notifications} onClick={() => setFilter('notifications')} />
-              <FilterChip active={filter === 'training'} label="Training" count={stats.training} onClick={() => setFilter('training')} />
-              <FilterChip active={filter === 'transport'} label="Transport" count={stats.transport} onClick={() => setFilter('transport')} />
+              <FilterChip active={filter === 'announcements'} label="Announcements" mobileLabel="Posts" count={stats.announcements} onClick={() => setFilter('announcements')} />
+              <FilterChip active={filter === 'notifications'} label="Operational" mobileLabel="Ops" count={stats.notifications} onClick={() => setFilter('notifications')} />
+              <FilterChip active={filter === 'training'} label="Training" mobileLabel="Train" count={stats.training} onClick={() => setFilter('training')} />
+              <FilterChip active={filter === 'transport'} label="Transport" mobileLabel="Trips" count={stats.transport} onClick={() => setFilter('transport')} />
             </div>
           </section>
 

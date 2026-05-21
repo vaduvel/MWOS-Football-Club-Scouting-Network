@@ -32,6 +32,30 @@ create table if not exists public.teams (
   created_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.club_players (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references public.teams (id) on delete restrict,
+  source_label text not null default 'anthropometrics_seed',
+  source_row_number integer,
+  squad_number integer,
+  first_name text not null,
+  last_name text not null,
+  display_name text not null,
+  weight_kg numeric(5,2),
+  height_cm numeric(5,2),
+  bmi numeric(5,2),
+  dominant_foot text not null default 'unknown'
+    check (dominant_foot in ('right', 'left', 'both', 'unknown')),
+  nationality text,
+  primary_position text,
+  secondary_position text,
+  is_active boolean not null default true,
+  notes text,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  unique (team_id, display_name)
+);
+
 create table if not exists public.user_roles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -345,6 +369,9 @@ create index if not exists user_roles_user_id_idx on public.user_roles (user_id)
 create index if not exists user_roles_role_id_idx on public.user_roles (role_id);
 create index if not exists user_team_assignments_user_id_idx on public.user_team_assignments (user_id);
 create index if not exists user_team_assignments_team_id_idx on public.user_team_assignments (team_id);
+create index if not exists club_players_team_id_idx on public.club_players (team_id);
+create index if not exists club_players_display_name_idx on public.club_players (display_name);
+create index if not exists club_players_primary_position_idx on public.club_players (primary_position);
 create index if not exists staff_invitations_email_normalized_idx on public.staff_invitations (email_normalized);
 create index if not exists staff_invitations_status_idx on public.staff_invitations (status);
 create index if not exists staff_invitations_inviter_idx on public.staff_invitations (inviter_user_id);
@@ -430,6 +457,12 @@ execute procedure public.set_updated_at();
 drop trigger if exists set_staff_invitations_updated_at on public.staff_invitations;
 create trigger set_staff_invitations_updated_at
 before update on public.staff_invitations
+for each row
+execute procedure public.set_updated_at();
+
+drop trigger if exists set_club_players_updated_at on public.club_players;
+create trigger set_club_players_updated_at
+before update on public.club_players
 for each row
 execute procedure public.set_updated_at();
 
@@ -912,6 +945,7 @@ alter table public.roles enable row level security;
 alter table public.teams enable row level security;
 alter table public.user_roles enable row level security;
 alter table public.user_team_assignments enable row level security;
+alter table public.club_players enable row level security;
 alter table public.staff_invitations enable row level security;
 alter table public.staff_invitation_roles enable row level security;
 alter table public.staff_invitation_teams enable row level security;
@@ -1028,6 +1062,37 @@ for all
 to authenticated
 using (public.is_admin())
 with check (public.is_admin());
+
+grant select, insert, update, delete on public.club_players to authenticated;
+
+drop policy if exists "club_players_select_accessible" on public.club_players;
+create policy "club_players_select_accessible"
+on public.club_players
+for select
+to authenticated
+using (public.can_view_training_team(team_id));
+
+drop policy if exists "club_players_insert_accessible" on public.club_players;
+create policy "club_players_insert_accessible"
+on public.club_players
+for insert
+to authenticated
+with check (public.can_manage_training_team(team_id));
+
+drop policy if exists "club_players_update_accessible" on public.club_players;
+create policy "club_players_update_accessible"
+on public.club_players
+for update
+to authenticated
+using (public.can_manage_training_team(team_id))
+with check (public.can_manage_training_team(team_id));
+
+drop policy if exists "club_players_delete_accessible" on public.club_players;
+create policy "club_players_delete_accessible"
+on public.club_players
+for delete
+to authenticated
+using (public.is_admin() or public.can_manage_training_team(team_id));
 
 drop policy if exists "staff_invitations_select_admin" on public.staff_invitations;
 create policy "staff_invitations_select_admin"

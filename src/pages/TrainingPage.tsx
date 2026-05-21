@@ -583,7 +583,7 @@ export default function TrainingPage() {
     <div className="min-h-dvh bg-[var(--color-light)] md:flex">
       <AppSidebar current="training" user={user} onLogout={() => void logout()} />
 
-      <main className="flex-1 overflow-auto px-3 pb-28 pt-[calc(env(safe-area-inset-top)+0.75rem)] md:p-6">
+      <main className="flex-1 overflow-auto px-3 pb-28 pt-[calc(env(safe-area-inset-top)+1rem)] md:p-6">
         <div className="mx-auto max-w-7xl space-y-5 md:space-y-6">
           <section className="hidden overflow-hidden rounded-[28px] border border-[var(--color-mid)]/18 bg-white shadow-[0_20px_55px_rgba(49,39,131,0.08)] sm:block">
             <div className="mwos-ribbon-surface px-4 py-4 text-white md:px-8 md:py-8">

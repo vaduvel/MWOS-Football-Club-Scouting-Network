@@ -17,7 +17,8 @@
     "smoke:final": "tsx scripts/final-launch-smoke.mjs",
     "smoke:load": "tsx scripts/load-readiness-smoke.mjs",
     "smoke:load:burst": "QA_LOGIN_RETRIES=6 QA_LOAD_CONCURRENCY=10 npm run smoke:load -- 20 10",
-    "cleanup:test-data": "tsx scripts/test-data-cleanup.mjs"
+    "cleanup:test-data": "tsx scripts/test-data-cleanup.mjs",
+    "import:club-players": "node scripts/import-club-players-from-xlsx.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -45,6 +46,7 @@
     "react-router-dom": "^7.13.1",
     "tailwind-merge": "^3.5.0",
     "vite": "^6.2.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },

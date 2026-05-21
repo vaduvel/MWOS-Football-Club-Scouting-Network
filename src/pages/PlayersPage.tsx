@@ -17,6 +17,11 @@ import {
   Users,
 } from 'lucide-react';
 import AppSidebar from '../components/AppSidebar';
+import ClubRosterSection from '../components/players/ClubRosterSection';
+import {
+  fetchClubRosterOverview,
+  type ClubRosterOverview,
+} from '../lib/clubPlayersData';
 import {
   addPlayerToWatchlist,
   canCreateScoutingReports,
@@ -119,11 +124,15 @@ export default function PlayersPage() {
   const canManageWatchlist = canCreateReports;
 
   const [overview, setOverview] = useState<PlayerHubOverview | null>(null);
+  const [clubRoster, setClubRoster] = useState<ClubRosterOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rosterLoading, setRosterLoading] = useState(true);
   const [error, setError] = useState('');
+  const [rosterError, setRosterError] = useState('');
   const [search, setSearch] = useState('');
   const [watchlistOnly, setWatchlistOnly] = useState(false);
   const [potentialFilter, setPotentialFilter] = useState('all');
+  const [rosterTeamId, setRosterTeamId] = useState('');
   const [comparisonLeft, setComparisonLeft] = useState('');
   const [comparisonRight, setComparisonRight] = useState('');
   const [updatingWatchlistKey, setUpdatingWatchlistKey] = useState<string | null>(null);
@@ -156,6 +165,35 @@ export default function PlayersPage() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void (async () => {
+      setRosterLoading(true);
+      setRosterError('');
+      try {
+        const result = await fetchClubRosterOverview(rosterTeamId || undefined);
+        if (!isMounted) return;
+        setClubRoster(result);
+        if (!rosterTeamId && result.selectedTeamId) {
+          setRosterTeamId(result.selectedTeamId);
+        }
+      } catch (loadError: any) {
+        if (!isMounted) return;
+        console.error('Failed to load club roster.', loadError);
+        setRosterError(loadError.message || 'Failed to load club roster.');
+      } finally {
+        if (isMounted) {
+          setRosterLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [rosterTeamId]);
 
   useEffect(() => {
     if (!overview || overview.entries.length === 0) {
@@ -598,6 +636,20 @@ export default function PlayersPage() {
               {error}
             </div>
           )}
+
+          {rosterError && (
+            <div className="mwos-card-tone-danger rounded-2xl border p-4 text-sm font-semibold text-[var(--color-accent-deep)]">
+              {rosterError}
+            </div>
+          )}
+
+          <ClubRosterSection
+            overview={clubRoster}
+            loading={rosterLoading}
+            search={search}
+            teamId={rosterTeamId}
+            onTeamChange={setRosterTeamId}
+          />
 
           <section className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
             <div className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
