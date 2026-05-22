@@ -3,9 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import PwaStatusDock from './components/PwaStatusDock';
 import BrandSplashScreen from './components/BrandSplashScreen';
 import { useAuthStore } from './store/auth';
-const Login = lazy(() => import('./pages/Login'));
-const ResetPassword = lazy(() => import('./pages/ResetPassword'));
-const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
+import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
+import AcceptInvitation from './pages/AcceptInvitation';
 const ClubHomePage = lazy(() => import('./pages/ClubHomePage'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const PlayersPage = lazy(() => import('./pages/PlayersPage'));
@@ -130,6 +130,7 @@ function RouteLoadingScreen() {
 }
 
 const POST_LOGIN_SPLASH_MS = 1800;
+const LOGIN_ENTRY_SPLASH_FALLBACK_MS = 3200;
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, token } = useAuthStore();
@@ -161,10 +162,13 @@ export default function App() {
   const { token, setAuth } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [showPostLoginSplash, setShowPostLoginSplash] = useState(false);
+  const [showLoginEntrySplash, setShowLoginEntrySplash] = useState(false);
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const [installPrompt, setInstallPrompt] = useState<DeferredPromptEvent | null>(null);
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [syncDetail, setSyncDetail] = useState<DraftSyncDetail | null>(null);
+  const pathname = typeof window === 'undefined' ? '' : window.location.pathname;
+  const isLoginRoute = pathname === '/login';
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -319,6 +323,21 @@ export default function App() {
     return () => window.clearTimeout(timeoutId);
   }, [token]);
 
+  useEffect(() => {
+    if (!isLoginRoute || token) {
+      setShowLoginEntrySplash(false);
+      return;
+    }
+
+    setShowLoginEntrySplash(true);
+
+    const timeoutId = window.setTimeout(() => {
+      setShowLoginEntrySplash(false);
+    }, LOGIN_ENTRY_SPLASH_FALLBACK_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isLoginRoute, token]);
+
   const handleInstall = async () => {
     if (!installPrompt) return;
 
@@ -344,6 +363,10 @@ export default function App() {
     updateRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
     setUpdateRegistration(null);
   };
+
+  if (isLoginRoute && !token && (loading || showLoginEntrySplash)) {
+    return <BrandSplashScreen loop={false} onEnded={() => setShowLoginEntrySplash(false)} />;
+  }
 
   if (loading) return <RouteLoadingScreen />;
   if (showPostLoginSplash) return <RouteLoadingScreen />;

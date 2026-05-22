@@ -1,18 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bus, CalendarRange, FileText, Info, Share2, ShieldCheck, X } from 'lucide-react';
-import BrandSplashScreen from '../components/BrandSplashScreen';
 import { requestPasswordReset, signIn, signUp } from '../lib/data';
 import { useAuthStore } from '../store/auth';
-
-const LOGIN_ENTRY_SPLASH_FALLBACK_MS = 3200;
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [isInstallGuideOpen, setIsInstallGuideOpen] = useState(false);
-  const [showEntrySplash, setShowEntrySplash] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -45,16 +41,6 @@ export default function Login() {
       window.matchMedia('(display-mode: standalone)').matches || nav.standalone === true;
 
     setShowInstallGuide((isIos || isSmallScreen) && !isStandalone);
-  }, []);
-
-  useEffect(() => {
-    setShowEntrySplash(true);
-
-    const timeoutId = window.setTimeout(() => {
-      setShowEntrySplash(false);
-    }, LOGIN_ENTRY_SPLASH_FALLBACK_MS);
-
-    return () => window.clearTimeout(timeoutId);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -103,17 +89,6 @@ export default function Login() {
       setError(err.message);
     }
   };
-
-  if (showEntrySplash) {
-    return (
-      <BrandSplashScreen
-        eyebrow="MWOS Football Club"
-        message="Preparing your club workspace…"
-        loop={false}
-        onEnded={() => setShowEntrySplash(false)}
-      />
-    );
-  }
 
   return (
     <div className="mwos-auth-shell relative min-h-dvh overflow-hidden">
