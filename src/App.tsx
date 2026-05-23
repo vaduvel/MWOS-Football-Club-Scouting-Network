@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import PwaStatusDock from './components/PwaStatusDock';
 import BrandSplashScreen from './components/BrandSplashScreen';
+import LoginOnboarding from './components/LoginOnboarding';
 import { useAuthStore } from './store/auth';
 import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
@@ -9,9 +10,11 @@ import AcceptInvitation from './pages/AcceptInvitation';
 const ClubHomePage = lazy(() => import('./pages/ClubHomePage'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const PlayersPage = lazy(() => import('./pages/PlayersPage'));
+const PlayerProfilePage = lazy(() => import('./pages/PlayerProfilePage'));
 const ReportEditor = lazy(() => import('./pages/ReportEditor'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const TrainingPage = lazy(() => import('./pages/TrainingPage'));
+const MatchDayPage = lazy(() => import('./pages/MatchDayPage'));
 const TransportPage = lazy(() => import('./pages/TransportPage'));
 const OversightPage = lazy(() => import('./pages/OversightPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
@@ -19,6 +22,7 @@ import MissingConfigScreen from './components/MissingConfigScreen';
 import { getSessionWithProfile, subscribeToAuthChanges } from './lib/data';
 import {
   canAccessOversightModule,
+  canAccessMatchDayModule,
   canAccessPlayerHub,
   canAccessScoutingModule,
   canCreateScoutingReports,
@@ -131,6 +135,7 @@ function RouteLoadingScreen() {
 
 const POST_LOGIN_SPLASH_MS = 1800;
 const LOGIN_ENTRY_SPLASH_FALLBACK_MS = 3200;
+const LOGIN_ONBOARDING_KEY = 'mwos-login-onboarding-complete-v1';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, token } = useAuthStore();
@@ -162,13 +167,16 @@ export default function App() {
   const { token, setAuth } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [showPostLoginSplash, setShowPostLoginSplash] = useState(false);
+  const [showLoginOnboarding, setShowLoginOnboarding] = useState(false);
   const [showLoginEntrySplash, setShowLoginEntrySplash] = useState(false);
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const [installPrompt, setInstallPrompt] = useState<DeferredPromptEvent | null>(null);
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [syncDetail, setSyncDetail] = useState<DraftSyncDetail | null>(null);
   const pathname = typeof window === 'undefined' ? '' : window.location.pathname;
+  const search = typeof window === 'undefined' ? '' : window.location.search;
   const isLoginRoute = pathname === '/login';
+  const forceLoginOnboarding = new URLSearchParams(search).get('onboarding') === '1';
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -325,18 +333,32 @@ export default function App() {
 
   useEffect(() => {
     if (!isLoginRoute || token) {
+      setShowLoginOnboarding(false);
       setShowLoginEntrySplash(false);
       return;
     }
 
-    setShowLoginEntrySplash(true);
+    if (loading) {
+      return;
+    }
+
+    const onboardingComplete =
+      !forceLoginOnboarding && window.localStorage.getItem(LOGIN_ONBOARDING_KEY) === '1';
+    setShowLoginOnboarding(!onboardingComplete);
+    setShowLoginEntrySplash(onboardingComplete);
+  }, [forceLoginOnboarding, isLoginRoute, loading, token]);
+
+  useEffect(() => {
+    if (!showLoginEntrySplash) {
+      return;
+    }
 
     const timeoutId = window.setTimeout(() => {
       setShowLoginEntrySplash(false);
     }, LOGIN_ENTRY_SPLASH_FALLBACK_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [isLoginRoute, token]);
+  }, [showLoginEntrySplash]);
 
   const handleInstall = async () => {
     if (!installPrompt) return;
@@ -364,13 +386,33 @@ export default function App() {
     setUpdateRegistration(null);
   };
 
-  if (isLoginRoute && !token && (loading || showLoginEntrySplash)) {
-    return <BrandSplashScreen loop={false} onEnded={() => setShowLoginEntrySplash(false)} />;
+  const handleLoginOnboardingFinish = () => {
+    window.localStorage.setItem(LOGIN_ONBOARDING_KEY, '1');
+    setShowLoginOnboarding(false);
+    setShowLoginEntrySplash(true);
+  };
+
+  if (loading) {
+    if (isLoginRoute) {
+      return <div className="min-h-dvh bg-[#020617]" />;
+    }
+
+    return <RouteLoadingScreen />;
   }
 
-  if (loading) return <RouteLoadingScreen />;
-  if (showPostLoginSplash) return <RouteLoadingScreen />;
   if (!isSupabaseConfigured) return <MissingConfigScreen />;
+
+  if (isLoginRoute && !token) {
+    if (showLoginOnboarding) {
+      return <LoginOnboarding onFinish={handleLoginOnboardingFinish} />;
+    }
+
+    if (showLoginEntrySplash) {
+      return <BrandSplashScreen loop={false} onEnded={() => setShowLoginEntrySplash(false)} />;
+    }
+  }
+
+  if (showPostLoginSplash) return <RouteLoadingScreen />;
 
   return (
     <AppErrorBoundary>
@@ -393,9 +435,11 @@ export default function App() {
             <Route path="/" element={<ProtectedRoute><ClubHomePage /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
             <Route path="/training" element={<RoleRoute canAccess={canAccessTrainingModule}><TrainingPage /></RoleRoute>} />
+            <Route path="/match-day" element={<RoleRoute canAccess={canAccessMatchDayModule}><MatchDayPage /></RoleRoute>} />
             <Route path="/transport" element={<RoleRoute canAccess={canAccessTransportModule}><TransportPage /></RoleRoute>} />
             <Route path="/scouting" element={<RoleRoute canAccess={canAccessScoutingModule}><Dashboard /></RoleRoute>} />
             <Route path="/players" element={<RoleRoute canAccess={canAccessPlayerHub}><PlayersPage /></RoleRoute>} />
+            <Route path="/players/:playerKey" element={<RoleRoute canAccess={canAccessPlayerHub}><PlayerProfilePage /></RoleRoute>} />
             <Route path="/oversight" element={<RoleRoute canAccess={canAccessOversightModule}><OversightPage /></RoleRoute>} />
             <Route path="/scouting/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
             <Route path="/scouting/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />

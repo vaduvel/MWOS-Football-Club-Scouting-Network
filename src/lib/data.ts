@@ -21,6 +21,7 @@ import {
   normalizeClubAccessSelection,
   validateClubAccessSelection,
 } from './staffAccessDomain';
+import { buildScoutingPlayerIdentityKey } from './playerIdentityDomain';
 
 export interface AppRole {
   slug: string;
@@ -178,6 +179,7 @@ interface ReportRow {
 interface PlayerRow {
   id: string;
   report_id: string;
+  club_player_id: string | null;
   team_side: 'home' | 'away';
   shirt_number: number | null;
   name: string | null;
@@ -416,6 +418,7 @@ export interface PlayerMetricsAverages {
 
 export interface PlayerHubEntry {
   playerKey: string;
+  linkedClubPlayerId: string | null;
   name: string;
   clubLabel: string;
   latestReportId: string;
@@ -740,6 +743,10 @@ export function canAccessTrainingModule(user: Pick<AppUser, 'roles'> | null | un
   return userHasAnyRole(user, ['admin', 'technical_director', 'coach']);
 }
 
+export function canAccessMatchDayModule(user: Pick<AppUser, 'roles'> | null | undefined) {
+  return userHasAnyRole(user, ['admin', 'technical_director', 'board_observer', 'coach']);
+}
+
 export function canAccessTransportModule(user: Pick<AppUser, 'roles'> | null | undefined) {
   return userHasAnyRole(user, ['admin', 'technical_director', 'driver']);
 }
@@ -823,6 +830,7 @@ function toNullableNumber(value: number | '' | null | undefined) {
 function mapPlayer(row: PlayerRow): Player {
   return {
     id: row.id,
+    club_player_id: row.club_player_id,
     team_side: row.team_side,
     shirt_number: row.shirt_number ?? '',
     name: toStringValue(row.name),
@@ -1296,7 +1304,7 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
     supabase
       .from('players')
       .select(
-        'id, report_id, team_side, shirt_number, name, subbed, goal, rating, position_x, position_y, sort_order',
+        'id, report_id, club_player_id, team_side, shirt_number, name, subbed, goal, rating, position_x, position_y, sort_order',
       ),
     supabase
       .from('player_reviews')
@@ -1525,7 +1533,7 @@ export async function fetchReport(reportId: string) {
     supabase
       .from('players')
       .select(
-        'id, report_id, team_side, shirt_number, name, subbed, goal, rating, position_x, position_y, sort_order',
+        'id, report_id, club_player_id, team_side, shirt_number, name, subbed, goal, rating, position_x, position_y, sort_order',
       )
       .eq('report_id', reportId)
       .order('sort_order', { ascending: true }),
@@ -1665,6 +1673,7 @@ export async function saveReport(report: Report) {
     return {
       id: playerId,
       report_id: savedReportId,
+      club_player_id: player.club_player_id || null,
       team_side: player.team_side,
       shirt_number: toNullableNumber(player.shirt_number),
       name: toNullableText(player.name),
@@ -1751,7 +1760,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     supabase
       .from('players')
       .select(
-        'id, report_id, team_side, shirt_number, name, subbed, goal, rating, position_x, position_y, sort_order',
+        'id, report_id, club_player_id, team_side, shirt_number, name, subbed, goal, rating, position_x, position_y, sort_order',
       )
       .order('created_at', { ascending: false }),
     supabase
@@ -1837,7 +1846,11 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     }
 
     const clubLabel = getPlayerClubLabel(player, report);
-    const playerKey = buildPlayerKey(playerName, clubLabel);
+    const playerKey = buildScoutingPlayerIdentityKey({
+      clubPlayerId: player.club_player_id,
+      name: playerName,
+      clubLabel,
+    });
     const playerReviews = reviewsByPlayerId.get(player.id) || [];
     const reviewScores = playerReviews
       .map((review) => calculateReviewAverage(review))
@@ -1966,10 +1979,12 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         accumulator[field] = count > 0 ? roundOneDecimal(total / count) : 0;
         return accumulator;
       }, {} as PlayerMetricsAverages);
-      const watchlistRow = watchlistByKey.get(entry.playerKey);
+      const legacyPlayerKey = buildPlayerKey(entry.name, entry.clubLabel);
+      const watchlistRow = watchlistByKey.get(entry.playerKey) || watchlistByKey.get(legacyPlayerKey);
 
       return {
         playerKey: entry.playerKey,
+        linkedClubPlayerId: entry.playerKey.startsWith('club:') ? entry.playerKey.replace('club:', '') : null,
         name: entry.name,
         clubLabel: entry.clubLabel,
         latestReportId: entry.latestReportId,

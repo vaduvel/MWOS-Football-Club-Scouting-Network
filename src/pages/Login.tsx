@@ -93,11 +93,11 @@ export default function Login() {
   return (
     <div className="mwos-auth-shell relative min-h-dvh overflow-hidden">
       <div
-        className="absolute inset-0 bg-cover bg-center opacity-30"
-        style={{ backgroundImage: "url('/branding/att.AGuDIc57f42thGuMeUSyrotRD6Zy0fxGX1rynzNNmWM.JPG')" }}
+        className="absolute inset-0 bg-cover bg-center opacity-70"
+        style={{ backgroundImage: "url('/branding/login-welcome-hero-v2.png')" }}
       />
       <div className="mwos-subtle-grid absolute inset-0 opacity-25" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(190,23,23,0.24),transparent_28%),linear-gradient(180deg,rgba(16,20,74,0.22),rgba(16,20,74,0.38))]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(53,68,214,0.24),transparent_30%),linear-gradient(180deg,rgba(6,9,40,0.34),rgba(6,9,40,0.56))]" />
 
       <main className="relative flex min-h-dvh items-start justify-center px-4 py-6 md:px-6 md:py-10">
         <div className="w-full max-w-6xl">
@@ -198,7 +198,7 @@ export default function Login() {
 
                     {!isRecoveryMode && (
                       <div>
-                        <label htmlFor="auth-password" className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Password</label>
+                      <label htmlFor="auth-password" className="mb-1 block text-sm font-semibold text-[var(--color-dark)]">Password</label>
                         <input
                           id="auth-password"
                           required

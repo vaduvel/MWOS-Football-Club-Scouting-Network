@@ -1,6 +1,7 @@
 import {
   Bus,
   CalendarRange,
+  ClipboardList,
   FileText,
   Home,
   LogOut,
@@ -17,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import type { AppUser } from '../lib/data';
 import NotificationCenter from './NotificationCenter';
 import {
+  canAccessMatchDayModule,
   canAccessOversightModule,
   canAccessPlayerHub,
   canAccessScoutingModule,
@@ -26,7 +28,7 @@ import {
   userHasAnyRole,
 } from '../lib/data';
 
-export type SidebarSection = 'home' | 'notifications' | 'training' | 'transport' | 'scouting' | 'players' | 'oversight' | 'settings';
+export type SidebarSection = 'home' | 'notifications' | 'training' | 'match-day' | 'transport' | 'scouting' | 'players' | 'oversight' | 'settings';
 
 type AppSidebarProps = {
   current: SidebarSection;
@@ -50,6 +52,10 @@ function buildSidebarItems(user: AppUser | null): SidebarItem[] {
 
   if (canAccessTrainingModule(user)) {
     items.push({ key: 'training', label: 'Training', mobileLabel: 'Train', path: '/training', icon: CalendarRange });
+  }
+
+  if (canAccessMatchDayModule(user)) {
+    items.push({ key: 'match-day', label: 'Match Day', mobileLabel: 'Match', path: '/match-day', icon: ClipboardList });
   }
 
   if (canAccessTransportModule(user)) {
@@ -115,9 +121,11 @@ function buildAccessProfileCopy(roleSlug: string) {
 function buildMobilePrimaryKeys(user: AppUser | null, roleSlug: string) {
   switch (roleSlug) {
     case 'admin':
-      return ['home', 'training', 'transport', 'oversight'];
+      return ['home', 'training', 'match-day', 'oversight'];
     case 'technical_director':
-      return ['home', 'training', 'oversight', 'transport'];
+      return ['home', 'training', 'match-day', 'oversight'];
+    case 'board_observer':
+      return ['home', 'oversight', 'match-day', 'notifications'];
     case 'pending':
       return ['home', 'settings'];
     default:
@@ -133,6 +141,7 @@ function buildMobilePrimaryKeys(user: AppUser | null, roleSlug: string) {
 
   if (userHasAnyRole(user, ['coach'])) {
     pushKey('training');
+    pushKey('match-day');
   }
 
   if (userHasAnyRole(user, ['driver'])) {

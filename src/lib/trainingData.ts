@@ -17,6 +17,12 @@ import {
   type TrainingSessionType,
 } from './trainingDomain';
 import type { TrainingImportKind, TrainingImportReviewState } from './trainingImportDomain';
+import {
+  annotateTrainingDaysWithMatchContext,
+  getTrainingWeekRange,
+  pickRelevantWeeklyFixture,
+  summarizeTrainingWeekAroundFixture,
+} from './trainingMatchContextDomain';
 
 type TrainingPlanRow = {
   id: string;
@@ -128,6 +134,16 @@ type AppNotificationRow = {
     | null;
 };
 
+type MatchDayContextRow = {
+  id: string;
+  opponent: string;
+  competition: string | null;
+  match_date: string;
+  kickoff_time: string | null;
+  venue: string | null;
+  status: 'draft' | 'published' | 'completed' | 'cancelled';
+};
+
 export type TrainingNotificationType =
   | 'training_plan_published'
   | 'training_td_comment'
@@ -141,6 +157,23 @@ export interface TrainingPlanDay extends TrainingDayDraft {
   importReviewState?: TrainingImportReviewState;
   importedExcerpt?: string;
   updatedAt?: string;
+  matchContextLabel?: string;
+  isMatchDay?: boolean;
+}
+
+export interface TrainingWeekMatchContext {
+  matchDayId: string;
+  opponent: string;
+  competition: string;
+  matchDate: string;
+  kickoffTime: string;
+  venue: string;
+  status: 'draft' | 'published' | 'completed' | 'cancelled';
+  linkPath: string;
+  preMatchSessionCount: number;
+  postMatchSessionCount: number;
+  postMatchRecoveryCount: number;
+  matchDayIndex: number;
 }
 
 export interface TrainingPlanSource {
@@ -207,6 +240,7 @@ export interface TrainingWorkspace {
   archivedAt: string | null;
   canManage: boolean;
   canComment: boolean;
+  matchContext: TrainingWeekMatchContext | null;
 }
 
 export interface TrainingNotificationItem {
@@ -348,6 +382,18 @@ export function buildTrainingLinkPath(teamId: string, weekStart: string, dayInde
   }
 
   return `/training?${params.toString()}`;
+}
+
+function buildMatchDayLinkPath(teamId: string, matchDayId?: string | null) {
+  const params = new URLSearchParams({
+    team: teamId,
+  });
+
+  if (matchDayId) {
+    params.set('match', matchDayId);
+  }
+
+  return `/match-day?${params.toString()}`;
 }
 
 function mapTrainingDay(row: TrainingPlanDayRow): TrainingPlanDay {
@@ -550,10 +596,39 @@ export async function fetchTrainingWorkspace(teamId: string, weekStart: string):
   const normalizedWeekStart = weekStart || getDefaultWeekStart();
   const { user, teams } = await resolveTrainingTeams();
   const selectedTeam = teams.find((candidate) => candidate.id === teamId);
+  const weekRange = getTrainingWeekRange(normalizedWeekStart);
 
   if (!selectedTeam) {
     throw new Error('You do not have access to this team.');
   }
+
+  const { data: matchDayRows, error: matchDayError } = weekRange
+    ? await supabase
+        .from('match_days')
+        .select('id, opponent, competition, match_date, kickoff_time, venue, status')
+        .eq('team_id', teamId)
+        .gte('match_date', weekRange.start)
+        .lte('match_date', weekRange.end)
+        .order('match_date', { ascending: true })
+        .order('kickoff_time', { ascending: true })
+    : { data: [], error: null as any };
+
+  if (matchDayError) {
+    throw matchDayError;
+  }
+
+  const relevantFixture = pickRelevantWeeklyFixture(
+    ((matchDayRows || []) as MatchDayContextRow[]).map((row) => ({
+      id: row.id,
+      opponent: row.opponent,
+      competition: toStringValue(row.competition),
+      matchDate: row.match_date,
+      kickoffTime: toStringValue(row.kickoff_time),
+      venue: toStringValue(row.venue),
+      status: row.status,
+    })),
+    normalizedWeekStart,
+  );
 
   const { data: planData, error: planError } = await supabase
     .from('training_plans')
@@ -569,6 +644,14 @@ export async function fetchTrainingWorkspace(teamId: string, weekStart: string):
   const plan = planData as TrainingPlanRow | null;
 
   if (!plan) {
+    const days = annotateTrainingDaysWithMatchContext(
+      buildTrainingWeek(normalizedWeekStart),
+      relevantFixture?.matchDate,
+    );
+    const weekSummary = relevantFixture
+      ? summarizeTrainingWeekAroundFixture(days, relevantFixture.matchDate)
+      : null;
+
     return {
       team: selectedTeam,
       weekStart: normalizedWeekStart,
@@ -576,13 +659,29 @@ export async function fetchTrainingWorkspace(teamId: string, weekStart: string):
       objective: '',
       status: 'draft',
       source: null,
-      days: buildTrainingWeek(normalizedWeekStart),
+      days,
       comments: [],
       publishedAt: null,
       updatedAt: null,
       archivedAt: null,
       canManage: resolveManagePermission(user),
       canComment: resolveCommentPermission(user),
+      matchContext: relevantFixture
+        ? {
+            matchDayId: relevantFixture.id,
+            opponent: relevantFixture.opponent,
+            competition: relevantFixture.competition,
+            matchDate: relevantFixture.matchDate,
+            kickoffTime: relevantFixture.kickoffTime,
+            venue: relevantFixture.venue,
+            status: relevantFixture.status,
+            linkPath: buildMatchDayLinkPath(teamId, relevantFixture.id),
+            preMatchSessionCount: weekSummary?.preMatchSessionCount || 0,
+            postMatchSessionCount: weekSummary?.postMatchSessionCount || 0,
+            postMatchRecoveryCount: weekSummary?.postMatchRecoveryCount || 0,
+            matchDayIndex: weekSummary?.matchDayIndex ?? -1,
+          }
+        : null,
     };
   }
 
@@ -618,6 +717,14 @@ export async function fetchTrainingWorkspace(teamId: string, weekStart: string):
     throw sourceResponse.error;
   }
 
+  const mappedDays = annotateTrainingDaysWithMatchContext(
+    ((daysResponse.data || []) as TrainingPlanDayRow[]).map(mapTrainingDay),
+    relevantFixture?.matchDate,
+  );
+  const weekSummary = relevantFixture
+    ? summarizeTrainingWeekAroundFixture(mappedDays, relevantFixture.matchDate)
+    : null;
+
   return {
     planId: plan.id,
     team: joinedTeam(plan.teams) || selectedTeam,
@@ -626,7 +733,7 @@ export async function fetchTrainingWorkspace(teamId: string, weekStart: string):
     objective: toStringValue(plan.objective),
     status: plan.status,
     source: sourceResponse.data ? mapTrainingSource(sourceResponse.data as TrainingPlanSourceRow) : null,
-    days: ((daysResponse.data || []) as TrainingPlanDayRow[]).map(mapTrainingDay),
+    days: mappedDays,
     comments: ((commentsResponse.data || []) as TrainingPlanCommentRow[]).map((comment) =>
       mapTrainingComment(comment, user.id),
     ),
@@ -635,6 +742,22 @@ export async function fetchTrainingWorkspace(teamId: string, weekStart: string):
     archivedAt: plan.archived_at,
     canManage: resolveManagePermission(user),
     canComment: resolveCommentPermission(user),
+    matchContext: relevantFixture
+      ? {
+          matchDayId: relevantFixture.id,
+          opponent: relevantFixture.opponent,
+          competition: relevantFixture.competition,
+          matchDate: relevantFixture.matchDate,
+          kickoffTime: relevantFixture.kickoffTime,
+          venue: relevantFixture.venue,
+          status: relevantFixture.status,
+          linkPath: buildMatchDayLinkPath(teamId, relevantFixture.id),
+          preMatchSessionCount: weekSummary?.preMatchSessionCount || 0,
+          postMatchSessionCount: weekSummary?.postMatchSessionCount || 0,
+          postMatchRecoveryCount: weekSummary?.postMatchRecoveryCount || 0,
+          matchDayIndex: weekSummary?.matchDayIndex ?? -1,
+        }
+      : null,
   };
 }
 

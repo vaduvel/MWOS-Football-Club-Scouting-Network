@@ -259,6 +259,10 @@ function resolveTransportManagePermission(
     return true;
   }
 
+  if (plan && userHasRole(user, 'coach') && user.teams.some((team) => team.id === plan.team_id)) {
+    return true;
+  }
+
   return Boolean(plan?.driver_user_id && plan.driver_user_id === user.id);
 }
 
@@ -272,7 +276,7 @@ function resolveTransportCommentPermission(
 }
 
 function resolveCanCreateTransport(user: Awaited<ReturnType<typeof getCurrentAppUser>>) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'driver']);
+  return userHasAnyRole(user, ['admin', 'technical_director', 'coach', 'driver']);
 }
 
 function resolveCanAssignTransportDriver(user: Awaited<ReturnType<typeof getCurrentAppUser>>) {
@@ -311,7 +315,7 @@ function buildTransportDetail(changes: string[], next: TransportPlanDraft) {
   return changes.map((change) => labels[change] || change).join(' · ');
 }
 
-function buildTransportLinkPath(teamId: string, planId?: string | null) {
+export function buildTransportLinkPath(teamId: string, planId?: string | null) {
   const params = new URLSearchParams({ team: teamId });
   if (planId) params.set('plan', planId);
   return `/transport?${params.toString()}`;
@@ -627,7 +631,7 @@ export async function saveTransportPlan(
   }
 
   if (!currentPlan && !canCreate) {
-    throw new Error('Only admin, technical staff or drivers can create a new transport plan.');
+    throw new Error('Only admin, technical staff, coaches, or drivers can create a new transport plan.');
   }
 
   if ((action === 'publish' || action === 'cancel') && !canManageExisting) {

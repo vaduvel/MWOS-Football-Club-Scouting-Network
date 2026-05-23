@@ -71,6 +71,7 @@ export default function ImportTeamModal({ isOpen, onClose, teamSide }: { isOpen:
       data.forEach((p: any, index: number) => {
         addPlayer({
           id: createId(),
+          club_player_id: null,
           team_side: teamSide,
           shirt_number: p.number || index + 1,
           name: p.name,

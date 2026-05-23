@@ -233,6 +233,35 @@ create table if not exists public.transport_plan_comments (
   created_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.match_days (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references public.teams (id) on delete cascade,
+  transport_plan_id uuid references public.transport_plans (id) on delete set null,
+  opponent text not null,
+  competition text,
+  match_date date not null,
+  kickoff_time time,
+  venue text,
+  status text not null default 'draft' check (status in ('draft', 'published', 'completed', 'cancelled')),
+  created_by uuid not null references auth.users (id) on delete cascade,
+  updated_by uuid not null references auth.users (id) on delete cascade,
+  published_by uuid references auth.users (id) on delete set null,
+  published_at timestamptz,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.match_day_players (
+  match_day_id uuid not null references public.match_days (id) on delete cascade,
+  club_player_id uuid not null references public.club_players (id) on delete cascade,
+  availability_status text not null default 'available' check (availability_status in ('available', 'doubtful', 'unavailable')),
+  selection_status text not null default 'out' check (selection_status in ('starter', 'bench', 'out')),
+  notes text,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  primary key (match_day_id, club_player_id)
+);
+
 create table if not exists public.app_notifications (
   id uuid primary key default gen_random_uuid(),
   recipient_user_id uuid not null references auth.users (id) on delete cascade,
@@ -305,6 +334,7 @@ alter table public.reports add column if not exists video_url text;
 create table if not exists public.players (
   id text primary key default gen_random_uuid()::text,
   report_id text not null references public.reports (id) on delete cascade,
+  club_player_id uuid references public.club_players (id) on delete set null,
   team_side text not null check (team_side in ('home', 'away')),
   shirt_number integer,
   name text,
@@ -316,6 +346,8 @@ create table if not exists public.players (
   sort_order integer not null default 0,
   created_at timestamptz not null default timezone('utc', now())
 );
+
+create index if not exists players_club_player_id_idx on public.players (club_player_id);
 
 create table if not exists public.player_reviews (
   id text primary key default gen_random_uuid()::text,
@@ -391,6 +423,9 @@ create index if not exists transport_plans_team_id_idx on public.transport_plans
 create index if not exists transport_plans_event_date_idx on public.transport_plans (event_date);
 create index if not exists transport_plans_driver_user_id_idx on public.transport_plans (driver_user_id);
 create index if not exists transport_plans_status_idx on public.transport_plans (status);
+create unique index if not exists match_days_transport_plan_id_unique_idx
+  on public.match_days (transport_plan_id)
+  where transport_plan_id is not null;
 create index if not exists transport_plan_comments_plan_id_idx on public.transport_plan_comments (plan_id);
 create index if not exists transport_plan_comments_author_id_idx on public.transport_plan_comments (author_id);
 create index if not exists app_notifications_recipient_idx on public.app_notifications (recipient_user_id, created_at desc);
@@ -481,6 +516,18 @@ execute procedure public.set_updated_at();
 drop trigger if exists set_transport_plans_updated_at on public.transport_plans;
 create trigger set_transport_plans_updated_at
 before update on public.transport_plans
+for each row
+execute procedure public.set_updated_at();
+
+drop trigger if exists set_match_days_updated_at on public.match_days;
+create trigger set_match_days_updated_at
+before update on public.match_days
+for each row
+execute procedure public.set_updated_at();
+
+drop trigger if exists set_match_day_players_updated_at on public.match_day_players;
+create trigger set_match_day_players_updated_at
+before update on public.match_day_players
 for each row
 execute procedure public.set_updated_at();
 
@@ -610,6 +657,33 @@ as $$
     or (public.has_role('coach') and public.belongs_to_team(target_team_id));
 $$;
 
+create or replace function public.can_view_match_day_team(target_team_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    public.is_admin()
+    or public.has_role('technical_director')
+    or public.has_role('board_observer')
+    or (public.has_role('coach') and public.belongs_to_team(target_team_id));
+$$;
+
+create or replace function public.can_manage_match_day_team(target_team_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    public.is_admin()
+    or public.has_role('technical_director')
+    or (public.has_role('coach') and public.belongs_to_team(target_team_id));
+$$;
+
 create or replace function public.can_create_transport_team(target_team_id uuid)
 returns boolean
 language sql
@@ -620,6 +694,7 @@ as $$
   select
     public.is_admin()
     or public.has_role('technical_director')
+    or (public.has_role('coach') and public.belongs_to_team(target_team_id))
     or (public.has_role('driver') and public.belongs_to_team(target_team_id));
 $$;
 
@@ -658,6 +733,7 @@ as $$
       and (
         public.is_admin()
         or public.has_role('technical_director')
+        or (public.has_role('coach') and public.belongs_to_team(transport_plans.team_id))
         or transport_plans.driver_user_id = auth.uid()
       )
   );
@@ -956,6 +1032,8 @@ alter table public.training_plan_comments enable row level security;
 alter table public.training_plan_sources enable row level security;
 alter table public.transport_plans enable row level security;
 alter table public.transport_plan_comments enable row level security;
+alter table public.match_days enable row level security;
+alter table public.match_day_players enable row level security;
 alter table public.app_notifications enable row level security;
 alter table public.club_announcements enable row level security;
 alter table public.club_announcement_reads enable row level security;
@@ -1064,6 +1142,8 @@ using (public.is_admin())
 with check (public.is_admin());
 
 grant select, insert, update, delete on public.club_players to authenticated;
+grant select, insert, update, delete on public.match_days to authenticated;
+grant select, insert, update, delete on public.match_day_players to authenticated;
 
 drop policy if exists "club_players_select_accessible" on public.club_players;
 create policy "club_players_select_accessible"
@@ -1474,6 +1554,106 @@ on public.transport_plan_comments
 for delete
 to authenticated
 using (author_id = auth.uid() or public.is_admin());
+
+drop policy if exists "match_days_select_accessible" on public.match_days;
+create policy "match_days_select_accessible"
+on public.match_days
+for select
+to authenticated
+using (public.can_view_match_day_team(team_id));
+
+drop policy if exists "match_days_insert_accessible" on public.match_days;
+create policy "match_days_insert_accessible"
+on public.match_days
+for insert
+to authenticated
+with check (
+  created_by = auth.uid()
+  and updated_by = auth.uid()
+  and public.can_manage_match_day_team(team_id)
+);
+
+drop policy if exists "match_days_update_accessible" on public.match_days;
+create policy "match_days_update_accessible"
+on public.match_days
+for update
+to authenticated
+using (public.can_manage_match_day_team(team_id))
+with check (
+  updated_by = auth.uid()
+  and public.can_manage_match_day_team(team_id)
+);
+
+drop policy if exists "match_days_delete_accessible" on public.match_days;
+create policy "match_days_delete_accessible"
+on public.match_days
+for delete
+to authenticated
+using (public.is_admin() or public.can_manage_match_day_team(team_id));
+
+drop policy if exists "match_day_players_select_accessible" on public.match_day_players;
+create policy "match_day_players_select_accessible"
+on public.match_day_players
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.match_days
+    where match_days.id = match_day_players.match_day_id
+      and public.can_view_match_day_team(match_days.team_id)
+  )
+);
+
+drop policy if exists "match_day_players_insert_accessible" on public.match_day_players;
+create policy "match_day_players_insert_accessible"
+on public.match_day_players
+for insert
+to authenticated
+with check (
+  exists (
+    select 1
+    from public.match_days
+    where match_days.id = match_day_players.match_day_id
+      and public.can_manage_match_day_team(match_days.team_id)
+  )
+);
+
+drop policy if exists "match_day_players_update_accessible" on public.match_day_players;
+create policy "match_day_players_update_accessible"
+on public.match_day_players
+for update
+to authenticated
+using (
+  exists (
+    select 1
+    from public.match_days
+    where match_days.id = match_day_players.match_day_id
+      and public.can_manage_match_day_team(match_days.team_id)
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.match_days
+    where match_days.id = match_day_players.match_day_id
+      and public.can_manage_match_day_team(match_days.team_id)
+  )
+);
+
+drop policy if exists "match_day_players_delete_accessible" on public.match_day_players;
+create policy "match_day_players_delete_accessible"
+on public.match_day_players
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.match_days
+    where match_days.id = match_day_players.match_day_id
+      and public.can_manage_match_day_team(match_days.team_id)
+  )
+);
 
 drop policy if exists "app_notifications_select_own" on public.app_notifications;
 create policy "app_notifications_select_own"

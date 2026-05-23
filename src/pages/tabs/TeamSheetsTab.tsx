@@ -1,21 +1,54 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useReportStore, Player } from '../../store/report';
-import { Plus, Trash2, Download } from 'lucide-react';
+import { Plus, Trash2, Download, Link2, Unlink2 } from 'lucide-react';
 import ImportTeamModal from '../../components/ImportTeamModal';
 import { createId } from '../../lib/ids';
+import {
+  fetchClubPlayerMatchCandidates,
+  type ClubPlayerRosterMatchCandidate,
+} from '../../lib/clubPlayersData';
+import { suggestClubPlayerMatches } from '../../lib/playerIdentityDomain';
 
 export default function TeamSheetsTab() {
   const { currentReport, addPlayer, updatePlayer, removePlayer } = useReportStore();
   const [activeSide, setActiveSide] = useState<'home' | 'away'>('home');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [clubCandidates, setClubCandidates] = useState<ClubPlayerRosterMatchCandidate[]>([]);
+  const [clubCandidatesLoading, setClubCandidatesLoading] = useState(true);
+  const [clubCandidatesError, setClubCandidatesError] = useState('');
+  const players = currentReport?.players.filter(p => p.team_side === activeSide) || [];
 
-  if (!currentReport) return null;
+  useEffect(() => {
+    let isMounted = true;
 
-  const players = currentReport.players.filter(p => p.team_side === activeSide);
+    void (async () => {
+      setClubCandidatesLoading(true);
+      setClubCandidatesError('');
+
+      try {
+        const result = await fetchClubPlayerMatchCandidates();
+        if (!isMounted) return;
+        setClubCandidates(result);
+      } catch (error: any) {
+        if (!isMounted) return;
+        setClubCandidates([]);
+        setClubCandidatesError(error.message || 'Could not load the internal player roster.');
+      } finally {
+        if (isMounted) {
+          setClubCandidatesLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleAddPlayer = () => {
     addPlayer({
       id: createId(),
+      club_player_id: null,
       team_side: activeSide,
       shirt_number: '',
       name: '',
@@ -26,6 +59,119 @@ export default function TeamSheetsTab() {
       position_y: 50,
     });
   };
+
+  const getLinkedCandidate = (player: Player) =>
+    clubCandidates.find((candidate) => candidate.id === player.club_player_id) || null;
+
+  const getSuggestions = (player: Player) =>
+    suggestClubPlayerMatches<ClubPlayerRosterMatchCandidate>(
+      {
+        name: player.name,
+        shirtNumber: typeof player.shirt_number === 'number' ? player.shirt_number : null,
+      },
+      clubCandidates,
+      2,
+    );
+
+  const renderRosterMatchPanel = (player: Player) => {
+    const linkedCandidate = getLinkedCandidate(player);
+    const suggestions = linkedCandidate ? [] : getSuggestions(player);
+    const hasName = player.name.trim().length >= 2;
+
+    if (clubCandidatesLoading) {
+      return (
+        <div className="rounded-2xl border border-[var(--color-mid)]/14 bg-white/80 px-3 py-2 text-[11px] font-semibold text-[var(--color-mid)]">
+          Loading internal roster suggestions…
+        </div>
+      );
+    }
+
+    if (clubCandidatesError) {
+      return (
+        <div className="rounded-2xl border border-[var(--color-accent)]/18 bg-[var(--color-accent)]/6 px-3 py-2 text-[11px] font-semibold text-[var(--color-accent)]">
+          {clubCandidatesError}
+        </div>
+      );
+    }
+
+    if (linkedCandidate) {
+      return (
+        <div className="rounded-2xl border border-[var(--color-primary)]/18 bg-[var(--color-primary)]/8 px-3 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">
+                <Link2 size={12} />
+                Linked to club roster
+              </p>
+              <p className="mt-1 text-sm font-black text-[var(--color-dark)]">
+                {linkedCandidate.displayName}
+              </p>
+              <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">
+                {linkedCandidate.teamName}
+                {linkedCandidate.squadNumber ? ` · #${linkedCandidate.squadNumber}` : ''}
+                {linkedCandidate.primaryPosition ? ` · ${linkedCandidate.primaryPosition}` : ''}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => updatePlayer(player.id, { club_player_id: null })}
+              className="inline-flex items-center gap-1 rounded-full border border-[var(--color-primary)]/18 bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/8"
+            >
+              <Unlink2 size={12} />
+              Clear
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!hasName) {
+      return null;
+    }
+
+    if (suggestions.length === 0) {
+      return (
+        <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/18 bg-white/72 px-3 py-2 text-[11px] font-semibold text-[var(--color-mid)]">
+          No confident internal roster match yet. Keep this player external or refine the name.
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2 rounded-2xl border border-[var(--color-primary)]/16 bg-[var(--color-primary)]/6 px-3 py-3">
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">
+          Suggested internal match
+        </p>
+        {suggestions.map((suggestion) => (
+          <div
+            key={suggestion.id}
+            className="flex items-start justify-between gap-3 rounded-2xl border border-white/70 bg-white/88 px-3 py-2"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-black text-[var(--color-dark)]">{suggestion.displayName}</p>
+              <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">
+                {suggestion.teamName}
+                {suggestion.squadNumber ? ` · #${suggestion.squadNumber}` : ''}
+                {suggestion.primaryPosition ? ` · ${suggestion.primaryPosition}` : ''}
+              </p>
+              <p className="mt-1 text-[11px] font-semibold text-[var(--color-primary)]">
+                {suggestion.matchReason}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => updatePlayer(player.id, { club_player_id: suggestion.id })}
+              className="rounded-full bg-[var(--color-primary)] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-white transition-opacity hover:opacity-90"
+            >
+              Confirm
+            </button>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  if (!currentReport) return null;
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-6">
@@ -111,6 +257,9 @@ export default function TeamSheetsTab() {
                     placeholder="Player Name"
                   />
                 </div>
+                <div className="col-span-2">
+                  {renderRosterMatchPanel(player)}
+                </div>
                 <div>
                   <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Shirt Number</label>
                   <input
@@ -194,13 +343,16 @@ export default function TeamSheetsTab() {
                   />
                 </td>
                 <td className="p-2">
-                  <input 
-                    type="text" 
-                    value={player.name} 
-                    onChange={e => updatePlayer(player.id, { name: e.target.value })}
-                    className="w-full p-2 rounded-md border border-transparent hover:border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:bg-white outline-none font-bold bg-transparent"
-                    placeholder="Player Name"
-                  />
+                  <div className="space-y-2">
+                    <input 
+                      type="text" 
+                      value={player.name} 
+                      onChange={e => updatePlayer(player.id, { name: e.target.value })}
+                      className="w-full rounded-md border border-transparent bg-transparent p-2 font-bold outline-none hover:border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:bg-white"
+                      placeholder="Player Name"
+                    />
+                    {renderRosterMatchPanel(player)}
+                  </div>
                 </td>
                 <td className="p-2">
                   <input 

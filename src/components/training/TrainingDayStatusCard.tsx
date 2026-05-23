@@ -114,6 +114,18 @@ export default function TrainingDayStatusCard({
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] md:mt-4 md:gap-2 md:text-[11px] md:tracking-[0.14em]">
+        {day.matchContextLabel ? (
+          <span
+            className={cn(
+              'rounded-full px-2 py-1',
+              day.isMatchDay
+                ? 'bg-[var(--color-primary)] text-white'
+                : 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+            )}
+          >
+            {day.matchContextLabel}
+          </span>
+        ) : null}
         <span className={cn('rounded-full px-2 py-1', tone.badge)}>
           {day.importReviewState ? reviewLabel(day) : 'Structured'}
         </span>

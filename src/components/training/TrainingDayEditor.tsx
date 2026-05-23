@@ -296,6 +296,11 @@ export default function TrainingDayEditor({
                   </option>
                 ))}
               </select>
+              {day.matchContextLabel ? (
+                <p className="mwos-form-helper mt-2 text-[var(--color-primary)]">
+                  Match context: {day.matchContextLabel}
+                </p>
+              ) : null}
             </div>
 
             <div className="min-w-0">

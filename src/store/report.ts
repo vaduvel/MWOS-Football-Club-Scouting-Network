@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 export interface Player {
   id: number | string; // string for temporary client-side ids
+  club_player_id?: string | null;
   team_side: 'home' | 'away';
   shirt_number: number | '';
   name: string;

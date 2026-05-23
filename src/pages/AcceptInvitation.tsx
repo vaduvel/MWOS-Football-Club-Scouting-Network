@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import {
   acceptStaffInvitation,
   fetchInvitationSummary,
+  getPrimaryRoleSlug,
   getSessionWithProfile,
   updatePassword,
   type AcceptInvitationSummary,
@@ -16,6 +17,29 @@ import {
 } from '../lib/acceptInvitationDomain';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/auth';
+
+const DEFAULT_INVITATION_BACKGROUND = '/branding/att.AGuDIc57f42thGuMeUSyrotRD6Zy0fxGX1rynzNNmWM.JPG';
+
+function getInvitationBackground(invitation: AcceptInvitationSummary | null) {
+  const primaryRole = getPrimaryRoleSlug({
+    roles: invitation?.roles.map((role) => role.slug) || [],
+  });
+
+  switch (primaryRole) {
+    case 'coach':
+      return '/branding/onboarding/coach.jpg';
+    case 'driver':
+      return '/branding/onboarding/driver.jpg';
+    case 'admin':
+    case 'technical_director':
+    case 'board_observer':
+      return '/branding/onboarding/admin.jpg';
+    case 'scout':
+      return '/branding/onboarding/players.jpg';
+    default:
+      return DEFAULT_INVITATION_BACKGROUND;
+  }
+}
 
 export default function AcceptInvitation() {
   const [searchParams] = useSearchParams();
@@ -30,6 +54,7 @@ export default function AcceptInvitation() {
   const [notice, setNotice] = useState<AcceptInvitationNotice | null>(null);
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
+  const invitationBackground = getInvitationBackground(invitation);
 
   useEffect(() => {
     let mounted = true;
@@ -122,7 +147,7 @@ export default function AcceptInvitation() {
     <div className="mwos-auth-shell relative min-h-dvh overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center opacity-30"
-        style={{ backgroundImage: "url('/branding/att.AGuDIc57f42thGuMeUSyrotRD6Zy0fxGX1rynzNNmWM.JPG')" }}
+        style={{ backgroundImage: `url('${invitationBackground}')` }}
       />
       <div className="mwos-subtle-grid absolute inset-0 opacity-25" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(190,23,23,0.24),transparent_28%),linear-gradient(180deg,rgba(16,20,74,0.22),rgba(16,20,74,0.38))]" />

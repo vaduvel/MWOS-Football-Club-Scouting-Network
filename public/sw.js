@@ -1,6 +1,6 @@
-const SHELL_CACHE = 'mwos-shell-v4';
-const STATIC_CACHE = 'mwos-static-v4';
-const RUNTIME_CACHE = 'mwos-runtime-v4';
+const SHELL_CACHE = 'mwos-shell-v5';
+const STATIC_CACHE = 'mwos-static-v5';
+const RUNTIME_CACHE = 'mwos-runtime-v5';
 
 const APP_SHELL = [
   '/',
@@ -9,6 +9,10 @@ const APP_SHELL = [
   '/manifest.webmanifest',
   '/favicon.svg',
   '/branding/mwos-fc-300-2.png',
+  '/branding/onboarding/coach.jpg',
+  '/branding/onboarding/driver.jpg',
+  '/branding/onboarding/admin.jpg',
+  '/branding/onboarding/players.jpg',
   '/icons/mwos-icon-192.png',
   '/icons/mwos-icon-512.png',
 ];

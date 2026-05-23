@@ -632,6 +632,61 @@ export default function TrainingPage() {
 
           {!loading && workspace ? (
             <>
+              {workspace.matchContext ? (
+                <section className="rounded-[28px] border border-[var(--color-primary)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="mwos-surface-intro">
+                      <div className="mwos-surface-intro-icon flex size-9 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+                        <CalendarRange size={18} />
+                      </div>
+                      <div className="mwos-surface-intro-copy">
+                        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
+                          Match week context
+                        </p>
+                        <h2 className="mt-1 text-xl font-black text-[var(--color-dark)]">
+                          {workspace.matchContext.opponent}
+                          {workspace.matchContext.competition ? ` · ${workspace.matchContext.competition}` : ''}
+                        </h2>
+                        <p className="mt-1.5 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                          {workspace.matchContext.matchDate}
+                          {workspace.matchContext.kickoffTime ? ` · ${workspace.matchContext.kickoffTime}` : ''}
+                          {workspace.matchContext.venue ? ` · ${workspace.matchContext.venue}` : ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    <a
+                      href={workspace.matchContext.linkPath}
+                      className="mwos-btn mwos-btn-secondary w-full justify-center md:w-auto"
+                    >
+                      <ArrowRight size={16} />
+                      Open Match Day
+                    </a>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-[22px] border border-[var(--color-primary)]/10 bg-[var(--color-primary)]/5 px-4 py-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Build-up sessions</p>
+                      <p className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+                        {workspace.matchContext.preMatchSessionCount}
+                      </p>
+                    </div>
+                    <div className="rounded-[22px] border border-[var(--color-primary)]/10 bg-[var(--color-primary)]/5 px-4 py-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Post-match sessions</p>
+                      <p className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+                        {workspace.matchContext.postMatchSessionCount}
+                      </p>
+                    </div>
+                    <div className="rounded-[22px] border border-[var(--color-primary)]/10 bg-[var(--color-primary)]/5 px-4 py-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">Recovery after match</p>
+                      <p className="mt-2 text-2xl font-black text-[var(--color-dark)]">
+                        {workspace.matchContext.postMatchRecoveryCount}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+
               {issueDayCount ? (
                 <TrainingReviewSummaryCard
                   days={workspace.days}

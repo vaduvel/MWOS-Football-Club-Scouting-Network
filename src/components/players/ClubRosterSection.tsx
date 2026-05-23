@@ -2,6 +2,7 @@ import { Database, Footprints, Ruler, ShieldAlert, Users } from 'lucide-react';
 
 import type { ClubRosterOverview } from '../../lib/clubPlayersData';
 import { formatClubPlayerMetric } from '../../lib/clubPlayersDomain';
+import { buildClubRosterSnapshot } from '../../lib/playerHubDomain';
 
 type ClubRosterSectionProps = {
   overview: ClubRosterOverview | null;
@@ -33,6 +34,7 @@ export default function ClubRosterSection({
       .toLowerCase()
       .includes(needle);
   });
+  const snapshot = buildClubRosterSnapshot(filteredPlayers);
 
   return (
     <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
@@ -127,6 +129,61 @@ export default function ClubRosterSection({
             </div>
           </div>
           <p className="mwos-subcard-copy mt-2">Useful immediately for planning and match-day flexibility.</p>
+        </article>
+      </div>
+
+      <div className="mt-5 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <article className="rounded-[24px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.05),rgba(255,255,255,1))] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">
+                Squad profile
+              </p>
+              <h3 className="mt-2 text-lg font-black text-[var(--color-dark)]">Team snapshot</h3>
+            </div>
+            <div className="flex size-9 items-center justify-center rounded-2xl bg-white/82 text-[var(--color-primary)]">
+              <Ruler size={16} />
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <SnapshotMetric label="Avg height" value={snapshot.averageHeightCm === null ? '-- cm' : `${snapshot.averageHeightCm.toFixed(1)} cm`} />
+            <SnapshotMetric label="Avg weight" value={snapshot.averageWeightKg === null ? '-- kg' : `${snapshot.averageWeightKg.toFixed(1)} kg`} />
+            <SnapshotMetric label="Complete data" value={`${snapshot.completeRate}%`} />
+            <SnapshotMetric label="Left / both" value={`${snapshot.footCounts.left + snapshot.footCounts.both}`} />
+          </div>
+        </article>
+
+        <article className="rounded-[24px] border border-[var(--color-primary-deep)]/14 bg-[linear-gradient(180deg,rgba(34,27,102,0.06),rgba(255,255,255,1))] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">
+                Position mix
+              </p>
+              <h3 className="mt-2 text-lg font-black text-[var(--color-dark)]">Where the squad is built</h3>
+            </div>
+            <div className="flex size-9 items-center justify-center rounded-2xl bg-white/82 text-[var(--color-primary-deep)]">
+              <Users size={16} />
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {snapshot.positionMix.length ? (
+              snapshot.positionMix.map((item) => (
+                <span
+                  key={`${item.label}-${item.count}`}
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--color-mid)]/16 bg-white/82 px-3 py-2 text-xs font-black text-[var(--color-dark)] shadow-[0_8px_18px_rgba(15,23,42,0.04)]"
+                >
+                  <span className="text-[var(--color-primary)]">{item.label}</span>
+                  <span className="text-[var(--color-mid)]">{item.count}</span>
+                </span>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/22 bg-white/72 px-4 py-3 text-sm font-semibold text-[var(--color-mid)]">
+                Add players to this team to unlock the role mix.
+              </div>
+            )}
+          </div>
         </article>
       </div>
 
@@ -235,5 +292,14 @@ export default function ClubRosterSection({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function SnapshotMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[var(--color-mid)]/12 bg-white/78 px-3 py-3">
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">{label}</p>
+      <p className="mt-1 text-sm font-black text-[var(--color-dark)]">{value}</p>
+    </div>
   );
 }

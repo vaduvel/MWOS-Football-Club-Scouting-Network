@@ -7,6 +7,7 @@ import {
   normalizeClubPlayerText,
   type ClubPlayerFoot,
 } from './clubPlayersDomain';
+import type { ClubPlayerMatchCandidate } from './playerIdentityDomain';
 
 interface ClubPlayerRow {
   id: string;
@@ -51,6 +52,8 @@ export interface ClubRosterPlayer {
   hasCompleteAnthropometrics: boolean;
 }
 
+export interface ClubPlayerProfile extends ClubRosterPlayer {}
+
 export interface ClubRosterOverview {
   teams: AppTeam[];
   selectedTeamId: string;
@@ -64,6 +67,12 @@ export interface ClubRosterOverview {
     dualFootedCount: number;
   };
   setupNotice: string;
+}
+
+export interface ClubPlayerRosterMatchCandidate extends ClubPlayerMatchCandidate {
+  teamId: string;
+  isActive: boolean;
+  primaryPosition: string;
 }
 
 function buildSetupNotice(error: unknown) {
@@ -204,4 +213,87 @@ export async function fetchClubRosterOverview(teamId?: string): Promise<ClubRost
     },
     setupNotice: '',
   };
+}
+
+export async function fetchClubPlayerMatchCandidates(): Promise<ClubPlayerRosterMatchCandidate[]> {
+  const [teamsResponse, playersResponse] = await Promise.all([
+    supabase
+      .from('teams')
+      .select('id, name, is_active'),
+    supabase
+      .from('club_players')
+      .select('id, team_id, display_name, squad_number, primary_position, is_active')
+      .eq('is_active', true)
+      .order('display_name', { ascending: true }),
+  ]);
+
+  if (teamsResponse.error) {
+    throw teamsResponse.error;
+  }
+
+  if (playersResponse.error) {
+    throw playersResponse.error;
+  }
+
+  const teamsById = new Map(
+    (((teamsResponse.data || []) as Pick<AppTeam, 'id' | 'name' | 'is_active'>[]) || []).map((team) => [
+      team.id,
+      team.name,
+    ]),
+  );
+
+  return ((playersResponse.data || []) as Array<{
+    id: string;
+    team_id: string;
+    display_name: string;
+    squad_number: number | null;
+    primary_position: string | null;
+    is_active: boolean;
+  }>).map((row) => ({
+    id: row.id,
+    displayName: row.display_name,
+    teamId: row.team_id,
+    teamName: teamsById.get(row.team_id) || 'Club roster',
+    squadNumber: row.squad_number,
+    isActive: row.is_active,
+    primaryPosition: normalizeClubPlayerPosition(row.primary_position),
+  }));
+}
+
+export async function fetchClubPlayerProfileById(playerId: string): Promise<ClubPlayerProfile | null> {
+  if (!playerId) {
+    return null;
+  }
+
+  const [teamsResponse, playerResponse] = await Promise.all([
+    supabase.from('teams').select('id, name'),
+    supabase
+      .from('club_players')
+      .select(
+        'id, team_id, source_label, source_row_number, squad_number, first_name, last_name, display_name, weight_kg, height_cm, bmi, dominant_foot, nationality, primary_position, secondary_position, is_active, notes',
+      )
+      .eq('id', playerId)
+      .maybeSingle(),
+  ]);
+
+  if (teamsResponse.error) {
+    throw teamsResponse.error;
+  }
+
+  if (playerResponse.error) {
+    throw playerResponse.error;
+  }
+
+  if (!playerResponse.data) {
+    return null;
+  }
+
+  const teamsById = new Map(
+    (((teamsResponse.data || []) as Array<{ id: string; name: string }>) || []).map((team) => [team.id, team.name]),
+  );
+
+  return mapPlayer(
+    playerResponse.data as ClubPlayerRow,
+    teamsById.get((playerResponse.data as ClubPlayerRow).team_id) || 'Club roster',
+  );
 }
