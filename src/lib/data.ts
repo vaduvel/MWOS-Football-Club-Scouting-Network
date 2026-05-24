@@ -577,6 +577,7 @@ export interface AcceptInvitationSummary {
 const DEFAULT_FORMATION = '4-3-3';
 const CLUB_ROLE_PRIORITY = [
   'admin',
+  'executive_director',
   'technical_director',
   'coach',
   'driver',
@@ -740,23 +741,23 @@ export function userHasAnyRole(user: Pick<AppUser, 'roles'> | null | undefined, 
 }
 
 export function canAccessTrainingModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'coach']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'coach']);
 }
 
 export function canAccessMatchDayModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'board_observer', 'coach']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach']);
 }
 
 export function canAccessTransportModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'driver']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'driver']);
 }
 
 export function canAccessScoutingModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'scout']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'scout']);
 }
 
 export function canAccessPlayerHub(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'scout']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'scout']);
 }
 
 export function canCreateScoutingReports(user: Pick<AppUser, 'roles'> | null | undefined) {
@@ -764,11 +765,11 @@ export function canCreateScoutingReports(user: Pick<AppUser, 'roles'> | null | u
 }
 
 export function canAccessOversightModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'board_observer']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'board_observer']);
 }
 
 export function canManageAnnouncements(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director']);
 }
 
 export function getPrimaryRoleSlug(user: Pick<AppUser, 'roles'> | null | undefined) {
@@ -1253,7 +1254,7 @@ export async function fetchReports() {
 
   const mappedReports = (data as ReportRow[]).map((row) => mapReport(row));
 
-  if (!userHasAnyRole(authUser, ['admin', 'technical_director', 'board_observer']) || mappedReports.length === 0) {
+  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer']) || mappedReports.length === 0) {
     return mappedReports;
   }
 
@@ -1287,7 +1288,7 @@ export async function fetchReports() {
 export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverview> {
   const authUser = await getCurrentAppUser();
 
-  if (!userHasAnyRole(authUser, ['admin', 'technical_director', 'board_observer'])) {
+  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer'])) {
     throw new Error('Oversight access is required.');
   }
 
@@ -1564,7 +1565,7 @@ export async function fetchReport(reportId: string) {
     (reviewsResponse.data || []) as PlayerReviewRow[],
   );
 
-  if (!userHasAnyRole(authUser, ['admin', 'technical_director', 'board_observer']) || !mappedReport.owner_id) {
+  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer']) || !mappedReport.owner_id) {
     return mappedReport;
   }
 

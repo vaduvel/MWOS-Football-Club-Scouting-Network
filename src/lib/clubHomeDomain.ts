@@ -1,5 +1,6 @@
 export type ClubHomeViewMode =
   | 'admin'
+  | 'executive_director'
   | 'technical_director'
   | 'board_observer'
   | 'coach'
@@ -37,6 +38,7 @@ export function getClubHomeViewMode(roleSlugs: string[]): ClubHomeViewMode {
   const roles = new Set(roleSlugs.map((item) => item.trim().toLowerCase()).filter(Boolean));
 
   if (roles.has('admin')) return 'admin';
+  if (roles.has('executive_director')) return 'executive_director';
   if (roles.has('technical_director')) return 'technical_director';
   if (roles.has('board_observer')) return 'board_observer';
 
@@ -58,6 +60,17 @@ export function buildClubHomeHero(view: ClubHomeViewMode, assignedTeams: number)
         primaryPath: '/oversight',
         secondaryLabel: 'Manage staff access',
         secondaryPath: '/settings',
+      };
+    case 'executive_director':
+      return {
+        eyebrow: 'Executive Development Workspace',
+        title: 'Track talent, opportunity, and club progress from one strategic view.',
+        description:
+          'Follow validated scouting output, player development signals, match-day readiness, and club activity without entering day-to-day editing flows.',
+        primaryLabel: 'Open player pipeline',
+        primaryPath: '/players',
+        secondaryLabel: 'Open oversight',
+        secondaryPath: '/oversight',
       };
     case 'technical_director':
       return {
@@ -155,6 +168,29 @@ export function buildClubHomeMetricCards(
           label: 'Pending Invites',
           value: String(input.pendingInvitations),
           detail: 'Staff invitations still waiting for activation.',
+        },
+      ];
+    case 'executive_director':
+      return [
+        {
+          label: 'Reports This Week',
+          value: String(input.recentReports),
+          detail: 'Fresh scouting and player intelligence flowing into the strategic view.',
+        },
+        {
+          label: 'Active Teams',
+          value: String(input.assignedTeams),
+          detail: 'Teams currently represented in the club development pathway.',
+        },
+        {
+          label: 'Training Published',
+          value: `${input.publishedTrainingPlansCurrentWeek} / ${input.trainingPlansCurrentWeek}`,
+          detail: 'Current-week planning coverage across the academy and first team.',
+        },
+        {
+          label: 'Unread Alerts',
+          value: String(input.unreadNotifications),
+          detail: 'Leadership updates that may affect decisions or opportunities.',
         },
       ];
     case 'technical_director':

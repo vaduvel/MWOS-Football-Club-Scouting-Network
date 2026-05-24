@@ -142,6 +142,7 @@ export interface OversightMetricSummary {
 
 export interface OversightRoleSummary {
   admins: number;
+  executiveDirectors: number;
   technicalDirectors: number;
   coaches: number;
   drivers: number;
@@ -225,6 +226,7 @@ function joinedTeam(
 function mapRoleSummary(roleAssignments: Map<string, AppRole[]>): OversightRoleSummary {
   const summary: OversightRoleSummary = {
     admins: 0,
+    executiveDirectors: 0,
     technicalDirectors: 0,
     coaches: 0,
     drivers: 0,
@@ -235,6 +237,7 @@ function mapRoleSummary(roleAssignments: Map<string, AppRole[]>): OversightRoleS
   roleAssignments.forEach((roles) => {
     const slugs = new Set(roles.map((role) => normalizeRoleSlug(role.slug)));
     if (slugs.has('admin')) summary.admins += 1;
+    if (slugs.has('executive_director')) summary.executiveDirectors += 1;
     if (slugs.has('technical_director')) summary.technicalDirectors += 1;
     if (slugs.has('coach')) summary.coaches += 1;
     if (slugs.has('driver')) summary.drivers += 1;
@@ -266,11 +269,11 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
 
   const authUser = await getCurrentAppUser();
 
-  if (!userHasAnyRole(authUser, ['admin', 'technical_director', 'board_observer'])) {
+  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer'])) {
     throw new Error('Oversight access is required.');
   }
 
-  const canSeeStaffCoverage = userHasAnyRole(authUser, ['admin', 'technical_director']);
+  const canSeeStaffCoverage = userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director']);
   const canSeeInvitationFeed = userHasRole(authUser, 'admin');
   const canSeeAccessActivity = userHasRole(authUser, 'admin');
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');

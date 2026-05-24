@@ -13,6 +13,14 @@ describe('scoutingWorkspaceDomain', () => {
     expect(hero.searchPlaceholder).toContain('creators');
   });
 
+  it('returns executive director copy for global talent review', () => {
+    const hero = buildScoutingWorkspaceHero('executive_director');
+
+    expect(hero.eyebrow).toBe('Global Scouting Pipeline');
+    expect(hero.title).toBe('Talent Intelligence');
+    expect(hero.searchPlaceholder).toContain('players');
+  });
+
   it('returns operator hero copy for scouts', () => {
     const hero = buildScoutingWorkspaceHero(false);
 

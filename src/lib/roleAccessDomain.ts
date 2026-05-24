@@ -4,6 +4,7 @@ export interface RoleAccessUserShape {
 
 const CLUB_ROLE_PRIORITY = [
   'admin',
+  'executive_director',
   'technical_director',
   'coach',
   'driver',
@@ -41,19 +42,19 @@ export function userHasAnyRole(user: RoleAccessUserShape | null | undefined, rol
 }
 
 export function canAccessTrainingModule(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'coach']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'coach']);
 }
 
 export function canAccessTransportModule(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'driver']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'driver']);
 }
 
 export function canAccessScoutingModule(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'scout']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'scout']);
 }
 
 export function canAccessPlayerHub(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'scout']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'scout']);
 }
 
 export function canCreateScoutingReports(user: RoleAccessUserShape | null | undefined) {
@@ -61,7 +62,7 @@ export function canCreateScoutingReports(user: RoleAccessUserShape | null | unde
 }
 
 export function canAccessOversightModule(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'board_observer']);
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'board_observer']);
 }
 
 export function getPrimaryRoleSlug(user: RoleAccessUserShape | null | undefined) {

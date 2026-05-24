@@ -1,5 +1,6 @@
 export type LeadershipWorkspaceMode =
   | 'admin'
+  | 'executive_director'
   | 'technical_director'
   | 'board_observer'
   | 'none';
@@ -18,6 +19,7 @@ export function getLeadershipWorkspaceMode(roleSlugs: string[]): LeadershipWorks
   const roles = new Set(roleSlugs.map(normalizeRole).filter(Boolean));
 
   if (roles.has('admin')) return 'admin';
+  if (roles.has('executive_director')) return 'executive_director';
   if (roles.has('technical_director')) return 'technical_director';
   if (roles.has('board_observer')) return 'board_observer';
   return 'none';
@@ -32,7 +34,7 @@ export function canManageOversightTransport(mode: LeadershipWorkspaceMode) {
 }
 
 export function canSeeStaffCoverage(mode: LeadershipWorkspaceMode) {
-  return mode === 'admin' || mode === 'technical_director';
+  return mode === 'admin' || mode === 'executive_director' || mode === 'technical_director';
 }
 
 export function getOversightHeroCopy(mode: LeadershipWorkspaceMode): OversightHeroCopy {
@@ -43,6 +45,13 @@ export function getOversightHeroCopy(mode: LeadershipWorkspaceMode): OversightHe
         title: 'Oversight',
         description:
           'Run the operational club view across planning, transport, scouting activity, and staff onboarding from one surface.',
+      };
+    case 'executive_director':
+      return {
+        eyebrow: 'Executive Development Workspace',
+        title: 'Strategic Overview',
+        description:
+          'Track player intelligence, validated football activity, academy movement, and club readiness from one executive view before pathway or partnership decisions.',
       };
     case 'technical_director':
       return {

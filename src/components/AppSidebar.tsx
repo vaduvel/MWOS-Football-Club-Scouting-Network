@@ -86,7 +86,7 @@ function formatRoleHeadline(user: AppUser | null) {
 
 function formatTeamSummary(user: AppUser | null) {
   if (!user || user.teams.length === 0) {
-    return userHasAnyRole(user, ['admin', 'technical_director', 'board_observer'])
+    return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'board_observer'])
       ? 'Club-wide access'
       : 'Awaiting team assignment';
   }
@@ -102,6 +102,8 @@ function buildAccessProfileCopy(roleSlug: string) {
   switch (roleSlug) {
     case 'admin':
       return 'Operational access across staffing, planning, transport, and club oversight.';
+    case 'executive_director':
+      return 'Strategic access across player intelligence, scouting output, and club development signals.';
     case 'technical_director':
       return 'Club-wide review access focused on training quality, transport readiness, and leadership visibility.';
     case 'board_observer':
@@ -122,6 +124,8 @@ function buildMobilePrimaryKeys(user: AppUser | null, roleSlug: string) {
   switch (roleSlug) {
     case 'admin':
       return ['home', 'training', 'match-day', 'oversight'];
+    case 'executive_director':
+      return ['home', 'players', 'scouting', 'oversight'];
     case 'technical_director':
       return ['home', 'training', 'match-day', 'oversight'];
     case 'board_observer':

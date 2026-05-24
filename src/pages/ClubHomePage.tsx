@@ -18,6 +18,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import AppSidebar from '../components/AppSidebar';
 import {
   canAccessOversightModule,
+  canAccessMatchDayModule,
   canAccessPlayerHub,
   canAccessScoutingModule,
   canAccessTrainingModule,
@@ -64,6 +65,14 @@ const MODULE_META: ModuleCard[] = [
     visible: canAccessTrainingModule,
   },
   {
+    key: 'match-day',
+    label: 'Match Day',
+    description: 'Prepare fixtures, squad availability, player selection, and match-day operations.',
+    path: '/match-day',
+    icon: ClipboardList,
+    visible: canAccessMatchDayModule,
+  },
+  {
     key: 'transport',
     label: 'Transport Plans',
     description: 'Coordinate departures, drivers, and travel timing for every club movement.',
@@ -98,13 +107,14 @@ const MODULE_META: ModuleCard[] = [
 ];
 
 const MODULE_ORDER: Record<ClubHomeViewMode, string[]> = {
-  admin: ['oversight', 'training', 'transport', 'scouting', 'players', 'home'],
-  technical_director: ['training', 'oversight', 'transport', 'home', 'scouting', 'players'],
-  board_observer: ['oversight', 'home', 'training', 'transport', 'scouting', 'players'],
-  coach: ['training', 'transport', 'oversight', 'scouting', 'players', 'home'],
-  driver: ['transport', 'training', 'oversight', 'home', 'scouting', 'players'],
-  scout: ['scouting', 'players', 'training', 'oversight', 'transport', 'home'],
-  pending: ['home', 'training', 'transport', 'scouting', 'players', 'oversight'],
+  admin: ['oversight', 'training', 'match-day', 'transport', 'scouting', 'players', 'home'],
+  executive_director: ['players', 'scouting', 'oversight', 'match-day', 'training', 'transport', 'home'],
+  technical_director: ['training', 'match-day', 'oversight', 'transport', 'home', 'scouting', 'players'],
+  board_observer: ['oversight', 'match-day', 'home', 'training', 'transport', 'scouting', 'players'],
+  coach: ['training', 'match-day', 'transport', 'oversight', 'scouting', 'players', 'home'],
+  driver: ['transport', 'training', 'match-day', 'oversight', 'home', 'scouting', 'players'],
+  scout: ['scouting', 'players', 'match-day', 'training', 'oversight', 'transport', 'home'],
+  pending: ['home', 'training', 'match-day', 'transport', 'scouting', 'players', 'oversight'],
 };
 
 const SECTION_TONE_CLASSES: Record<
@@ -160,6 +170,7 @@ const MODULE_TONE_CLASSES: Record<
   transport: SECTION_TONE_CLASSES.transport,
   scouting: SECTION_TONE_CLASSES.reports,
   players: SECTION_TONE_CLASSES.staff,
+  'match-day': SECTION_TONE_CLASSES.training,
   oversight: SECTION_TONE_CLASSES.alerts,
 };
 
@@ -621,6 +632,22 @@ function StaffAccessActivityFeed({ items }: { items: StaffAccessEventRecord[] })
 }
 
 function LeadershipModeCallout({ view }: { view: ClubHomeViewMode }) {
+  if (view === 'executive_director') {
+    return (
+      <section className="mwos-card-tone-report rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-primary)]">
+          Executive Development Mode
+        </p>
+        <p className="mt-3 text-lg font-black text-[var(--color-dark)]">
+          Strategic visibility into talent, scouting momentum, and club readiness.
+        </p>
+        <p className="mt-3 text-pretty text-sm font-semibold leading-7 text-[var(--color-mid)]">
+          Use this workspace to follow players worth attention, reviewed football activity, and the operational signals that matter before partnership or pathway decisions.
+        </p>
+      </section>
+    );
+  }
+
   if (view === 'technical_director') {
     return (
       <section className="mwos-card-tone-training rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
@@ -743,9 +770,10 @@ export default function ClubHomePage() {
   }, [user]);
 
   const isAdminView = workspace?.view === 'admin';
+  const isExecutiveDirectorView = workspace?.view === 'executive_director';
   const isTechnicalDirectorView = workspace?.view === 'technical_director';
   const isBoardObserverView = workspace?.view === 'board_observer';
-  const isLeadershipView = isAdminView || isTechnicalDirectorView || isBoardObserverView;
+  const isLeadershipView = isAdminView || isExecutiveDirectorView || isTechnicalDirectorView || isBoardObserverView;
   const canOpenTraining = canAccessTrainingModule(user);
   const canOpenTransport = canAccessTransportModule(user);
   const canOpenScouting = canAccessScoutingModule(user);

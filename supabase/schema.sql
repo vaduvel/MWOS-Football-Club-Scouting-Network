@@ -439,6 +439,7 @@ create index if not exists club_announcement_reads_user_id_idx on public.club_an
 insert into public.roles (slug, label, description)
 values
   ('admin', 'Admin', 'Full club-wide access'),
+  ('executive_director', 'Executive Director', 'Strategic player development and club-wide read access'),
   ('technical_director', 'Technical Director', 'Club-wide read and comment access'),
   ('coach', 'Coach', 'Team-specific training access'),
   ('driver', 'Driver', 'Transport-focused access'),
@@ -627,6 +628,7 @@ stable
 as $$
   select
     public.is_admin()
+    or public.has_role('executive_director')
     or public.has_role('technical_director')
     or public.has_role('board_observer')
     or (public.has_role('coach') and public.belongs_to_team(target_team_id));
@@ -666,6 +668,7 @@ stable
 as $$
   select
     public.is_admin()
+    or public.has_role('executive_director')
     or public.has_role('technical_director')
     or public.has_role('board_observer')
     or (public.has_role('coach') and public.belongs_to_team(target_team_id));
@@ -711,6 +714,7 @@ as $$
     where transport_plans.id = target_plan_id
       and (
         public.is_admin()
+        or public.has_role('executive_director')
         or public.has_role('technical_director')
         or public.has_role('board_observer')
         or (public.has_role('coach') and public.belongs_to_team(transport_plans.team_id))
@@ -776,7 +780,7 @@ security definer
 set search_path = public
 stable
 as $$
-  select public.is_admin() or public.has_role('technical_director');
+  select public.is_admin() or public.has_role('executive_director') or public.has_role('technical_director');
 $$;
 
 create or replace function public.can_view_club_announcement(
@@ -793,7 +797,7 @@ as $$
   select
     archived_at is null
     and (expires_at is null or expires_at > timezone('utc', now()))
-    and public.has_any_role(array['admin', 'technical_director', 'board_observer', 'coach', 'driver', 'scout'])
+    and public.has_any_role(array['admin', 'executive_director', 'technical_director', 'board_observer', 'coach', 'driver', 'scout'])
     and (
       public.can_manage_club_announcements()
       or public.has_role('board_observer')
@@ -1059,7 +1063,7 @@ on public.profiles
 for select
 using (
   auth.uid() = id
-  or public.has_any_role(array['admin', 'technical_director', 'board_observer'])
+  or public.has_any_role(array['admin', 'executive_director', 'technical_director', 'board_observer'])
 );
 
 drop policy if exists "profiles_insert_own" on public.profiles;
@@ -1112,7 +1116,7 @@ for select
 to authenticated
 using (
   auth.uid() = user_id
-  or public.has_any_role(array['admin', 'technical_director'])
+  or public.has_any_role(array['admin', 'executive_director', 'technical_director'])
 );
 
 drop policy if exists "user_roles_mutate_admin" on public.user_roles;
@@ -1130,7 +1134,7 @@ for select
 to authenticated
 using (
   auth.uid() = user_id
-  or public.has_any_role(array['admin', 'technical_director'])
+  or public.has_any_role(array['admin', 'executive_director', 'technical_director'])
 );
 
 drop policy if exists "user_team_assignments_mutate_admin" on public.user_team_assignments;
@@ -1773,7 +1777,7 @@ for select
 using (
   auth.uid() = user_id
   or public.is_admin()
-  or public.has_any_role(array['technical_director', 'board_observer'])
+  or public.has_any_role(array['executive_director', 'technical_director', 'board_observer'])
 );
 
 drop policy if exists "reports_insert_own" on public.reports;
@@ -1825,7 +1829,7 @@ using (
       and (
         reports.user_id = auth.uid()
         or public.is_admin()
-        or public.has_any_role(array['technical_director', 'board_observer'])
+        or public.has_any_role(array['executive_director', 'technical_director', 'board_observer'])
       )
   )
 );
@@ -1868,7 +1872,7 @@ using (
       and (
         reports.user_id = auth.uid()
         or public.is_admin()
-        or public.has_any_role(array['technical_director', 'board_observer'])
+        or public.has_any_role(array['executive_director', 'technical_director', 'board_observer'])
       )
   )
 );
@@ -1936,7 +1940,7 @@ using (
       and (
         reports.user_id = auth.uid()
         or public.is_admin()
-        or public.has_any_role(array['technical_director', 'board_observer'])
+        or public.has_any_role(array['executive_director', 'technical_director', 'board_observer'])
       )
   )
 );

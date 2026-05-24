@@ -473,7 +473,7 @@ function mapNotification(row: AppNotificationRow): TrainingNotificationItem {
 async function resolveTrainingTeams() {
   const authUser = await getCurrentAppUser();
 
-  if (userHasAnyRole(authUser, ['admin', 'technical_director'])) {
+  if (userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director'])) {
     const { data, error } = await supabase
       .from('teams')
       .select('id, slug, name, is_active')

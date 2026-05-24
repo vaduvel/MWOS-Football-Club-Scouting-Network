@@ -143,6 +143,7 @@ export default function ReportEditor() {
   const [mobileTabPickerOpen, setMobileTabPickerOpen] = useState(false);
   const skipDirtyTrackingRef = useRef(false);
   const isAdmin = userHasRole(user, 'admin');
+  const isExecutiveDirector = userHasRole(user, 'executive_director');
   const isTechnicalDirector = userHasRole(user, 'technical_director');
   const canEditReport = canCreateScoutingReports(user);
   const isNewReport = !id || id === 'new';
@@ -390,7 +391,9 @@ export default function ReportEditor() {
 
   if (!currentReport) return <div className="p-10 text-center font-bold">Loading...</div>;
 
-  const showOwnerMeta = Boolean(currentReport.owner_name || currentReport.owner_email) && (isAdmin || isTechnicalDirector);
+  const showOwnerMeta =
+    Boolean(currentReport.owner_name || currentReport.owner_email) &&
+    (isAdmin || isExecutiveDirector || isTechnicalDirector);
   const readOnlyPreviewTab = !canEditReport && activeTab !== 'export';
 
   return (

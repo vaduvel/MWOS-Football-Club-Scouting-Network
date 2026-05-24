@@ -10,10 +10,11 @@ import {
 
 describe('getLeadershipWorkspaceMode', () => {
   it('prioritizes admin over other leadership roles', () => {
-    expect(getLeadershipWorkspaceMode(['technical_director', 'admin'])).toBe('admin');
+    expect(getLeadershipWorkspaceMode(['technical_director', 'executive_director', 'admin'])).toBe('admin');
   });
 
-  it('distinguishes technical director and board observer', () => {
+  it('distinguishes executive, technical director and board observer', () => {
+    expect(getLeadershipWorkspaceMode(['executive_director'])).toBe('executive_director');
     expect(getLeadershipWorkspaceMode(['technical_director'])).toBe('technical_director');
     expect(getLeadershipWorkspaceMode(['board_observer'])).toBe('board_observer');
     expect(getLeadershipWorkspaceMode(['coach'])).toBe('none');
@@ -23,18 +24,21 @@ describe('getLeadershipWorkspaceMode', () => {
 describe('leadership workspace capabilities', () => {
   it('keeps staff access management admin-only', () => {
     expect(canManageStaffAccess('admin')).toBe(true);
+    expect(canManageStaffAccess('executive_director')).toBe(false);
     expect(canManageStaffAccess('technical_director')).toBe(false);
     expect(canManageStaffAccess('board_observer')).toBe(false);
   });
 
   it('allows transport interventions for admin and technical director only', () => {
     expect(canManageOversightTransport('admin')).toBe(true);
+    expect(canManageOversightTransport('executive_director')).toBe(false);
     expect(canManageOversightTransport('technical_director')).toBe(true);
     expect(canManageOversightTransport('board_observer')).toBe(false);
   });
 
   it('shows staff coverage to admin and technical director only', () => {
     expect(canSeeStaffCoverage('admin')).toBe(true);
+    expect(canSeeStaffCoverage('executive_director')).toBe(true);
     expect(canSeeStaffCoverage('technical_director')).toBe(true);
     expect(canSeeStaffCoverage('board_observer')).toBe(false);
   });
@@ -54,6 +58,15 @@ describe('getOversightHeroCopy', () => {
     expect(getOversightHeroCopy('technical_director')).toEqual(
       expect.objectContaining({
         eyebrow: 'Technical Director Workspace',
+      }),
+    );
+  });
+
+  it('returns executive development copy', () => {
+    expect(getOversightHeroCopy('executive_director')).toEqual(
+      expect.objectContaining({
+        eyebrow: 'Executive Development Workspace',
+        title: 'Strategic Overview',
       }),
     );
   });

@@ -353,7 +353,7 @@ function mapRosterSelection(
 async function resolveMatchDayTeams() {
   const authUser = await getCurrentAppUser();
 
-  if (userHasAnyRole(authUser, ['admin', 'technical_director', 'board_observer'])) {
+  if (userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer'])) {
     const { data, error } = await supabase
       .from('teams')
       .select('id, slug, name, is_active')
@@ -615,7 +615,7 @@ export async function fetchMatchDayTeams() {
 
 export async function fetchMatchDaySummaries(teamId?: string | null): Promise<MatchDaySummary[]> {
   const authUser = await getCurrentAppUser();
-  if (!userHasAnyRole(authUser, ['admin', 'technical_director', 'board_observer', 'coach'])) {
+  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach'])) {
     return [];
   }
 
@@ -934,7 +934,7 @@ export async function saveMatchDayPlayerSelections(
 
 export async function fetchPlayerMatchDayStatus(clubPlayerId: string): Promise<PlayerMatchDayStatus | null> {
   const authUser = await getCurrentAppUser();
-  if (!userHasAnyRole(authUser, ['admin', 'technical_director', 'board_observer', 'coach'])) {
+  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach'])) {
     return null;
   }
 

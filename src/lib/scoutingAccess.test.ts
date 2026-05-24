@@ -15,6 +15,11 @@ describe('scouting access matrix', () => {
     expect(canAccessScoutingModule(makeUser(['technical_director']))).toBe(true);
   });
 
+  it('allows executive directors into scouting and player intelligence review', () => {
+    expect(canAccessScoutingModule(makeUser(['executive_director']))).toBe(true);
+    expect(canAccessPlayerHub(makeUser(['executive_director']))).toBe(true);
+  });
+
   it('allows technical directors into player hub review flows', () => {
     expect(canAccessPlayerHub(makeUser(['technical_director']))).toBe(true);
   });
@@ -26,6 +31,7 @@ describe('scouting access matrix', () => {
 
   it('keeps technical directors out of scouting authoring flows', () => {
     expect('canCreateScoutingReports' in data).toBe(true);
+    expect((data as { canCreateScoutingReports?: (user: { roles: string[] }) => boolean }).canCreateScoutingReports?.(makeUser(['executive_director']))).toBe(false);
     expect((data as { canCreateScoutingReports?: (user: { roles: string[] }) => boolean }).canCreateScoutingReports?.(makeUser(['technical_director']))).toBe(false);
     expect((data as { canCreateScoutingReports?: (user: { roles: string[] }) => boolean }).canCreateScoutingReports?.(makeUser(['scout']))).toBe(true);
   });

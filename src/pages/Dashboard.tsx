@@ -16,6 +16,7 @@ import {
   fetchAdminDashboardOverview,
   fetchPlayerHubData,
   fetchReports,
+  userHasAnyRole,
   userHasRole,
   sendAdminChatMessage,
   type AdminAiContext,
@@ -140,8 +141,9 @@ export default function Dashboard() {
   const [chatError, setChatError] = useState('');
   const navigate = useNavigate();
   const isAdmin = userHasRole(user, 'admin');
+  const isExecutiveDirector = userHasRole(user, 'executive_director');
   const isTechnicalDirector = userHasRole(user, 'technical_director');
-  const isLeadership = isAdmin || isTechnicalDirector;
+  const isLeadership = userHasAnyRole(user, ['admin', 'executive_director', 'technical_director']);
   const canCreateReports = canCreateScoutingReports(user);
   const reportsThisWeek = reports.filter((report) => {
     const rawDate = report.date || '';
@@ -346,7 +348,14 @@ export default function Dashboard() {
     }
   };
 
-  const workspaceHero = buildScoutingWorkspaceHero(isLeadership);
+  const workspaceMode = isExecutiveDirector
+    ? 'executive_director'
+    : isTechnicalDirector
+      ? 'technical_director'
+      : isAdmin
+        ? 'admin'
+        : 'operator';
+  const workspaceHero = buildScoutingWorkspaceHero(workspaceMode);
   const workspaceMetrics = buildScoutingWorkspaceMetrics({
     isLeadership,
     totalReports: reports.length,

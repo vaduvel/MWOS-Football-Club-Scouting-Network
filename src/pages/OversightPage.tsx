@@ -137,6 +137,7 @@ function EmptyState({
 function RoleCoverageCard({ summary }: { summary: OversightRoleSummary }) {
   const items = [
     { label: 'Admin', value: summary.admins },
+    { label: 'Executive Director', value: summary.executiveDirectors },
     { label: 'Technical Director', value: summary.technicalDirectors },
     { label: 'Coach', value: summary.coaches },
     { label: 'Driver', value: summary.drivers },
@@ -145,6 +146,7 @@ function RoleCoverageCard({ summary }: { summary: OversightRoleSummary }) {
   ];
   const toneClasses = [
     'mwos-subcard-staff',
+    'mwos-subcard-report',
     'mwos-subcard-training',
     'mwos-subcard-alert',
     'mwos-subcard-transport',
@@ -536,6 +538,24 @@ function LeadershipReadOnlyNote() {
 }
 
 function OversightModeNote({ mode }: { mode: ReturnType<typeof getLeadershipWorkspaceMode> }) {
+  if (mode === 'executive_director') {
+    return (
+      <article className="mwos-card-tone-report rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+        <div className="mwos-surface-intro">
+          <div className="mwos-surface-intro-icon mwos-icon-tone-report flex size-10 items-center justify-center rounded-2xl md:size-12">
+            <FileText size={22} />
+          </div>
+          <div className="mwos-surface-intro-copy">
+            <h2 className="text-lg font-black text-[var(--color-dark)] md:text-xl">Executive development mode</h2>
+            <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)] md:leading-7">
+              This view keeps player intelligence, scouting activity, training coverage, and club readiness close together so strategic decisions are based on live football context.
+            </p>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   if (mode === 'technical_director') {
     return (
       <article className="mwos-card-tone-training rounded-[28px] border p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
@@ -604,7 +624,7 @@ export default function OversightPage() {
   }
 
   useEffect(() => {
-    if (!userHasAnyRole(user, ['admin', 'technical_director', 'board_observer'])) {
+    if (!userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'board_observer'])) {
       setLoading(false);
       return;
     }

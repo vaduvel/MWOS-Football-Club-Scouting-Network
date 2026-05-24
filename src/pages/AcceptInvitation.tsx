@@ -31,6 +31,7 @@ function getInvitationBackground(invitation: AcceptInvitationSummary | null) {
     case 'driver':
       return '/branding/onboarding/driver.jpg';
     case 'admin':
+    case 'executive_director':
     case 'technical_director':
     case 'board_observer':
       return '/branding/onboarding/admin.jpg';

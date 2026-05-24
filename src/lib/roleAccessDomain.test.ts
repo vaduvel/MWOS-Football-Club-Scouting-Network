@@ -18,9 +18,16 @@ describe('roleAccessDomain', () => {
       'coach',
       'scout',
     ]);
+    expect(normalizeRoleList(['technical_director', 'executive_director'])).toEqual([
+      'executive_director',
+      'technical_director',
+    ]);
   });
 
   it('computes module access by role', () => {
+    expect(canAccessOversightModule({ roles: ['executive_director'] })).toBe(true);
+    expect(canAccessScoutingModule({ roles: ['executive_director'] })).toBe(true);
+    expect(canAccessPlayerHub({ roles: ['executive_director'] })).toBe(true);
     expect(canAccessOversightModule({ roles: ['board_observer'] })).toBe(true);
     expect(canAccessTrainingModule({ roles: ['coach'] })).toBe(true);
     expect(canAccessTransportModule({ roles: ['coach'] })).toBe(false);
@@ -58,6 +65,7 @@ describe('roleAccessDomain', () => {
 
   it('computes the primary role and default module path', () => {
     expect(getPrimaryRoleSlug({ roles: ['scout', 'admin'] })).toBe('admin');
+    expect(getDefaultModulePath({ roles: ['executive_director'] })).toBe('/oversight');
     expect(getDefaultModulePath({ roles: ['board_observer'] })).toBe('/oversight');
     expect(getDefaultModulePath({ roles: ['coach'] })).toBe('/training');
     expect(getDefaultModulePath({ roles: ['driver'] })).toBe('/transport');

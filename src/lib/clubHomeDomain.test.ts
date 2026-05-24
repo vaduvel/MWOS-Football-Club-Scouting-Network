@@ -9,6 +9,7 @@ import {
 describe('getClubHomeViewMode', () => {
   it('gives admin, technical director, and board observer distinct leadership modes', () => {
     expect(getClubHomeViewMode(['scout', 'coach', 'admin'])).toBe('admin');
+    expect(getClubHomeViewMode(['executive_director', 'technical_director'])).toBe('executive_director');
     expect(getClubHomeViewMode(['technical_director', 'coach'])).toBe('technical_director');
     expect(getClubHomeViewMode(['board_observer', 'driver'])).toBe('board_observer');
   });
@@ -38,6 +39,16 @@ describe('buildClubHomeHero', () => {
         eyebrow: 'Technical Director Workspace',
         primaryLabel: 'Review training plans',
         secondaryLabel: 'Open oversight',
+      }),
+    );
+  });
+
+  it('gives executive director a strategy-first message tied to players', () => {
+    expect(buildClubHomeHero('executive_director', 5)).toEqual(
+      expect.objectContaining({
+        eyebrow: 'Executive Development Workspace',
+        primaryLabel: 'Open player pipeline',
+        primaryPath: '/players',
       }),
     );
   });
@@ -119,6 +130,26 @@ describe('buildClubHomeMetricCards', () => {
       'Unread Alerts',
     ]);
     expect(cards[3]?.value).toBe('7');
+  });
+
+  it('builds executive director metrics around player intelligence and pathway signals', () => {
+    const cards = buildClubHomeMetricCards('executive_director', {
+      assignedTeams: 5,
+      unreadNotifications: 2,
+      trainingPlansCurrentWeek: 4,
+      publishedTrainingPlansCurrentWeek: 3,
+      upcomingTransportPlans: 1,
+      recentReports: 6,
+      pendingInvitations: 0,
+    });
+
+    expect(cards.map((card) => card.label)).toEqual([
+      'Reports This Week',
+      'Active Teams',
+      'Training Published',
+      'Unread Alerts',
+    ]);
+    expect(cards[0]?.value).toBe('6');
   });
 
   it('builds board observer metrics as read-only club summary', () => {

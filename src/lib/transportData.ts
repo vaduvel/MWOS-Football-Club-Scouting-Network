@@ -158,7 +158,7 @@ function toTeamRecord(value: AppTeam) {
 async function resolveTransportTeams() {
   const authUser = await getCurrentAppUser();
 
-  if (userHasAnyRole(authUser, ['admin', 'technical_director'])) {
+  if (userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director'])) {
     const { data, error } = await supabase
       .from('teams')
       .select('id, slug, name, is_active')
@@ -457,7 +457,7 @@ export async function fetchTransportPlanSummaries(filters: {
   status?: TransportPlanStatus | 'all';
 }): Promise<TransportPlanSummary[]> {
   const authUser = await getCurrentAppUser();
-  if (!userHasAnyRole(authUser, ['admin', 'technical_director', 'coach', 'driver'])) {
+  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'coach', 'driver'])) {
     return [];
   }
 
