@@ -4,6 +4,8 @@ import {
   buildClubRosterSnapshot,
   buildNumericComparison,
   buildPlayerDevelopmentSummary,
+  buildRadarChartPoints,
+  buildRadarChartPolygon,
   buildRosterOnlyPlayerHubEntry,
   buildTrendChartPath,
   buildTrendChartStops,
@@ -27,6 +29,44 @@ describe('buildTrendChartStops', () => {
       { x: 0, y: 50, score: 2.5 },
       { x: 100, y: 0, score: 4.5 },
     ]);
+  });
+});
+
+describe('buildRadarChartPoints', () => {
+  it('maps metric values to clockwise radar coordinates', () => {
+    const points = buildRadarChartPoints(
+      [
+        { label: 'Pace', value: 5 },
+        { label: 'Strength', value: 2.5 },
+        { label: 'Stamina', value: 0 },
+        { label: 'Decision', value: 5 },
+      ],
+      100,
+      40,
+    );
+
+    expect(points).toEqual([
+      { label: 'Pace', value: 5, normalizedValue: 1, x: 50, y: 10 },
+      { label: 'Strength', value: 2.5, normalizedValue: 0.5, x: 70, y: 50 },
+      { label: 'Stamina', value: 0, normalizedValue: 0, x: 50, y: 50 },
+      { label: 'Decision', value: 5, normalizedValue: 1, x: 10, y: 50 },
+    ]);
+  });
+
+  it('clamps invalid metric values and builds a polygon string', () => {
+    const points = buildRadarChartPoints(
+      [
+        { label: 'Pace', value: 8 },
+        { label: 'Strength', value: -2 },
+        { label: 'Stamina', value: Number.NaN },
+        { label: 'Decision', value: 3 },
+      ],
+      100,
+      40,
+    );
+
+    expect(points.map((point) => point.normalizedValue)).toEqual([1, 0, 0, 0.6]);
+    expect(buildRadarChartPolygon(points)).toBe('50,10 50,50 50,50 26,50');
   });
 });
 

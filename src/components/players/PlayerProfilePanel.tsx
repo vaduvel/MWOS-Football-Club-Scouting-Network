@@ -2,7 +2,12 @@ import type { ReactNode } from 'react';
 import { Activity, ArrowRight, BarChart3, Link2, Sparkles, Star, TrendingUp } from 'lucide-react';
 
 import type { PlayerHubEntry } from '../../lib/data';
-import { buildTrendChartPath, buildTrendChartStops } from '../../lib/playerHubDomain';
+import {
+  buildRadarChartPoints,
+  buildRadarChartPolygon,
+  buildTrendChartPath,
+  buildTrendChartStops,
+} from '../../lib/playerHubDomain';
 
 const PROFILE_METRICS: Array<{ key: keyof PlayerHubEntry['metrics']; label: string }> = [
   { key: 'pace', label: 'Pace' },
@@ -70,6 +75,10 @@ export default function PlayerProfilePanel({
 
   const trendPath = buildTrendChartPath(entry.trendPoints, 280, 96);
   const trendStops = buildTrendChartStops(entry.trendPoints, 280, 96);
+  const radarMetrics = PROFILE_METRICS.map((metric) => ({
+    label: metric.label,
+    value: entry.metrics[metric.key],
+  }));
 
   return (
     <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
@@ -185,25 +194,29 @@ export default function PlayerProfilePanel({
             </div>
           </div>
 
-          <div className="mt-4 space-y-3">
-            {PROFILE_METRICS.map((metric) => (
-              <div key={metric.key} className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
-                    {metric.label}
-                  </p>
-                  <p className="text-sm font-black text-[var(--color-dark)]">
-                    {entry.metrics[metric.key].toFixed(1)}
-                  </p>
+          <div className="mt-4 grid gap-4 lg:grid-cols-[184px_1fr] lg:items-center">
+            <AttributeRadar metrics={radarMetrics} chartId={`player-radar-${entry.playerKey.replace(/[^a-z0-9]/gi, '-')}`} />
+
+            <div className="space-y-3">
+              {PROFILE_METRICS.map((metric) => (
+                <div key={metric.key} className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+                      {metric.label}
+                    </p>
+                    <p className="text-sm font-black text-[var(--color-dark)]">
+                      {entry.metrics[metric.key].toFixed(1)}
+                    </p>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-[var(--color-primary)]/10">
+                    <div
+                      className="h-full rounded-full bg-[linear-gradient(90deg,var(--color-primary),var(--color-accent))]"
+                      style={{ width: `${Math.max(8, (entry.metrics[metric.key] / 5) * 100)}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[var(--color-primary)]/10">
-                  <div
-                    className="h-full rounded-full bg-[linear-gradient(90deg,var(--color-primary),var(--color-accent))]"
-                    style={{ width: `${Math.max(8, (entry.metrics[metric.key] / 5) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -252,6 +265,100 @@ function MetricPill({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 px-4 py-3 text-center">
       <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">{label}</p>
       <p className="mt-1 text-2xl font-black text-[var(--color-dark)]">{value}</p>
+    </div>
+  );
+}
+
+function AttributeRadar({
+  metrics,
+  chartId,
+}: {
+  metrics: Array<{ label: string; value: number }>;
+  chartId: string;
+}) {
+  const size = 180;
+  const radius = 70;
+  const points = buildRadarChartPoints(metrics, size, radius);
+  const polygon = buildRadarChartPolygon(points);
+  const gridPolygons = [1.25, 2.5, 3.75, 5].map((value) =>
+    buildRadarChartPolygon(
+      buildRadarChartPoints(
+        metrics.map((metric) => ({
+          label: metric.label,
+          value,
+        })),
+        size,
+        radius,
+      ),
+    ),
+  );
+  const axisPoints = buildRadarChartPoints(
+    metrics.map((metric) => ({
+      label: metric.label,
+      value: 5,
+    })),
+    size,
+    radius,
+  );
+
+  return (
+    <div className="mx-auto w-full max-w-[184px] rounded-[24px] border border-[var(--color-primary)]/12 bg-[radial-gradient(circle_at_50%_35%,rgba(49,39,131,0.10),rgba(255,255,255,0.88)_58%)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
+      <svg viewBox={`0 0 ${size} ${size}`} className="h-[180px] w-full overflow-visible" role="img" aria-label="Player scouting attribute radar">
+        <defs>
+          <linearGradient id={chartId} x1="0%" x2="100%" y1="0%" y2="100%">
+            <stop offset="0%" stopColor="rgba(49,39,131,0.72)" />
+            <stop offset="100%" stopColor="rgba(190,23,23,0.62)" />
+          </linearGradient>
+        </defs>
+
+        {gridPolygons.map((gridPolygon, index) => (
+          <polygon
+            key={`${gridPolygon}-${index}`}
+            points={gridPolygon}
+            fill="none"
+            stroke="rgba(148,163,184,0.26)"
+            strokeWidth="1"
+          />
+        ))}
+
+        {axisPoints.map((point) => (
+          <line
+            key={`${point.label}-axis`}
+            x1={size / 2}
+            y1={size / 2}
+            x2={point.x}
+            y2={point.y}
+            stroke="rgba(148,163,184,0.22)"
+            strokeWidth="1"
+          />
+        ))}
+
+        {polygon ? (
+          <>
+            <polygon
+              points={polygon}
+              fill={`url(#${chartId})`}
+              fillOpacity="0.18"
+              stroke={`url(#${chartId})`}
+              strokeLinejoin="round"
+              strokeWidth="3"
+            />
+            {points.map((point) => (
+              <circle
+                key={`${point.label}-point`}
+                cx={point.x}
+                cy={point.y}
+                r="4"
+                fill="white"
+                stroke="rgba(49,39,131,0.86)"
+                strokeWidth="2"
+              />
+            ))}
+          </>
+        ) : null}
+
+        <circle cx={size / 2} cy={size / 2} r="3" fill="rgba(49,39,131,0.34)" />
+      </svg>
     </div>
   );
 }

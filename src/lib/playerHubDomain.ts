@@ -2,6 +2,20 @@ type TrendPointInput = {
   score: number;
 };
 
+type RadarMetricInput = {
+  label: string;
+  value: number;
+  maxValue?: number;
+};
+
+export type RadarChartPoint = {
+  label: string;
+  value: number;
+  normalizedValue: number;
+  x: number;
+  y: number;
+};
+
 type RosterSnapshotPlayer = {
   primaryPosition: string;
   heightCm: number | null;
@@ -51,6 +65,47 @@ function getPotentialRank(level: string | null | undefined) {
     default:
       return 0;
   }
+}
+
+function roundChartCoordinate(value: number) {
+  return Number(value.toFixed(2));
+}
+
+function clampMetricValue(value: number, maxValue: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(Math.max(value, 0), maxValue);
+}
+
+export function buildRadarChartPoints(
+  metrics: RadarMetricInput[],
+  size = 180,
+  radius = 72,
+): RadarChartPoint[] {
+  if (!metrics.length) return [];
+
+  const center = size / 2;
+  const safeRadius = Math.max(12, Math.min(radius, center));
+  const angleStep = (Math.PI * 2) / metrics.length;
+
+  return metrics.map((metric, index) => {
+    const maxValue = Math.max(1, metric.maxValue || 5);
+    const clampedValue = clampMetricValue(metric.value, maxValue);
+    const normalizedValue = clampedValue / maxValue;
+    const angle = -Math.PI / 2 + angleStep * index;
+    const pointRadius = safeRadius * normalizedValue;
+
+    return {
+      label: metric.label,
+      value: clampedValue,
+      normalizedValue: roundChartCoordinate(normalizedValue),
+      x: roundChartCoordinate(center + Math.cos(angle) * pointRadius),
+      y: roundChartCoordinate(center + Math.sin(angle) * pointRadius),
+    };
+  });
+}
+
+export function buildRadarChartPolygon(points: RadarChartPoint[]) {
+  return points.map((point) => `${point.x},${point.y}`).join(' ');
 }
 
 export function buildNumericComparison(
