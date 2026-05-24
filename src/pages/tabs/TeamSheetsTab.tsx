@@ -73,6 +73,52 @@ export default function TeamSheetsTab() {
       2,
     );
 
+  const handleClubPlayerLink = (player: Player, candidateId: string) => {
+    const candidate = clubCandidates.find((item) => item.id === candidateId);
+    if (!candidate) {
+      updatePlayer(player.id, { club_player_id: null });
+      return;
+    }
+
+    updatePlayer(player.id, {
+      club_player_id: candidate.id,
+      name: player.name.trim() ? player.name : candidate.displayName,
+      shirt_number: player.shirt_number || candidate.squadNumber || '',
+    });
+  };
+
+  const renderManualRosterSelect = (player: Player, helperText: string) => {
+    if (clubCandidates.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="rounded-2xl border border-[var(--color-mid)]/14 bg-white/78 px-3 py-3">
+        <label className="block">
+          <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+            <Link2 size={12} />
+            Manual roster link
+          </span>
+          <select
+            value={player.club_player_id || ''}
+            onChange={(event) => handleClubPlayerLink(player, event.target.value)}
+            className="mt-2 w-full rounded-xl border border-[var(--color-mid)]/18 bg-white px-3 py-3 text-sm font-bold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/10"
+          >
+            <option value="">Keep as external player</option>
+            {clubCandidates.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.teamName} · {candidate.squadNumber ? `#${candidate.squadNumber} · ` : ''}
+                {candidate.displayName}
+                {candidate.primaryPosition ? ` · ${candidate.primaryPosition}` : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="mt-2 text-[11px] font-semibold leading-5 text-[var(--color-mid)]">{helperText}</p>
+      </div>
+    );
+  };
+
   const renderRosterMatchPanel = (player: Player) => {
     const linkedCandidate = getLinkedCandidate(player);
     const suggestions = linkedCandidate ? [] : getSuggestions(player);
@@ -126,13 +172,19 @@ export default function TeamSheetsTab() {
     }
 
     if (!hasName) {
-      return null;
+      return renderManualRosterSelect(
+        player,
+        'If this is an MWOS player, link the roster profile first and the name/number will fill in automatically.',
+      );
     }
 
     if (suggestions.length === 0) {
       return (
-        <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/18 bg-white/72 px-3 py-2 text-[11px] font-semibold text-[var(--color-mid)]">
-          No confident internal roster match yet. Keep this player external or refine the name.
+        <div className="space-y-2">
+          <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/18 bg-white/72 px-3 py-2 text-[11px] font-semibold text-[var(--color-mid)]">
+            No confident internal roster match yet. Keep this player external or choose the roster profile manually.
+          </div>
+          {renderManualRosterSelect(player, 'Use this when the scout spelling does not match the internal roster exactly.')}
         </div>
       );
     }
@@ -160,13 +212,14 @@ export default function TeamSheetsTab() {
             </div>
             <button
               type="button"
-              onClick={() => updatePlayer(player.id, { club_player_id: suggestion.id })}
+              onClick={() => handleClubPlayerLink(player, suggestion.id)}
               className="rounded-full bg-[var(--color-primary)] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-white transition-opacity hover:opacity-90"
             >
               Confirm
             </button>
           </div>
         ))}
+        {renderManualRosterSelect(player, 'Not the right suggestion? Select the exact internal player here.')}
       </div>
     );
   };

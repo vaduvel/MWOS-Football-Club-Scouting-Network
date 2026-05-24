@@ -228,13 +228,19 @@ export default function PlayerProfilePanel({
           <p className="mt-3 text-sm font-semibold leading-6 text-[var(--color-dark)]">
             {entry.latestVerdict}
           </p>
-          <button
-            onClick={() => onOpenReport(entry.latestReportId)}
-            className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(49,39,131,0.2)] transition-opacity hover:opacity-90"
-          >
-            Open latest report
-            <ArrowRight size={16} />
-          </button>
+          {entry.latestReportId ? (
+            <button
+              onClick={() => onOpenReport(entry.latestReportId)}
+              className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(49,39,131,0.2)] transition-opacity hover:opacity-90"
+            >
+              Open latest report
+              <ArrowRight size={16} />
+            </button>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-dashed border-[var(--color-mid)]/22 bg-white/72 px-4 py-3 text-sm font-black text-[var(--color-mid)]">
+              First report not linked yet
+            </div>
+          )}
         </div>
       </div>
     </section>

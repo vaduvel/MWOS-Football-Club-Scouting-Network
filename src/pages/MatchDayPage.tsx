@@ -10,6 +10,7 @@ import {
   Plus,
   Save,
   Send,
+  UserRound,
   Users,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -733,6 +734,14 @@ export default function MatchDayPage() {
                                   </p>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => navigate(`/players/${encodeURIComponent(`club:${player.clubPlayerId}`)}`)}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-primary)]/18 bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/8"
+                                  >
+                                    <UserRound size={12} />
+                                    Profile
+                                  </button>
                                   <QuickTag label={player.availabilityStatus} tone={availabilityTone(player.availabilityStatus)} />
                                   <QuickTag label={player.selectionStatus} tone={selectionTone(player.selectionStatus)} />
                                 </div>

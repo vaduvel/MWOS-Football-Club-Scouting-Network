@@ -282,7 +282,7 @@ export default function PlayerProfilePage() {
                     <ArrowLeft size={16} />
                     Back to hub
                   </button>
-                  {selectedPlayer ? (
+                  {selectedPlayer?.latestReportId ? (
                     <button
                       onClick={() => navigate(`/report/${selectedPlayer.latestReportId}`)}
                       className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)]"

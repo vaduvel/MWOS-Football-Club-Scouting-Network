@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildClubRosterSnapshot, buildNumericComparison, buildTrendChartPath, buildTrendChartStops } from './playerHubDomain';
+import {
+  buildClubRosterSnapshot,
+  buildNumericComparison,
+  buildPlayerDevelopmentSummary,
+  buildRosterOnlyPlayerHubEntry,
+  buildTrendChartPath,
+  buildTrendChartStops,
+} from './playerHubDomain';
 
 describe('buildTrendChartPath', () => {
   it('returns empty path when there are no valid scores', () => {
@@ -91,6 +98,72 @@ describe('buildNumericComparison', () => {
       difference: 0,
       direction: 'level',
       label: 'Right on team average',
+    });
+  });
+});
+
+describe('buildRosterOnlyPlayerHubEntry', () => {
+  it('creates a stable internal profile before scouting reports exist', () => {
+    expect(
+      buildRosterOnlyPlayerHubEntry({
+        id: 'player-1',
+        displayName: 'Tawanda Moyo',
+        teamName: 'U17',
+        squadNumber: 8,
+        primaryPosition: 'CM',
+        isWatchlisted: true,
+        watchlistId: 'watch-1',
+      }),
+    ).toMatchObject({
+      playerKey: 'club:player-1',
+      linkedClubPlayerId: 'player-1',
+      name: 'Tawanda Moyo',
+      clubLabel: 'U17',
+      latestReportId: '',
+      latestPlayerId: '',
+      reportCount: 0,
+      mentionCount: 0,
+      averageScore: 0,
+      bestPotential: 'Unreviewed',
+      latestVerdict: 'Awaiting first scouting report',
+      strengths: 'Create the first scouting report to identify strengths.',
+      improvementAreas: 'No improvement focus logged yet.',
+      isWatchlisted: true,
+      watchlistId: 'watch-1',
+    });
+  });
+});
+
+describe('buildPlayerDevelopmentSummary', () => {
+  it('separates linked scouting, roster gaps and external scouting entries', () => {
+    expect(
+      buildPlayerDevelopmentSummary([
+        {
+          linkedClubPlayerId: 'club-1',
+          reportCount: 2,
+          bestPotential: 'Elite',
+          latestVerdict: 'Green light for trial',
+        },
+        {
+          linkedClubPlayerId: 'club-2',
+          reportCount: 0,
+          bestPotential: 'Unreviewed',
+          latestVerdict: 'Awaiting first scouting report',
+        },
+        {
+          linkedClubPlayerId: null,
+          reportCount: 1,
+          bestPotential: 'Pro',
+          latestVerdict: 'Monitor externally',
+        },
+      ]),
+    ).toEqual({
+      internalRosterProfiles: 2,
+      linkedScoutingProfiles: 1,
+      rosterWithoutScouting: 1,
+      externalScoutingProfiles: 1,
+      executiveShortlist: 2,
+      scoutingCoverageRate: 50,
     });
   });
 });

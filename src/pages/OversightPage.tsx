@@ -537,6 +537,69 @@ function LeadershipReadOnlyNote() {
   );
 }
 
+function PlayerDevelopmentCard({ summary }: { summary: NonNullable<OversightWorkspace['playerDevelopment']> }) {
+  const cards = [
+    {
+      label: 'Roster profiles',
+      value: summary.internalRosterProfiles,
+      helper: 'Internal players visible in Player Hub.',
+    },
+    {
+      label: 'Linked scouting',
+      value: summary.linkedScoutingProfiles,
+      helper: 'Reports connected to real club players.',
+    },
+    {
+      label: 'Roster gaps',
+      value: summary.rosterWithoutScouting,
+      helper: 'Players still waiting for a first report.',
+    },
+    {
+      label: 'Executive shortlist',
+      value: summary.executiveShortlist,
+      helper: 'High-potential or trial-ready profiles.',
+    },
+  ];
+
+  return (
+    <section className="rounded-[28px] border border-[var(--color-primary)]/16 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="mwos-surface-intro">
+          <div className="mwos-surface-intro-icon mwos-icon-tone-report flex size-10 items-center justify-center rounded-2xl md:size-12">
+            <Users size={22} />
+          </div>
+          <div className="mwos-surface-intro-copy">
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-primary)]">
+              Player development intelligence
+            </p>
+            <h2 className="mt-1 text-lg font-black text-[var(--color-dark)] md:text-xl">
+              Roster, scouting and shortlist coverage
+            </h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+              Wilson sees technical gaps in the roster record. Adrian sees which validated profiles are ready for strategic follow-up.
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--color-primary)]/14 bg-white/82 px-4 py-3 text-center">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Coverage</p>
+          <p className="mt-1 text-2xl font-black text-[var(--color-primary)]">{summary.scoutingCoverageRate}%</p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card) => (
+          <div key={card.label} className="rounded-2xl border border-[var(--color-mid)]/12 bg-white/84 p-4">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">{card.label}</p>
+            <p className="mt-2 text-2xl font-black text-[var(--color-dark)]">{card.value}</p>
+            <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">{card.helper}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function OversightModeNote({ mode }: { mode: ReturnType<typeof getLeadershipWorkspaceMode> }) {
   if (mode === 'executive_director') {
     return (
@@ -746,6 +809,10 @@ export default function OversightPage() {
               <OversightMetricStrip metrics={workspace.metrics} />
 
               <OversightModeNote mode={leadershipMode} />
+
+              {workspace.playerDevelopment ? (
+                <PlayerDevelopmentCard summary={workspace.playerDevelopment} />
+              ) : null}
 
               <section className="grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
                 <OversightAttentionList items={workspace.attentionItems} />

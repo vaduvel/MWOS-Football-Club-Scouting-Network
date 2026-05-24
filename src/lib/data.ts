@@ -22,6 +22,11 @@ import {
   validateClubAccessSelection,
 } from './staffAccessDomain';
 import { buildScoutingPlayerIdentityKey } from './playerIdentityDomain';
+import {
+  buildPlayerDevelopmentSummary,
+  buildRosterOnlyPlayerHubEntry,
+  type PlayerDevelopmentSummary,
+} from './playerHubDomain';
 
 export interface AppRole {
   slug: string;
@@ -221,6 +226,20 @@ interface WatchlistPlayerRow {
   source_report_id: string | null;
   notes: string | null;
   created_at: string;
+}
+
+interface PlayerHubTeamRow {
+  id: string;
+  name: string;
+}
+
+interface PlayerHubClubPlayerRow {
+  id: string;
+  team_id: string;
+  display_name: string;
+  squad_number: number | null;
+  primary_position: string | null;
+  is_active: boolean;
 }
 
 interface ReportCommentRow {
@@ -451,6 +470,7 @@ export interface PlayerHubOverview {
   reportedWellCount: number;
   pendingReviewCount: number;
   reportsThisWeek: number;
+  developmentSummary: PlayerDevelopmentSummary;
   entries: PlayerHubEntry[];
   topReported: PlayerHubEntry[];
   watchlist: PlayerHubEntry[];
@@ -1751,7 +1771,14 @@ export async function saveReport(report: Report) {
 export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
   const authUser = await getCurrentAppUser();
 
-  const [reportsResponse, playersResponse, reviewsResponse, watchlistResponse] = await Promise.all([
+  const [
+    reportsResponse,
+    playersResponse,
+    reviewsResponse,
+    watchlistResponse,
+    teamsResponse,
+    clubPlayersResponse,
+  ] = await Promise.all([
     supabase
       .from('reports')
       .select(
@@ -1775,6 +1802,12 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
       .select('id, user_id, player_key, player_name, club_label, source_player_id, source_report_id, notes, created_at')
       .eq('user_id', authUser.id)
       .order('created_at', { ascending: false }),
+    supabase.from('teams').select('id, name').eq('is_active', true),
+    supabase
+      .from('club_players')
+      .select('id, team_id, display_name, squad_number, primary_position, is_active')
+      .eq('is_active', true)
+      .order('display_name', { ascending: true }),
   ]);
 
   if (reportsResponse.error) {
@@ -1793,13 +1826,24 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     throw watchlistResponse.error;
   }
 
+  if (teamsResponse.error) {
+    throw teamsResponse.error;
+  }
+
+  if (clubPlayersResponse.error) {
+    throw clubPlayersResponse.error;
+  }
+
   const reports = (reportsResponse.data || []) as ReportRow[];
   const players = (playersResponse.data || []) as PlayerRow[];
   const reviews = (reviewsResponse.data || []) as PlayerReviewRow[];
   const watchlistRows = (watchlistResponse.data || []) as WatchlistPlayerRow[];
+  const teamRows = (teamsResponse.data || []) as PlayerHubTeamRow[];
+  const clubPlayerRows = (clubPlayersResponse.data || []) as PlayerHubClubPlayerRow[];
   const reportsById = new Map(reports.map((report) => [report.id, report]));
   const reviewsByPlayerId = new Map<string, PlayerReviewRow[]>();
   const watchlistByKey = new Map(watchlistRows.map((row) => [row.player_key, row]));
+  const teamNameById = new Map(teamRows.map((team) => [team.id, team.name]));
   const playerMap = new Map<
     string,
     {
@@ -2023,6 +2067,46 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
       return right.reportCount - left.reportCount;
     });
 
+  const existingPlayerKeys = new Set(entries.map((entry) => entry.playerKey));
+  clubPlayerRows.forEach((player) => {
+    const playerKey = `club:${player.id}`;
+    if (existingPlayerKeys.has(playerKey)) {
+      return;
+    }
+
+    const watchlistRow = watchlistByKey.get(playerKey);
+    entries.push(
+      buildRosterOnlyPlayerHubEntry({
+        id: player.id,
+        displayName: player.display_name,
+        teamName: teamNameById.get(player.team_id) || 'Club roster',
+        squadNumber: player.squad_number,
+        primaryPosition: player.primary_position,
+        isWatchlisted: Boolean(watchlistRow),
+        watchlistId: watchlistRow?.id,
+      }),
+    );
+    existingPlayerKeys.add(playerKey);
+  });
+
+  entries.sort((left, right) => {
+    if (right.averageScore !== left.averageScore) {
+      return right.averageScore - left.averageScore;
+    }
+
+    if (getPotentialRank(right.bestPotential) !== getPotentialRank(left.bestPotential)) {
+      return getPotentialRank(right.bestPotential) - getPotentialRank(left.bestPotential);
+    }
+
+    if (right.reportCount !== left.reportCount) {
+      return right.reportCount - left.reportCount;
+    }
+
+    return left.name.localeCompare(right.name);
+  });
+
+  const developmentSummary = buildPlayerDevelopmentSummary(entries);
+
   const topReported = entries
     .filter((entry) => entry.averageScore >= 3.2 || getPotentialRank(entry.bestPotential) >= 3)
     .slice(0, 6);
@@ -2063,6 +2147,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     reportedWellCount: topReported.length,
     pendingReviewCount,
     reportsThisWeek,
+    developmentSummary,
     entries,
     topReported,
     watchlist: entries.filter((entry) => entry.isWatchlisted),
@@ -2082,8 +2167,8 @@ export async function addPlayerToWatchlist(player: Pick<PlayerHubEntry, 'playerK
     player_key: player.playerKey,
     player_name: player.name,
     club_label: player.clubLabel,
-    source_player_id: player.latestPlayerId,
-    source_report_id: player.latestReportId,
+    source_player_id: player.latestPlayerId || null,
+    source_report_id: player.latestReportId || null,
     notes: null,
   };
 

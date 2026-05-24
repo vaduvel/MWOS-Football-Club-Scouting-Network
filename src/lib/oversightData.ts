@@ -1,6 +1,7 @@
 import { format, startOfWeek } from 'date-fns';
 
 import {
+  fetchPlayerHubData,
   fetchStaffAccessEvents,
   fetchStaffInvitations,
   getCurrentAppUser,
@@ -17,6 +18,7 @@ import {
   type OversightAttentionItem,
   type OversightTeamSnapshot,
 } from './oversightDomain';
+import type { PlayerDevelopmentSummary } from './playerHubDomain';
 import { assertSupabaseConfigured, supabase } from './supabase';
 import type { TrainingPlanSummary } from './trainingData';
 import type { TransportContextType, TransportPlanStatus } from './transportDomain';
@@ -187,6 +189,7 @@ export interface OversightWorkspace {
   currentWeekTrainingPlans: TrainingPlanSummary[];
   upcomingTransport: OversightTransportItem[];
   recentReports: OversightRecentReport[];
+  playerDevelopment: PlayerDevelopmentSummary | null;
   pendingInvitations: StaffInvitationRecord[];
   staffingHealth: OversightStaffingHealth | null;
   recentStaffAccessEvents: StaffAccessEventRecord[];
@@ -276,6 +279,12 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
   const canSeeStaffCoverage = userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director']);
   const canSeeInvitationFeed = userHasRole(authUser, 'admin');
   const canSeeAccessActivity = userHasRole(authUser, 'admin');
+  const playerDevelopmentPromise = canSeeStaffCoverage
+    ? fetchPlayerHubData().catch((error) => {
+        console.warn('Could not load player development summary for oversight.', error);
+        return null;
+      })
+    : Promise.resolve(null);
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -289,6 +298,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
     assignmentsResponse,
     pendingInvitations,
     accessEvents,
+    playerHubOverview,
   ] = await Promise.all([
     supabase.from('profiles').select('id, email, name'),
     supabase.from('teams').select('id, slug, name, is_active').eq('is_active', true).order('sort_order', { ascending: true }),
@@ -318,6 +328,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
       : Promise.resolve({ data: [], error: null }),
     canSeeInvitationFeed ? fetchStaffInvitations() : Promise.resolve([]),
     canSeeAccessActivity ? fetchStaffAccessEvents() : Promise.resolve([]),
+    playerDevelopmentPromise,
   ]);
 
   if (profilesResponse.error) throw profilesResponse.error;
@@ -497,6 +508,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
     currentWeekTrainingPlans: trainingPlans.slice(0, 6),
     upcomingTransport: upcomingTransport.slice(0, 6),
     recentReports,
+    playerDevelopment: playerHubOverview?.developmentSummary || null,
     pendingInvitations: pendingInviteRecords.slice(0, 6),
     staffingHealth: canSeeStaffCoverage
       ? {

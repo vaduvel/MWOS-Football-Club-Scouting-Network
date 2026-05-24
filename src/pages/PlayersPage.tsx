@@ -948,13 +948,15 @@ export default function PlayersPage() {
 
                     <p className="mt-4 text-sm font-semibold text-[var(--color-mid)]">{entry.latestVerdict}</p>
 
-                    <button
-                      onClick={() => navigate(`/report/${entry.latestReportId}`)}
-                      className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary)] transition-opacity hover:opacity-80"
-                    >
-                      Open latest report
-                      <ArrowRight size={16} />
-                    </button>
+                    {entry.latestReportId ? (
+                      <button
+                        onClick={() => navigate(`/report/${entry.latestReportId}`)}
+                        className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary)] transition-opacity hover:opacity-80"
+                      >
+                        Open latest report
+                        <ArrowRight size={16} />
+                      </button>
+                    ) : null}
                   </article>
                 ))}
 
@@ -1189,13 +1191,15 @@ export default function PlayersPage() {
                             Full page
                             <ArrowRight size={16} />
                           </button>
-                          <button
-                            onClick={() => navigate(`/report/${entry.latestReportId}`)}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(49,39,131,0.2)] transition-opacity hover:opacity-90"
-                          >
-                            Open latest report
-                            <ArrowRight size={16} />
-                          </button>
+                          {entry.latestReportId ? (
+                            <button
+                              onClick={() => navigate(`/report/${entry.latestReportId}`)}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(49,39,131,0.2)] transition-opacity hover:opacity-90"
+                            >
+                              Open latest report
+                              <ArrowRight size={16} />
+                            </button>
+                          ) : null}
                           <button
                             onClick={() => {
                               setComparisonLeft(entry.playerKey);
@@ -1263,20 +1267,32 @@ export default function PlayersPage() {
 
                       <p className="mt-3 text-sm font-semibold text-[var(--color-mid)]">{entry.latestVerdict}</p>
                       <div className="mt-4 flex flex-wrap gap-3">
-                        <button
-                          onClick={() => navigate(`/report/${entry.latestReportId}`)}
-                          className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary)] transition-opacity hover:opacity-80"
-                        >
-                          Open supporting report
-                          <ArrowRight size={15} />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/report/${entry.latestReportId}?tab=export`)}
-                          className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-deep)] transition-opacity hover:opacity-80"
-                        >
-                          Export dossier
-                          <FileDown size={15} />
-                        </button>
+                        {entry.latestReportId ? (
+                          <>
+                            <button
+                              onClick={() => navigate(`/report/${entry.latestReportId}`)}
+                              className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary)] transition-opacity hover:opacity-80"
+                            >
+                              Open supporting report
+                              <ArrowRight size={15} />
+                            </button>
+                            <button
+                              onClick={() => navigate(`/report/${entry.latestReportId}?tab=export`)}
+                              className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary-deep)] transition-opacity hover:opacity-80"
+                            >
+                              Export dossier
+                              <FileDown size={15} />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenPlayerProfilePage(entry)}
+                            className="inline-flex items-center gap-2 text-sm font-black text-[var(--color-primary)] transition-opacity hover:opacity-80"
+                          >
+                            Open roster profile
+                            <ArrowRight size={15} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

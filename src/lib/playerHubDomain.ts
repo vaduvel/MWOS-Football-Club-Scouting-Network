@@ -11,6 +11,48 @@ type RosterSnapshotPlayer = {
   dominantFoot: 'right' | 'left' | 'both' | 'unknown';
 };
 
+export type PlayerHubMetricKey =
+  | 'pace'
+  | 'strength'
+  | 'stamina'
+  | 'agility'
+  | 'decision_making'
+  | 'composure'
+  | 'work_rate'
+  | 'positioning';
+
+export interface RosterOnlyPlayerHubInput {
+  id: string;
+  displayName: string;
+  teamName: string;
+  squadNumber: number | null;
+  primaryPosition: string | null;
+  isWatchlisted?: boolean;
+  watchlistId?: string;
+}
+
+export interface PlayerDevelopmentSummaryInput {
+  linkedClubPlayerId: string | null;
+  reportCount: number;
+  bestPotential: string;
+  latestVerdict: string;
+}
+
+function getPotentialRank(level: string | null | undefined) {
+  switch ((level || '').trim().toLowerCase()) {
+    case 'elite':
+      return 4;
+    case 'pro':
+      return 3;
+    case 'semi-pro':
+      return 2;
+    case 'academy':
+      return 1;
+    default:
+      return 0;
+  }
+}
+
 export function buildNumericComparison(
   value: number | null,
   baseline: number | null,
@@ -152,3 +194,80 @@ export function buildClubRosterSnapshot(players: RosterSnapshotPlayer[]) {
       .slice(0, 6),
   };
 }
+
+export function buildRosterOnlyPlayerHubEntry(input: RosterOnlyPlayerHubInput) {
+  const positionLabel = input.primaryPosition?.trim() || 'Position missing';
+  const squadLabel = input.squadNumber ? `#${input.squadNumber}` : 'No squad number';
+  const metricDefaults = {
+    pace: 0,
+    strength: 0,
+    stamina: 0,
+    agility: 0,
+    decision_making: 0,
+    composure: 0,
+    work_rate: 0,
+    positioning: 0,
+  } satisfies Record<PlayerHubMetricKey, number>;
+
+  return {
+    playerKey: `club:${input.id}`,
+    linkedClubPlayerId: input.id,
+    name: input.displayName.trim() || 'Unnamed roster player',
+    clubLabel: input.teamName.trim() || 'Club roster',
+    latestReportId: '',
+    latestPlayerId: '',
+    latestReportDate: '',
+    latestFixture: `${positionLabel} · ${squadLabel}`,
+    latestCompetition: 'Internal roster',
+    reportCount: 0,
+    mentionCount: 0,
+    averageScore: 0,
+    latestScore: 0,
+    averageRating: 0,
+    bestPotential: 'Unreviewed',
+    latestVerdict: 'Awaiting first scouting report',
+    overview: 'Internal roster player. Link scouting reports to build the football record.',
+    strengths: 'Create the first scouting report to identify strengths.',
+    improvementAreas: 'No improvement focus logged yet.',
+    trend: 'steady' as const,
+    trendDelta: 0,
+    metrics: metricDefaults,
+    trendPoints: [],
+    isWatchlisted: Boolean(input.isWatchlisted),
+    watchlistId: input.watchlistId,
+  };
+}
+
+export function buildPlayerDevelopmentSummary(entries: PlayerDevelopmentSummaryInput[]) {
+  const internalRosterProfiles = entries.filter((entry) => Boolean(entry.linkedClubPlayerId)).length;
+  const linkedScoutingProfiles = entries.filter(
+    (entry) => Boolean(entry.linkedClubPlayerId) && entry.reportCount > 0,
+  ).length;
+  const rosterWithoutScouting = entries.filter(
+    (entry) => Boolean(entry.linkedClubPlayerId) && entry.reportCount === 0,
+  ).length;
+  const externalScoutingProfiles = entries.filter(
+    (entry) => !entry.linkedClubPlayerId && entry.reportCount > 0,
+  ).length;
+  const executiveShortlist = entries.filter((entry) => {
+    const verdict = entry.latestVerdict.toLowerCase();
+    return (
+      getPotentialRank(entry.bestPotential) >= 3 ||
+      verdict.includes('green') ||
+      verdict.includes('trial') ||
+      verdict.includes('shortlist')
+    );
+  }).length;
+
+  return {
+    internalRosterProfiles,
+    linkedScoutingProfiles,
+    rosterWithoutScouting,
+    externalScoutingProfiles,
+    executiveShortlist,
+    scoutingCoverageRate:
+      internalRosterProfiles > 0 ? Math.round((linkedScoutingProfiles / internalRosterProfiles) * 100) : 0,
+  };
+}
+
+export type PlayerDevelopmentSummary = ReturnType<typeof buildPlayerDevelopmentSummary>;
