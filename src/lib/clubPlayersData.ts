@@ -1,10 +1,12 @@
 import type { AppTeam } from './data';
 import { supabase } from './supabase';
 import {
+  buildClubPlayerSavePayload,
   formatClubPlayerFoot,
   hasCompleteAnthropometrics,
   normalizeClubPlayerPosition,
   normalizeClubPlayerText,
+  type ClubPlayerDraft,
   type ClubPlayerFoot,
 } from './clubPlayersDomain';
 import type { ClubPlayerMatchCandidate } from './playerIdentityDomain';
@@ -296,4 +298,38 @@ export async function fetchClubPlayerProfileById(playerId: string): Promise<Club
     playerResponse.data as ClubPlayerRow,
     teamsById.get((playerResponse.data as ClubPlayerRow).team_id) || 'Club roster',
   );
+}
+
+export async function saveClubRosterPlayer(input: {
+  teamId: string;
+  draft: ClubPlayerDraft;
+  playerId?: string;
+}) {
+  const { payload, errors } = buildClubPlayerSavePayload(input.teamId, input.draft);
+
+  if (!payload) {
+    throw new Error(errors.join('\n') || 'Player details are not ready to save.');
+  }
+
+  if (input.playerId) {
+    const { source_label: _sourceLabel, source_row_number: _sourceRowNumber, ...updatePayload } = payload;
+    const { error } = await supabase
+      .from('club_players')
+      .update(updatePayload)
+      .eq('id', input.playerId);
+
+    if (error) {
+      throw error;
+    }
+
+    return;
+  }
+
+  const { error } = await supabase
+    .from('club_players')
+    .insert(payload);
+
+  if (error) {
+    throw error;
+  }
 }

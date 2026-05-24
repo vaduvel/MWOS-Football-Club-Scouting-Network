@@ -21,8 +21,10 @@ import ClubRosterSection from '../components/players/ClubRosterSection';
 import PlayerProfilePanel from '../components/players/PlayerProfilePanel';
 import {
   fetchClubRosterOverview,
+  saveClubRosterPlayer,
   type ClubRosterOverview,
 } from '../lib/clubPlayersData';
+import type { ClubPlayerDraft } from '../lib/clubPlayersDomain';
 import {
   addPlayerToWatchlist,
   canCreateScoutingReports,
@@ -30,6 +32,7 @@ import {
   removePlayerFromWatchlist,
   type PlayerHubEntry,
   type PlayerHubOverview,
+  userHasAnyRole,
 } from '../lib/data';
 import { useAuthStore } from '../store/auth';
 
@@ -123,6 +126,7 @@ export default function PlayersPage() {
   const navigate = useNavigate();
   const canCreateReports = canCreateScoutingReports(user);
   const canManageWatchlist = canCreateReports;
+  const canManageRoster = userHasAnyRole(user, ['admin', 'technical_director']);
 
   const [overview, setOverview] = useState<PlayerHubOverview | null>(null);
   const [clubRoster, setClubRoster] = useState<ClubRosterOverview | null>(null);
@@ -138,6 +142,7 @@ export default function PlayersPage() {
   const [comparisonRight, setComparisonRight] = useState('');
   const [selectedPlayerKey, setSelectedPlayerKey] = useState('');
   const [updatingWatchlistKey, setUpdatingWatchlistKey] = useState<string | null>(null);
+  const [savingRosterPlayerId, setSavingRosterPlayerId] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showMobileComparison, setShowMobileComparison] = useState(false);
   const comparisonSectionRef = useRef<HTMLElement | null>(null);
@@ -326,6 +331,38 @@ export default function PlayersPage() {
       setError('Failed to update watchlist. Please try again.');
     } finally {
       setUpdatingWatchlistKey(null);
+    }
+  };
+
+  const handleSaveRosterPlayer = async (draft: ClubPlayerDraft, playerId?: string) => {
+    const targetTeamId = clubRoster?.selectedTeamId || rosterTeamId;
+    const savingId = playerId || 'new';
+    setSavingRosterPlayerId(savingId);
+    setRosterError('');
+    setError('');
+
+    try {
+      await saveClubRosterPlayer({
+        teamId: targetTeamId,
+        draft,
+        playerId,
+      });
+
+      const [nextRoster, nextOverview] = await Promise.all([
+        fetchClubRosterOverview(targetTeamId || undefined),
+        fetchPlayerHubData(),
+      ]);
+      setClubRoster(nextRoster);
+      setOverview(nextOverview);
+      if (nextRoster.selectedTeamId) {
+        setRosterTeamId(nextRoster.selectedTeamId);
+      }
+    } catch (saveError: any) {
+      console.error('Failed to save club roster player.', saveError);
+      setRosterError(saveError.message || 'Failed to save this roster player.');
+      throw saveError;
+    } finally {
+      setSavingRosterPlayerId(null);
     }
   };
 
@@ -672,7 +709,10 @@ export default function PlayersPage() {
             loading={rosterLoading}
             search={search}
             teamId={rosterTeamId}
+            canManageRoster={canManageRoster}
+            savingPlayerId={savingRosterPlayerId}
             onTeamChange={setRosterTeamId}
+            onSavePlayer={handleSaveRosterPlayer}
           />
 
           <section className="grid gap-6 xl:grid-cols-[1.45fr_0.55fr]">
