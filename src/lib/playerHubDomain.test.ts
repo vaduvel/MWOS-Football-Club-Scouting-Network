@@ -8,6 +8,7 @@ import {
   buildRadarChartPoints,
   buildRadarChartPolygon,
   buildRosterOnlyPlayerHubEntry,
+  buildTeamRosterAnalytics,
   buildTrendChartPath,
   buildTrendChartStops,
 } from './playerHubDomain';
@@ -115,6 +116,86 @@ describe('buildClubRosterSnapshot', () => {
         { label: 'CM', count: 2 },
         { label: 'CB', count: 1 },
       ],
+    });
+  });
+});
+
+describe('buildTeamRosterAnalytics', () => {
+  it('builds mobile-ready team roster analytics', () => {
+    expect(
+      buildTeamRosterAnalytics([
+        {
+          primaryPosition: 'CM',
+          heightCm: 178,
+          weightKg: 72,
+          bmi: 22.7,
+          hasCompleteAnthropometrics: true,
+          dominantFoot: 'right',
+        },
+        {
+          primaryPosition: 'CM',
+          heightCm: 182,
+          weightKg: 76,
+          bmi: 22.9,
+          hasCompleteAnthropometrics: true,
+          dominantFoot: 'left',
+        },
+        {
+          primaryPosition: 'CB',
+          heightCm: null,
+          weightKg: null,
+          bmi: null,
+          hasCompleteAnthropometrics: false,
+          dominantFoot: 'both',
+        },
+        {
+          primaryPosition: 'LW',
+          heightCm: 170,
+          weightKg: null,
+          bmi: null,
+          hasCompleteAnthropometrics: false,
+          dominantFoot: 'unknown',
+        },
+      ]),
+    ).toEqual({
+      totalPlayers: 4,
+      completePlayers: 2,
+      missingPlayers: 2,
+      completeRate: 50,
+      dataHealthLabel: '2 players need data',
+      physicalRows: [
+        { label: 'Average height', valueLabel: '176.7 cm', detail: '3 players measured' },
+        { label: 'Average weight', valueLabel: '74 kg', detail: '2 players measured' },
+        { label: 'Average BMI', valueLabel: '22.8', detail: '2 players measured' },
+      ],
+      positionRows: [
+        { label: 'CM', count: 2, percent: 50, barPercent: 50 },
+        { label: 'CB', count: 1, percent: 25, barPercent: 25 },
+        { label: 'LW', count: 1, percent: 25, barPercent: 25 },
+      ],
+      footRows: [
+        { label: 'Right foot', count: 1, percent: 25, barPercent: 25 },
+        { label: 'Left foot', count: 1, percent: 25, barPercent: 25 },
+        { label: 'Both feet', count: 1, percent: 25, barPercent: 25 },
+        { label: 'Unknown foot', count: 1, percent: 25, barPercent: 25 },
+      ],
+    });
+  });
+
+  it('keeps empty roster analytics renderable', () => {
+    expect(buildTeamRosterAnalytics([])).toEqual({
+      totalPlayers: 0,
+      completePlayers: 0,
+      missingPlayers: 0,
+      completeRate: 0,
+      dataHealthLabel: 'No roster data yet',
+      physicalRows: [
+        { label: 'Average height', valueLabel: '-- cm', detail: 'No players measured' },
+        { label: 'Average weight', valueLabel: '-- kg', detail: 'No players measured' },
+        { label: 'Average BMI', valueLabel: '--', detail: 'No players measured' },
+      ],
+      positionRows: [],
+      footRows: [],
     });
   });
 });

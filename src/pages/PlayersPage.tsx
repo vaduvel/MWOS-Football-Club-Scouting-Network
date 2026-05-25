@@ -1,16 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Activity,
   ArrowRight,
   BarChart3,
   ChevronDown,
   ChevronUp,
   FileDown,
+  Footprints,
   GitCompareArrows,
   Minus,
   Plus,
+  Ruler,
   Search,
   SlidersHorizontal,
+  Scale,
+  ShieldCheck,
   Star,
   TrendingDown,
   TrendingUp,
@@ -34,6 +39,10 @@ import {
   type PlayerHubOverview,
   userHasAnyRole,
 } from '../lib/data';
+import {
+  buildTeamRosterAnalytics,
+  type TeamRosterAnalytics,
+} from '../lib/playerHubDomain';
 import { useAuthStore } from '../store/auth';
 
 const COMPARISON_FIELDS: Array<{ key: keyof PlayerHubEntry['metrics']; label: string }> = [
@@ -118,6 +127,182 @@ function ComparisonMetricRow({
         </div>
       </div>
     </div>
+  );
+}
+
+function TeamAnalyticsPanel({
+  analytics,
+  loading,
+  teamName,
+}: {
+  analytics: TeamRosterAnalytics;
+  loading: boolean;
+  teamName: string;
+}) {
+  const statCards = [
+    {
+      label: 'Squad size',
+      value: analytics.totalPlayers.toString(),
+      detail: teamName || 'Selected team',
+      icon: Users,
+      className: 'border-[var(--color-primary)]/16 bg-[rgba(49,39,131,0.05)]',
+    },
+    {
+      label: 'Data complete',
+      value: `${analytics.completeRate}%`,
+      detail: `${analytics.completePlayers} ready profiles`,
+      icon: ShieldCheck,
+      className: 'border-[var(--color-success)]/24 bg-[rgba(30,132,73,0.06)]',
+    },
+    {
+      label: 'Needs data',
+      value: analytics.missingPlayers.toString(),
+      detail: analytics.dataHealthLabel,
+      icon: Activity,
+      className: 'border-[var(--color-accent)]/18 bg-[rgba(190,23,23,0.05)]',
+    },
+  ];
+  const physicalIcons = [Ruler, Scale, Activity];
+
+  return (
+    <section className="rounded-[28px] border border-[var(--color-primary)]/16 bg-[linear-gradient(180deg,rgba(49,39,131,0.055),rgba(255,255,255,0.96))] p-4 shadow-[0_18px_45px_rgba(49,39,131,0.07)] md:p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-white shadow-[0_12px_26px_rgba(49,39,131,0.2)]">
+          <BarChart3 size={20} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--color-primary)]">Team analytics</p>
+          <h2 className="mt-1 text-2xl font-black leading-tight text-[var(--color-dark)]">Roster health at a glance</h2>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+            Position mix, data readiness and physical averages for {teamName || 'the selected team'}.
+          </p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {[0, 1, 2].map((item) => (
+            <div
+              key={item}
+              className="h-28 animate-pulse rounded-[22px] border border-[var(--color-mid)]/10 bg-white/70"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            {statCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.label}
+                  className={`rounded-[22px] border p-4 ${card.className}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">
+                        {card.label}
+                      </p>
+                      <p className="mt-2 text-3xl font-black leading-none text-[var(--color-dark)]">
+                        {card.value}
+                      </p>
+                    </div>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--color-primary)] shadow-[0_10px_22px_rgba(49,39,131,0.08)]">
+                      <Icon size={18} />
+                    </span>
+                  </div>
+                  <p className="mt-3 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                    {card.detail}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="rounded-[24px] border border-[var(--color-mid)]/12 bg-white/82 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Position mix</p>
+                  <h3 className="mt-1 text-lg font-black text-[var(--color-dark)]">Shape of the squad</h3>
+                </div>
+                <Footprints className="text-[var(--color-primary)]" size={20} />
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {analytics.positionRows.length > 0 ? (
+                  analytics.positionRows.map((row) => (
+                    <div key={row.label} className="space-y-2">
+                      <div className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">
+                        <span className="min-w-0 truncate">{row.label}</span>
+                        <span className="shrink-0 text-[var(--color-dark)]">
+                          {row.count} · {row.percent}%
+                        </span>
+                      </div>
+                      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--color-primary)]/10">
+                        <div
+                          className="h-full rounded-full bg-[linear-gradient(90deg,var(--color-primary),var(--color-primary-deep))]"
+                          style={{ width: `${row.barPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="rounded-2xl border border-dashed border-[var(--color-mid)]/18 bg-[var(--color-light)]/65 p-4 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                    Add roster players to see the team position distribution.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-[24px] border border-[var(--color-mid)]/12 bg-white/82 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Physical baseline</p>
+                <div className="mt-3 grid gap-2">
+                  {analytics.physicalRows.map((row, index) => {
+                    const Icon = physicalIcons[index] || Activity;
+                    return (
+                      <div
+                        key={row.label}
+                        className="flex items-center gap-3 rounded-2xl border border-[var(--color-mid)]/10 bg-[var(--color-light)]/48 p-3"
+                      >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--color-primary)] shadow-[0_8px_18px_rgba(49,39,131,0.06)]">
+                          <Icon size={17} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-black text-[var(--color-dark)]">{row.valueLabel}</p>
+                          <p className="text-xs font-semibold text-[var(--color-mid)]">{row.label} · {row.detail}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-[var(--color-mid)]/12 bg-white/82 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Foot balance</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {analytics.footRows.length > 0 ? (
+                    analytics.footRows.map((row) => (
+                      <span
+                        key={row.label}
+                        className="rounded-2xl border border-[var(--color-primary)]/12 bg-[var(--color-primary)]/6 px-3 py-2 text-xs font-black text-[var(--color-primary)]"
+                      >
+                        {row.label}: {row.count}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="rounded-2xl border border-dashed border-[var(--color-mid)]/18 bg-[var(--color-light)]/65 px-3 py-2 text-xs font-black text-[var(--color-mid)]">
+                      No foot data yet
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -236,6 +421,16 @@ export default function PlayersPage() {
   const selectedPlayer = filteredEntries.find((entry) => entry.playerKey === selectedPlayerKey) || filteredEntries[0] || null;
   const primaryExportReportId =
     shortlistedEntries[0]?.latestReportId || recentReports[0]?.id || allEntries[0]?.latestReportId || '';
+  const teamRosterAnalytics = buildTeamRosterAnalytics(
+    (clubRoster?.players || []).map((player) => ({
+      primaryPosition: player.primaryPosition,
+      heightCm: player.heightCm,
+      weightKg: player.weightKg,
+      bmi: player.bmi,
+      hasCompleteAnthropometrics: player.hasCompleteAnthropometrics,
+      dominantFoot: player.dominantFoot,
+    })),
+  );
 
   useEffect(() => {
     if (!filteredEntries.length) {
@@ -703,6 +898,12 @@ export default function PlayersPage() {
               {rosterError}
             </div>
           )}
+
+          <TeamAnalyticsPanel
+            analytics={teamRosterAnalytics}
+            loading={rosterLoading}
+            teamName={clubRoster?.selectedTeamName || 'Club roster'}
+          />
 
           <ClubRosterSection
             overview={clubRoster}

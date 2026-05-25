@@ -45,6 +45,19 @@ type RosterSnapshotPlayer = {
   dominantFoot: 'right' | 'left' | 'both' | 'unknown';
 };
 
+export type TeamRosterAnalyticsRow = {
+  label: string;
+  count: number;
+  percent: number;
+  barPercent: number;
+};
+
+export type TeamRosterPhysicalRow = {
+  label: string;
+  valueLabel: string;
+  detail: string;
+};
+
 export type PlayerHubMetricKey =
   | 'pace'
   | 'strength'
@@ -111,6 +124,34 @@ function clampPercent(value: number) {
 
 function roundPercent(value: number) {
   return Number(value.toFixed(1));
+}
+
+function formatCompactNumber(value: number | null, digits = 1) {
+  if (value === null || !Number.isFinite(value)) return '--';
+  const fixedValue = value.toFixed(digits);
+  return fixedValue.endsWith('.0') ? fixedValue.slice(0, -2) : fixedValue;
+}
+
+function formatMeasuredDetail(count: number) {
+  if (count === 0) return 'No players measured';
+  if (count === 1) return '1 player measured';
+  return `${count} players measured`;
+}
+
+function buildDistributionRows(entries: Array<[string, number]>, total: number) {
+  if (total === 0) return [];
+
+  return entries
+    .filter(([, count]) => count > 0)
+    .map(([label, count]) => {
+      const percent = Math.round((count / total) * 100);
+      return {
+        label,
+        count,
+        percent,
+        barPercent: Math.max(8, percent),
+      };
+    });
 }
 
 export function buildRadarChartPoints(
@@ -325,6 +366,63 @@ export function buildClubRosterSnapshot(players: RosterSnapshotPlayer[]) {
       .slice(0, 6),
   };
 }
+
+export function buildTeamRosterAnalytics(players: RosterSnapshotPlayer[]) {
+  const snapshot = buildClubRosterSnapshot(players);
+  const totalPlayers = players.length;
+  const completePlayers = players.filter((player) => player.hasCompleteAnthropometrics).length;
+  const missingPlayers = Math.max(0, totalPlayers - completePlayers);
+  const heightCount = players.filter((player) => typeof player.heightCm === 'number').length;
+  const weightCount = players.filter((player) => typeof player.weightKg === 'number').length;
+  const bmiCount = players.filter((player) => typeof player.bmi === 'number').length;
+
+  const dataHealthLabel =
+    totalPlayers === 0
+      ? 'No roster data yet'
+      : missingPlayers === 0
+        ? 'All roster data complete'
+        : `${missingPlayers} ${missingPlayers === 1 ? 'player needs' : 'players need'} data`;
+
+  return {
+    totalPlayers,
+    completePlayers,
+    missingPlayers,
+    completeRate: snapshot.completeRate,
+    dataHealthLabel,
+    physicalRows: [
+      {
+        label: 'Average height',
+        valueLabel: `${formatCompactNumber(snapshot.averageHeightCm)} cm`,
+        detail: formatMeasuredDetail(heightCount),
+      },
+      {
+        label: 'Average weight',
+        valueLabel: `${formatCompactNumber(snapshot.averageWeightKg)} kg`,
+        detail: formatMeasuredDetail(weightCount),
+      },
+      {
+        label: 'Average BMI',
+        valueLabel: formatCompactNumber(snapshot.averageBmi),
+        detail: formatMeasuredDetail(bmiCount),
+      },
+    ],
+    positionRows: buildDistributionRows(
+      snapshot.positionMix.map((row) => [row.label, row.count]),
+      totalPlayers,
+    ),
+    footRows: buildDistributionRows(
+      [
+        ['Right foot', snapshot.footCounts.right],
+        ['Left foot', snapshot.footCounts.left],
+        ['Both feet', snapshot.footCounts.both],
+        ['Unknown foot', snapshot.footCounts.unknown],
+      ],
+      totalPlayers,
+    ),
+  };
+}
+
+export type TeamRosterAnalytics = ReturnType<typeof buildTeamRosterAnalytics>;
 
 export function buildRosterOnlyPlayerHubEntry(input: RosterOnlyPlayerHubInput) {
   const positionLabel = input.primaryPosition?.trim() || 'Position missing';
