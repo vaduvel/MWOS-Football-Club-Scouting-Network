@@ -4,6 +4,7 @@ import type { AppSettings } from '../store/settings';
 import { createId } from './ids';
 import { assertSupabaseConfigured, supabase } from './supabase';
 import { getServerFunctionsBaseUrl } from './utils';
+import { fetchClubRosterSeedApi } from './clubRosterApi';
 import {
   formatInvitationStatusLabel,
   normalizeInviteEmail,
@@ -1780,7 +1781,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     reviewsResponse,
     watchlistResponse,
     teamsResponse,
-    clubPlayersResponse,
+    clubRosterSeedResponse,
   ] = await Promise.all([
     supabase
       .from('reports')
@@ -1806,11 +1807,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
       .eq('user_id', authUser.id)
       .order('created_at', { ascending: false }),
     supabase.from('teams').select('id, name').eq('is_active', true),
-    supabase
-      .from('club_players')
-      .select('id, team_id, display_name, squad_number, primary_position, is_active')
-      .eq('is_active', true)
-      .order('display_name', { ascending: true }),
+    fetchClubRosterSeedApi(),
   ]);
 
   if (reportsResponse.error) {
@@ -1833,20 +1830,19 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     throw teamsResponse.error;
   }
 
-  if (clubPlayersResponse.error) {
-    throw clubPlayersResponse.error;
-  }
-
   const reports = (reportsResponse.data || []) as ReportRow[];
   const players = (playersResponse.data || []) as PlayerRow[];
   const reviews = (reviewsResponse.data || []) as PlayerReviewRow[];
   const watchlistRows = (watchlistResponse.data || []) as WatchlistPlayerRow[];
   const teamRows = (teamsResponse.data || []) as PlayerHubTeamRow[];
-  const clubPlayerRows = (clubPlayersResponse.data || []) as PlayerHubClubPlayerRow[];
+  const clubPlayerRows = (clubRosterSeedResponse.players || []) as PlayerHubClubPlayerRow[];
   const reportsById = new Map(reports.map((report) => [report.id, report]));
   const reviewsByPlayerId = new Map<string, PlayerReviewRow[]>();
   const watchlistByKey = new Map(watchlistRows.map((row) => [row.player_key, row]));
-  const teamNameById = new Map(teamRows.map((team) => [team.id, team.name]));
+  const teamNameById = new Map([
+    ...teamRows.map((team) => [team.id, team.name] as const),
+    ...((clubRosterSeedResponse.teams || []).map((team) => [team.id, team.name] as const)),
+  ]);
   const playerMap = new Map<
     string,
     {

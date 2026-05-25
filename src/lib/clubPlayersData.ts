@@ -1,6 +1,13 @@
 import type { AppTeam } from './data';
 import { supabase } from './supabase';
 import {
+  fetchClubPlayerProfileApi,
+  fetchClubRosterOverviewApi,
+  fetchClubRosterSeedApi,
+  type ClubRosterApiOverviewPlayerRow,
+  type ClubRosterApiSeedPlayerRow,
+} from './clubRosterApi';
+import {
   buildClubPlayerSavePayload,
   formatClubPlayerFoot,
   hasCompleteAnthropometrics,
@@ -11,25 +18,7 @@ import {
 } from './clubPlayersDomain';
 import type { ClubPlayerMatchCandidate } from './playerIdentityDomain';
 
-interface ClubPlayerRow {
-  id: string;
-  team_id: string;
-  source_label: string;
-  source_row_number: number | null;
-  squad_number: number | null;
-  first_name: string;
-  last_name: string;
-  display_name: string;
-  weight_kg: number | null;
-  height_cm: number | null;
-  bmi: number | null;
-  dominant_foot: ClubPlayerFoot;
-  nationality: string | null;
-  primary_position: string | null;
-  secondary_position: string | null;
-  is_active: boolean;
-  notes: string | null;
-}
+type ClubPlayerRow = ClubRosterApiOverviewPlayerRow;
 
 export interface ClubRosterPlayer {
   id: string;
@@ -127,30 +116,41 @@ function mapPlayer(row: ClubPlayerRow, teamName: string): ClubRosterPlayer {
 }
 
 export async function fetchClubRosterOverview(teamId?: string): Promise<ClubRosterOverview> {
-  const { data: teamsData, error: teamsError } = await supabase
-    .from('teams')
-    .select('id, slug, name, age_group, is_active')
-    .order('sort_order', { ascending: true })
-    .order('name', { ascending: true });
+  try {
+    const response = await fetchClubRosterOverviewApi(teamId);
+    const teams = (response.teams || []).filter((team) => team.is_active) as AppTeam[];
+    const selectedTeamId = response.selectedTeamId || '';
+    const selectedTeamName = response.selectedTeamName || 'Club roster';
+    const players = (response.players || []).map((row) => mapPlayer(row, selectedTeamName));
 
-  if (teamsError) {
-    throw teamsError;
-  }
+    const completeDataCount = players.filter((player) => player.hasCompleteAnthropometrics).length;
+    const leftFootedCount = players.filter((player) => player.dominantFoot === 'left').length;
+    const dualFootedCount = players.filter((player) => player.dominantFoot === 'both').length;
 
-  const teams = ((teamsData || []) as AppTeam[]).filter((team) => team.is_active);
-  const defaultTeam =
-    teams.find((team) => team.slug === 'first-team') ||
-    teams.find((team) => team.slug === 'queens') ||
-    teams[0] ||
-    null;
-  const selectedTeamId = teamId || defaultTeam?.id || '';
-  const selectedTeamName = teams.find((team) => team.id === selectedTeamId)?.name || defaultTeam?.name || 'Club roster';
-
-  if (!selectedTeamId) {
     return {
       teams,
-      selectedTeamId: '',
+      selectedTeamId,
       selectedTeamName,
+      players,
+      stats: {
+        totalPlayers: players.length,
+        completeDataCount,
+        missingDataCount: Math.max(0, players.length - completeDataCount),
+        leftFootedCount,
+        dualFootedCount,
+      },
+      setupNotice: response.setupNotice || '',
+    };
+  } catch (error) {
+    const setupNotice = buildSetupNotice(error);
+    if (!setupNotice) {
+      throw error;
+    }
+
+    return {
+      teams: [],
+      selectedTeamId: teamId || '',
+      selectedTeamName: 'Club roster',
       players: [],
       stats: {
         totalPlayers: 0,
@@ -159,99 +159,16 @@ export async function fetchClubRosterOverview(teamId?: string): Promise<ClubRost
         leftFootedCount: 0,
         dualFootedCount: 0,
       },
-      setupNotice: '',
+      setupNotice,
     };
   }
-
-  const { data, error } = await supabase
-    .from('club_players')
-    .select(
-      'id, team_id, source_label, source_row_number, squad_number, first_name, last_name, display_name, weight_kg, height_cm, bmi, dominant_foot, nationality, primary_position, secondary_position, is_active, notes',
-    )
-    .eq('team_id', selectedTeamId)
-    .order('display_name', { ascending: true });
-
-  if (error) {
-    const setupNotice = buildSetupNotice(error);
-    if (setupNotice) {
-      return {
-        teams,
-        selectedTeamId,
-        selectedTeamName,
-        players: [],
-        stats: {
-          totalPlayers: 0,
-          completeDataCount: 0,
-          missingDataCount: 0,
-          leftFootedCount: 0,
-          dualFootedCount: 0,
-        },
-        setupNotice,
-      };
-    }
-
-    throw error;
-  }
-
-  const players = ((data || []) as ClubPlayerRow[]).map((row) =>
-    mapPlayer(row, selectedTeamName),
-  );
-
-  const completeDataCount = players.filter((player) => player.hasCompleteAnthropometrics).length;
-  const leftFootedCount = players.filter((player) => player.dominantFoot === 'left').length;
-  const dualFootedCount = players.filter((player) => player.dominantFoot === 'both').length;
-
-  return {
-    teams,
-    selectedTeamId,
-    selectedTeamName,
-    players,
-    stats: {
-      totalPlayers: players.length,
-      completeDataCount,
-      missingDataCount: Math.max(0, players.length - completeDataCount),
-      leftFootedCount,
-      dualFootedCount,
-    },
-    setupNotice: '',
-  };
 }
 
 export async function fetchClubPlayerMatchCandidates(): Promise<ClubPlayerRosterMatchCandidate[]> {
-  const [teamsResponse, playersResponse] = await Promise.all([
-    supabase
-      .from('teams')
-      .select('id, name, is_active'),
-    supabase
-      .from('club_players')
-      .select('id, team_id, display_name, squad_number, primary_position, is_active')
-      .eq('is_active', true)
-      .order('display_name', { ascending: true }),
-  ]);
+  const response = await fetchClubRosterSeedApi();
+  const teamsById = new Map((response.teams || []).map((team) => [team.id, team.name]));
 
-  if (teamsResponse.error) {
-    throw teamsResponse.error;
-  }
-
-  if (playersResponse.error) {
-    throw playersResponse.error;
-  }
-
-  const teamsById = new Map(
-    (((teamsResponse.data || []) as Pick<AppTeam, 'id' | 'name' | 'is_active'>[]) || []).map((team) => [
-      team.id,
-      team.name,
-    ]),
-  );
-
-  return ((playersResponse.data || []) as Array<{
-    id: string;
-    team_id: string;
-    display_name: string;
-    squad_number: number | null;
-    primary_position: string | null;
-    is_active: boolean;
-  }>).map((row) => ({
+  return ((response.players || []) as ClubRosterApiSeedPlayerRow[]).map((row) => ({
     id: row.id,
     displayName: row.display_name,
     teamId: row.team_id,
@@ -267,37 +184,13 @@ export async function fetchClubPlayerProfileById(playerId: string): Promise<Club
     return null;
   }
 
-  const [teamsResponse, playerResponse] = await Promise.all([
-    supabase.from('teams').select('id, name'),
-    supabase
-      .from('club_players')
-      .select(
-        'id, team_id, source_label, source_row_number, squad_number, first_name, last_name, display_name, weight_kg, height_cm, bmi, dominant_foot, nationality, primary_position, secondary_position, is_active, notes',
-      )
-      .eq('id', playerId)
-      .maybeSingle(),
-  ]);
+  const response = await fetchClubPlayerProfileApi(playerId);
 
-  if (teamsResponse.error) {
-    throw teamsResponse.error;
-  }
-
-  if (playerResponse.error) {
-    throw playerResponse.error;
-  }
-
-  if (!playerResponse.data) {
+  if (!response.player) {
     return null;
   }
 
-  const teamsById = new Map(
-    (((teamsResponse.data || []) as Array<{ id: string; name: string }>) || []).map((team) => [team.id, team.name]),
-  );
-
-  return mapPlayer(
-    playerResponse.data as ClubPlayerRow,
-    teamsById.get((playerResponse.data as ClubPlayerRow).team_id) || 'Club roster',
-  );
+  return mapPlayer(response.player as ClubPlayerRow, response.teamName || 'Club roster');
 }
 
 export async function saveClubRosterPlayer(input: {

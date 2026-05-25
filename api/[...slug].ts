@@ -5,6 +5,7 @@ import { handler as adminAiStatusHandler } from '../netlify/functions/admin-ai-s
 import { handler as adminEmailStatusHandler } from '../netlify/functions/admin-email-status.js'
 import { handler as adminRuntimeStatusHandler } from '../netlify/functions/admin-app-runtime-status.js'
 import { handler as cancelStaffInviteHandler } from '../netlify/functions/cancel-staff-invite.js'
+import { handler as clubRosterHandler } from '../netlify/functions/club-roster.js'
 import { handler as expireStaffInvitesHandler } from '../netlify/functions/expire-staff-invites.js'
 import { handler as footballSearchHandler } from '../netlify/functions/football-search.js'
 import { handler as footballSquadHandler } from '../netlify/functions/football-squad.js'
@@ -19,6 +20,7 @@ import { serveFetchResponse, serveNetlifyHandler } from './_lib/netlify-adapter.
 const HANDLERS: Record<string, (event: any, context?: any) => Promise<any>> = {
   'accept-staff-invite': acceptStaffInviteHandler,
   'cancel-staff-invite': cancelStaffInviteHandler,
+  'club-roster': clubRosterHandler,
   'expire-staff-invites': expireStaffInvitesHandler,
   'invite-staff': inviteStaffHandler,
   'issue-staff-invite-link': issueStaffInviteLinkHandler,

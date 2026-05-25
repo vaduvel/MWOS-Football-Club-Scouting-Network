@@ -4,6 +4,7 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import { handler as acceptStaffInviteHandler } from './netlify/functions/accept-staff-invite.js';
 import { handler as cancelStaffInviteHandler } from './netlify/functions/cancel-staff-invite.js';
+import { handler as clubRosterHandler } from './netlify/functions/club-roster.js';
 import { handler as expireStaffInvitesHandler } from './netlify/functions/expire-staff-invites.js';
 import { handler as inviteStaffHandler } from './netlify/functions/invite-staff.js';
 import { handler as issueStaffInviteLinkHandler } from './netlify/functions/issue-staff-invite-link.js';
@@ -120,6 +121,7 @@ export default defineConfig(({ mode }) => {
           const functionHandlers: Record<string, (event: any, context?: any) => Promise<any>> = {
             'accept-staff-invite': acceptStaffInviteHandler,
             'cancel-staff-invite': cancelStaffInviteHandler,
+            'club-roster': clubRosterHandler,
             'expire-staff-invites': expireStaffInvitesHandler,
             'invite-staff': inviteStaffHandler,
             'issue-staff-invite-link': issueStaffInviteLinkHandler,
@@ -130,6 +132,16 @@ export default defineConfig(({ mode }) => {
 
           Object.entries(functionHandlers).forEach(([functionName, handler]) => {
             server.middlewares.use(`/.netlify/functions/${functionName}`, async (req, res, next) => {
+              try {
+                await runNetlifyFunction(handler, req, res);
+              } catch (error: any) {
+                jsonResponse(res, 500, {
+                  error: error?.message || `Failed to execute ${functionName} locally.`,
+                });
+              }
+            });
+
+            server.middlewares.use(`/api/${functionName}`, async (req, res, next) => {
               try {
                 await runNetlifyFunction(handler, req, res);
               } catch (error: any) {
