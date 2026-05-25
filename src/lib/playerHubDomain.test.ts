@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildClubRosterSnapshot,
+  buildGlobalScoutingPipeline,
   buildAnthropometricComparisonRows,
   buildNumericComparison,
   buildPlayerDevelopmentSummary,
@@ -348,6 +349,115 @@ describe('buildPlayerDevelopmentSummary', () => {
       externalScoutingProfiles: 1,
       executiveShortlist: 2,
       scoutingCoverageRate: 50,
+    });
+  });
+});
+
+describe('buildGlobalScoutingPipeline', () => {
+  it('moves scouting entries into executive decision stages', () => {
+    const pipeline = buildGlobalScoutingPipeline([
+      {
+        playerKey: 'player:trial',
+        name: 'Tadiwa Trial',
+        clubLabel: 'U19',
+        latestReportId: 'report-trial',
+        latestFixture: 'MWOS vs City',
+        latestCompetition: 'Friendly',
+        averageScore: 4.1,
+        bestPotential: 'Elite',
+        latestVerdict: 'Green light for trial',
+        isWatchlisted: false,
+        reportCount: 2,
+        linkedClubPlayerId: 'club-1',
+      },
+      {
+        playerKey: 'player:shortlist',
+        name: 'Blessing Shortlist',
+        clubLabel: 'First Team',
+        latestReportId: 'report-shortlist',
+        latestFixture: 'MWOS vs Academy',
+        latestCompetition: 'League',
+        averageScore: 3.4,
+        bestPotential: 'Pro',
+        latestVerdict: 'Keep in executive shortlist',
+        isWatchlisted: true,
+        reportCount: 3,
+        linkedClubPlayerId: null,
+      },
+      {
+        playerKey: 'player:review',
+        name: 'Kuda Review',
+        clubLabel: 'U17',
+        latestReportId: 'report-review',
+        latestFixture: 'U17 vs Stars',
+        latestCompetition: 'Tournament',
+        averageScore: 2.8,
+        bestPotential: 'Pro',
+        latestVerdict: 'Monitor and review technically',
+        isWatchlisted: false,
+        reportCount: 1,
+        linkedClubPlayerId: 'club-2',
+      },
+      {
+        playerKey: 'player:fresh',
+        name: 'Leo Fresh',
+        clubLabel: 'External',
+        latestReportId: 'report-fresh',
+        latestFixture: 'Trial day',
+        latestCompetition: 'Observation',
+        averageScore: 2.4,
+        bestPotential: 'Academy',
+        latestVerdict: 'First look only',
+        isWatchlisted: false,
+        reportCount: 1,
+        linkedClubPlayerId: null,
+      },
+      {
+        playerKey: 'club:empty',
+        name: 'Roster Only',
+        clubLabel: 'U15',
+        latestReportId: '',
+        latestFixture: 'CM · #8',
+        latestCompetition: 'Internal roster',
+        averageScore: 0,
+        bestPotential: 'Unreviewed',
+        latestVerdict: 'Awaiting first scouting report',
+        isWatchlisted: false,
+        reportCount: 0,
+        linkedClubPlayerId: 'club-3',
+      },
+    ]);
+
+    expect(pipeline.totalCandidates).toBe(4);
+    expect(pipeline.stageRows.map((stage) => [stage.key, stage.count])).toEqual([
+      ['fresh_intel', 1],
+      ['technical_review', 1],
+      ['executive_shortlist', 1],
+      ['trial_ready', 1],
+    ]);
+    expect(pipeline.priorityCandidates.map((candidate) => candidate.name)).toEqual([
+      'Tadiwa Trial',
+      'Blessing Shortlist',
+      'Kuda Review',
+    ]);
+    expect(pipeline.stageRows.find((stage) => stage.key === 'trial_ready')?.candidates[0]).toMatchObject({
+      name: 'Tadiwa Trial',
+      signalLabel: 'Green light',
+    });
+  });
+
+  it('keeps an empty pipeline renderable', () => {
+    expect(buildGlobalScoutingPipeline([])).toMatchObject({
+      totalCandidates: 0,
+      activeCandidates: 0,
+      executiveSignalLabel: 'No scouting candidates yet',
+      priorityCandidates: [],
+      stageRows: [
+        { key: 'fresh_intel', count: 0, percent: 0, candidates: [] },
+        { key: 'technical_review', count: 0, percent: 0, candidates: [] },
+        { key: 'executive_shortlist', count: 0, percent: 0, candidates: [] },
+        { key: 'trial_ready', count: 0, percent: 0, candidates: [] },
+      ],
     });
   });
 });

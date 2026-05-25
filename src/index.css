@@ -166,6 +166,13 @@ textarea {
   flex: 1 1 0%;
 }
 
+@media (max-width: 430px) {
+  .mwos-surface-intro-icon,
+  .mwos-surface-intro-copy {
+    grid-column: 1;
+  }
+}
+
 .mwos-surface-intro-copy > p:first-child {
   font-size: var(--mwos-mobile-kicker-size);
   font-weight: 900;

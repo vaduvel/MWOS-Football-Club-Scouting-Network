@@ -85,6 +85,46 @@ export interface PlayerDevelopmentSummaryInput {
   latestVerdict: string;
 }
 
+export type GlobalScoutingPipelineStageKey =
+  | 'fresh_intel'
+  | 'technical_review'
+  | 'executive_shortlist'
+  | 'trial_ready';
+
+export type GlobalScoutingPipelineTone = 'neutral' | 'review' | 'shortlist' | 'ready';
+
+export interface GlobalScoutingPipelineInput {
+  playerKey: string;
+  name: string;
+  clubLabel: string;
+  latestReportId: string;
+  latestFixture: string;
+  latestCompetition: string;
+  averageScore: number;
+  bestPotential: string;
+  latestVerdict: string;
+  isWatchlisted: boolean;
+  reportCount: number;
+  linkedClubPlayerId: string | null;
+}
+
+export interface GlobalScoutingPipelineCandidate {
+  playerKey: string;
+  name: string;
+  clubLabel: string;
+  latestReportId: string;
+  latestFixture: string;
+  latestCompetition: string;
+  averageScore: number;
+  bestPotential: string;
+  latestVerdict: string;
+  isWatchlisted: boolean;
+  reportCount: number;
+  linkedClubPlayerId: string | null;
+  stageKey: GlobalScoutingPipelineStageKey;
+  signalLabel: string;
+}
+
 function getPotentialRank(level: string | null | undefined) {
   switch ((level || '').trim().toLowerCase()) {
     case 'elite':
@@ -500,3 +540,190 @@ export function buildPlayerDevelopmentSummary(entries: PlayerDevelopmentSummaryI
 }
 
 export type PlayerDevelopmentSummary = ReturnType<typeof buildPlayerDevelopmentSummary>;
+
+const GLOBAL_SCOUTING_STAGES: Array<{
+  key: GlobalScoutingPipelineStageKey;
+  label: string;
+  description: string;
+  tone: GlobalScoutingPipelineTone;
+}> = [
+  {
+    key: 'fresh_intel',
+    label: 'Fresh intel',
+    description: 'New reports that still need context before leadership action.',
+    tone: 'neutral',
+  },
+  {
+    key: 'technical_review',
+    label: 'Technical review',
+    description: 'Profiles Wilson should validate before they move up.',
+    tone: 'review',
+  },
+  {
+    key: 'executive_shortlist',
+    label: 'Executive shortlist',
+    description: 'High-potential or watchlisted players for Adrian to track.',
+    tone: 'shortlist',
+  },
+  {
+    key: 'trial_ready',
+    label: 'Trial ready',
+    description: 'Green-light candidates ready for trial or direct follow-up.',
+    tone: 'ready',
+  },
+];
+
+const GLOBAL_SCOUTING_STAGE_PRIORITY: Record<GlobalScoutingPipelineStageKey, number> = {
+  fresh_intel: 1,
+  technical_review: 2,
+  executive_shortlist: 3,
+  trial_ready: 4,
+};
+
+function normalizeVerdict(value: string | null | undefined) {
+  return (value || '').trim().toLowerCase();
+}
+
+function hasAnySignal(value: string, signals: string[]) {
+  return signals.some((signal) => value.includes(signal));
+}
+
+function classifyGlobalScoutingCandidate(entry: GlobalScoutingPipelineInput): {
+  stageKey: GlobalScoutingPipelineStageKey;
+  signalLabel: string;
+} | null {
+  if (entry.reportCount === 0 && !entry.isWatchlisted) return null;
+
+  const verdict = normalizeVerdict(entry.latestVerdict);
+  const potentialRank = getPotentialRank(entry.bestPotential);
+  const score = Number.isFinite(entry.averageScore) ? entry.averageScore : 0;
+
+  if (
+    hasAnySignal(verdict, ['green', 'trial', 'recommend', 'ready']) ||
+    (potentialRank >= 4 && score >= 3.8)
+  ) {
+    return {
+      stageKey: 'trial_ready',
+      signalLabel: hasAnySignal(verdict, ['green']) ? 'Green light' : 'Trial-ready',
+    };
+  }
+
+  if (
+    entry.isWatchlisted ||
+    hasAnySignal(verdict, ['shortlist']) ||
+    (potentialRank >= 3 && score >= 3.2)
+  ) {
+    return {
+      stageKey: 'executive_shortlist',
+      signalLabel: entry.isWatchlisted ? 'Watchlisted' : 'High potential',
+    };
+  }
+
+  if (
+    potentialRank >= 3 ||
+    score >= 3 ||
+    hasAnySignal(verdict, ['monitor', 'follow', 'review', 'validate'])
+  ) {
+    return {
+      stageKey: 'technical_review',
+      signalLabel: hasAnySignal(verdict, ['monitor', 'follow', 'review']) ? 'Review needed' : 'Technical signal',
+    };
+  }
+
+  return {
+    stageKey: 'fresh_intel',
+    signalLabel: 'Fresh intel',
+  };
+}
+
+function compareGlobalScoutingCandidates(
+  left: GlobalScoutingPipelineCandidate,
+  right: GlobalScoutingPipelineCandidate,
+) {
+  const stageDelta =
+    GLOBAL_SCOUTING_STAGE_PRIORITY[right.stageKey] - GLOBAL_SCOUTING_STAGE_PRIORITY[left.stageKey];
+  if (stageDelta !== 0) return stageDelta;
+
+  if (right.averageScore !== left.averageScore) return right.averageScore - left.averageScore;
+
+  const potentialDelta = getPotentialRank(right.bestPotential) - getPotentialRank(left.bestPotential);
+  if (potentialDelta !== 0) return potentialDelta;
+
+  if (Number(right.isWatchlisted) !== Number(left.isWatchlisted)) {
+    return Number(right.isWatchlisted) - Number(left.isWatchlisted);
+  }
+
+  if (right.reportCount !== left.reportCount) return right.reportCount - left.reportCount;
+
+  return left.name.localeCompare(right.name);
+}
+
+export function buildGlobalScoutingPipeline(entries: GlobalScoutingPipelineInput[]) {
+  const candidates = entries
+    .map((entry): GlobalScoutingPipelineCandidate | null => {
+      const classification = classifyGlobalScoutingCandidate(entry);
+      if (!classification) return null;
+
+      return {
+        playerKey: entry.playerKey,
+        name: entry.name,
+        clubLabel: entry.clubLabel,
+        latestReportId: entry.latestReportId,
+        latestFixture: entry.latestFixture,
+        latestCompetition: entry.latestCompetition,
+        averageScore: Number.isFinite(entry.averageScore) ? entry.averageScore : 0,
+        bestPotential: entry.bestPotential || 'Unreviewed',
+        latestVerdict: entry.latestVerdict || 'No verdict yet',
+        isWatchlisted: Boolean(entry.isWatchlisted),
+        reportCount: entry.reportCount,
+        linkedClubPlayerId: entry.linkedClubPlayerId,
+        stageKey: classification.stageKey,
+        signalLabel: classification.signalLabel,
+      };
+    })
+    .filter((candidate): candidate is GlobalScoutingPipelineCandidate => Boolean(candidate))
+    .sort(compareGlobalScoutingCandidates);
+
+  const totalCandidates = candidates.length;
+  const byStage = new Map<GlobalScoutingPipelineStageKey, GlobalScoutingPipelineCandidate[]>();
+  candidates.forEach((candidate) => {
+    const stageCandidates = byStage.get(candidate.stageKey) || [];
+    stageCandidates.push(candidate);
+    byStage.set(candidate.stageKey, stageCandidates);
+  });
+
+  const stageRows = GLOBAL_SCOUTING_STAGES.map((stage) => {
+    const stageCandidates = byStage.get(stage.key) || [];
+    const percent = totalCandidates > 0 ? Math.round((stageCandidates.length / totalCandidates) * 100) : 0;
+
+    return {
+      key: stage.key,
+      label: stage.label,
+      description: stage.description,
+      tone: stage.tone,
+      count: stageCandidates.length,
+      percent,
+      barPercent: stageCandidates.length > 0 ? Math.max(8, percent) : 0,
+      candidates: stageCandidates.slice(0, 3),
+    };
+  });
+
+  const activeCandidates = candidates.filter((candidate) => candidate.stageKey !== 'fresh_intel').length;
+  const executiveFollowUp = candidates.filter((candidate) =>
+    ['executive_shortlist', 'trial_ready'].includes(candidate.stageKey),
+  ).length;
+  const executiveSignalLabel =
+    totalCandidates === 0
+      ? 'No scouting candidates yet'
+      : `${executiveFollowUp} executive follow-up ${executiveFollowUp === 1 ? 'candidate' : 'candidates'}`;
+
+  return {
+    totalCandidates,
+    activeCandidates,
+    executiveSignalLabel,
+    stageRows,
+    priorityCandidates: candidates.slice(0, 3),
+  };
+}
+
+export type GlobalScoutingPipelineSummary = ReturnType<typeof buildGlobalScoutingPipeline>;

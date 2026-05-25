@@ -18,7 +18,7 @@ import {
   type OversightAttentionItem,
   type OversightTeamSnapshot,
 } from './oversightDomain';
-import type { PlayerDevelopmentSummary } from './playerHubDomain';
+import type { GlobalScoutingPipelineSummary, PlayerDevelopmentSummary } from './playerHubDomain';
 import { assertSupabaseConfigured, supabase } from './supabase';
 import type { TrainingPlanSummary } from './trainingData';
 import type { TransportContextType, TransportPlanStatus } from './transportDomain';
@@ -190,6 +190,7 @@ export interface OversightWorkspace {
   upcomingTransport: OversightTransportItem[];
   recentReports: OversightRecentReport[];
   playerDevelopment: PlayerDevelopmentSummary | null;
+  globalScoutingPipeline: GlobalScoutingPipelineSummary | null;
   pendingInvitations: StaffInvitationRecord[];
   staffingHealth: OversightStaffingHealth | null;
   recentStaffAccessEvents: StaffAccessEventRecord[];
@@ -509,6 +510,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
     upcomingTransport: upcomingTransport.slice(0, 6),
     recentReports,
     playerDevelopment: playerHubOverview?.developmentSummary || null,
+    globalScoutingPipeline: playerHubOverview?.executivePipeline || null,
     pendingInvitations: pendingInviteRecords.slice(0, 6),
     staffingHealth: canSeeStaffCoverage
       ? {

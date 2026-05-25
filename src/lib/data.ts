@@ -23,8 +23,10 @@ import {
 } from './staffAccessDomain';
 import { buildScoutingPlayerIdentityKey } from './playerIdentityDomain';
 import {
+  buildGlobalScoutingPipeline,
   buildPlayerDevelopmentSummary,
   buildRosterOnlyPlayerHubEntry,
+  type GlobalScoutingPipelineSummary,
   type PlayerDevelopmentSummary,
 } from './playerHubDomain';
 
@@ -471,6 +473,7 @@ export interface PlayerHubOverview {
   pendingReviewCount: number;
   reportsThisWeek: number;
   developmentSummary: PlayerDevelopmentSummary;
+  executivePipeline: GlobalScoutingPipelineSummary;
   entries: PlayerHubEntry[];
   topReported: PlayerHubEntry[];
   watchlist: PlayerHubEntry[];
@@ -2106,6 +2109,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
   });
 
   const developmentSummary = buildPlayerDevelopmentSummary(entries);
+  const executivePipeline = buildGlobalScoutingPipeline(entries);
 
   const topReported = entries
     .filter((entry) => entry.averageScore >= 3.2 || getPotentialRank(entry.bestPotential) >= 3)
@@ -2148,6 +2152,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     pendingReviewCount,
     reportsThisWeek,
     developmentSummary,
+    executivePipeline,
     entries,
     topReported,
     watchlist: entries.filter((entry) => entry.isWatchlisted),

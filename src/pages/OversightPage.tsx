@@ -7,6 +7,7 @@ import {
   FileText,
   Mail,
   Shield,
+  Target,
   Users,
 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -600,6 +601,167 @@ function PlayerDevelopmentCard({ summary }: { summary: NonNullable<OversightWork
   );
 }
 
+function getPipelineToneClasses(tone: NonNullable<OversightWorkspace['globalScoutingPipeline']>['stageRows'][number]['tone']) {
+  switch (tone) {
+    case 'ready':
+      return {
+        card: 'border-[var(--color-primary)]/24 bg-[linear-gradient(180deg,rgba(49,39,131,0.12),rgba(255,255,255,0.92))]',
+        pill: 'mwos-pill-success',
+        bar: 'bg-[var(--color-primary)]',
+      };
+    case 'shortlist':
+      return {
+        card: 'border-[var(--color-primary)]/20 bg-[linear-gradient(180deg,rgba(49,39,131,0.10),rgba(255,255,255,0.94))]',
+        pill: 'mwos-pill-staff',
+        bar: 'bg-[var(--color-primary)]',
+      };
+    case 'review':
+      return {
+        card: 'border-[var(--color-accent)]/24 bg-[linear-gradient(180deg,rgba(190,23,23,0.10),rgba(255,255,255,0.94))]',
+        pill: 'mwos-pill-alert',
+        bar: 'bg-[var(--color-accent)]',
+      };
+    default:
+      return {
+        card: 'border-[var(--color-mid)]/14 bg-white/88',
+        pill: 'mwos-pill-neutral',
+        bar: 'bg-[var(--color-mid)]',
+      };
+  }
+}
+
+function GlobalScoutingPipelineCard({
+  pipeline,
+  canOpenScouting,
+}: {
+  pipeline: NonNullable<OversightWorkspace['globalScoutingPipeline']>;
+  canOpenScouting: boolean;
+}) {
+  const trialReady = pipeline.stageRows.find((stage) => stage.key === 'trial_ready')?.count || 0;
+  const shortlist = pipeline.stageRows.find((stage) => stage.key === 'executive_shortlist')?.count || 0;
+
+  return (
+    <section className="rounded-[28px] border border-[var(--color-primary)]/16 bg-[linear-gradient(180deg,rgba(49,39,131,0.07),rgba(255,255,255,0.96))] p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="mwos-surface-intro">
+          <div className="mwos-surface-intro-icon mwos-icon-tone-report flex size-10 items-center justify-center rounded-2xl md:size-12">
+            <Target size={22} />
+          </div>
+          <div className="mwos-surface-intro-copy">
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-primary)]">
+              Global scouting pipeline
+            </p>
+            <h2 className="mt-1 text-lg font-black text-[var(--color-dark)] md:text-xl">
+              From local reports to executive action
+            </h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+              Wilson can validate technical signals first. Adrian gets the candidates already moving toward shortlist or trial follow-up.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[20rem]">
+          {[
+            { label: 'Candidates', value: pipeline.totalCandidates },
+            { label: 'Shortlist', value: shortlist },
+            { label: 'Trial ready', value: trialReady },
+          ].map((item) => (
+            <div key={item.label} className="rounded-2xl border border-[var(--color-primary)]/14 bg-white/84 px-3 py-2">
+              <p className="text-lg font-black text-[var(--color-dark)]">{item.value}</p>
+              <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+                {item.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-[var(--color-primary)]/12 bg-white/72 p-3">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">
+          {pipeline.executiveSignalLabel}
+        </p>
+        <div className="mt-3 grid gap-2 md:grid-cols-3">
+          {pipeline.priorityCandidates.length > 0 ? (
+            pipeline.priorityCandidates.map((candidate) => (
+              <div key={candidate.playerKey} className="rounded-2xl border border-[var(--color-mid)]/12 bg-white/86 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-[var(--color-dark)]">{candidate.name}</p>
+                    <p className="mt-1 text-xs font-bold text-[var(--color-mid)]">{candidate.clubLabel}</p>
+                  </div>
+                  <span className="mwos-pill mwos-pill-staff shrink-0">{candidate.signalLabel}</span>
+                </div>
+                <p className="mt-2 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                  {candidate.bestPotential} · {candidate.averageScore.toFixed(1)} avg · {candidate.reportCount} reports
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm font-semibold text-[var(--color-mid)]">
+              No high-priority candidate yet. New reports will appear here automatically.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-4">
+        {pipeline.stageRows.map((stage) => {
+          const tone = getPipelineToneClasses(stage.tone);
+
+          return (
+            <article key={stage.key} className={`rounded-3xl border p-3 ${tone.card}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">{stage.label}</p>
+                  <p className="mt-1 text-2xl font-black text-[var(--color-dark)]">{stage.count}</p>
+                </div>
+                <span className={`mwos-pill ${tone.pill}`}>{stage.percent}%</span>
+              </div>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--color-mid)]/12">
+                <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${stage.barPercent}%` }} />
+              </div>
+              <p className="mt-3 text-xs font-semibold leading-5 text-[var(--color-mid)]">{stage.description}</p>
+
+              <div className="mt-3 space-y-2">
+                {stage.candidates.length > 0 ? (
+                  stage.candidates.map((candidate) => (
+                    <div key={candidate.playerKey} className="rounded-2xl border border-white/70 bg-white/78 p-3">
+                      <p className="truncate text-sm font-black text-[var(--color-dark)]">{candidate.name}</p>
+                      <p className="mt-1 text-xs font-bold text-[var(--color-mid)]">
+                        {candidate.clubLabel} · {candidate.bestPotential} · {candidate.averageScore.toFixed(1)}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Link
+                          to={`/players/${encodeURIComponent(candidate.playerKey)}`}
+                          className="mwos-btn mwos-btn-tertiary min-h-[2rem] px-3 py-1.5 text-xs"
+                        >
+                          Profile
+                        </Link>
+                        {canOpenScouting && candidate.latestReportId ? (
+                          <Link
+                            to={`/scouting/report/${candidate.latestReportId}`}
+                            className="mwos-btn mwos-btn-secondary min-h-[2rem] px-3 py-1.5 text-xs"
+                          >
+                            Report
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="rounded-2xl border border-dashed border-[var(--color-mid)]/16 bg-white/58 p-3 text-xs font-semibold leading-5 text-[var(--color-mid)]">
+                    No players in this stage yet.
+                  </p>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function OversightModeNote({ mode }: { mode: ReturnType<typeof getLeadershipWorkspaceMode> }) {
   if (mode === 'executive_director') {
     return (
@@ -812,6 +974,13 @@ export default function OversightPage() {
 
               {workspace.playerDevelopment ? (
                 <PlayerDevelopmentCard summary={workspace.playerDevelopment} />
+              ) : null}
+
+              {workspace.globalScoutingPipeline ? (
+                <GlobalScoutingPipelineCard
+                  pipeline={workspace.globalScoutingPipeline}
+                  canOpenScouting={canOpenScouting}
+                />
               ) : null}
 
               <section className="grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
