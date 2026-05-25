@@ -15,7 +15,7 @@ import {
   type PlayerHubOverview,
 } from '../lib/data';
 import { buildMatchDayLinkPath, fetchPlayerMatchDayStatus, type PlayerMatchDayStatus } from '../lib/matchDayData';
-import { buildClubRosterSnapshot, buildNumericComparison } from '../lib/playerHubDomain';
+import { buildAnthropometricComparisonRows, buildClubRosterSnapshot, type AnthropometricComparisonRow } from '../lib/playerHubDomain';
 import { useAuthStore } from '../store/auth';
 
 function formatMetric(value: number | null, suffix: string, digits = 0) {
@@ -192,9 +192,32 @@ export default function PlayerProfilePage() {
     return teamRosterOverview.players.filter((player) => player.primaryPosition === clubProfile.primaryPosition).length;
   }, [clubProfile, teamRosterOverview]);
 
-  const heightComparison = buildNumericComparison(clubProfile?.heightCm ?? null, teamSnapshot.averageHeightCm, 0);
-  const weightComparison = buildNumericComparison(clubProfile?.weightKg ?? null, teamSnapshot.averageWeightKg, 0);
-  const bmiComparison = buildNumericComparison(clubProfile?.bmi ?? null, teamSnapshot.averageBmi, 1);
+  const anthropometricRows = buildAnthropometricComparisonRows([
+    {
+      label: 'Height',
+      value: clubProfile?.heightCm ?? null,
+      baseline: teamSnapshot.averageHeightCm,
+      unit: 'cm',
+      digits: 0,
+      tolerance: 12,
+    },
+    {
+      label: 'Weight',
+      value: clubProfile?.weightKg ?? null,
+      baseline: teamSnapshot.averageWeightKg,
+      unit: 'kg',
+      digits: 0,
+      tolerance: 10,
+    },
+    {
+      label: 'BMI',
+      value: clubProfile?.bmi ?? null,
+      baseline: teamSnapshot.averageBmi,
+      unit: '',
+      digits: 1,
+      tolerance: 3,
+    },
+  ]);
 
   const handleWatchlistToggle = async (entry: PlayerHubEntry) => {
     if (!canManageWatchlist) {
@@ -394,26 +417,7 @@ export default function PlayerProfilePage() {
                             </div>
                           </div>
 
-                          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                            <ComparisonMetric
-                              label="Height"
-                              value={formatMetric(clubProfile.heightCm, 'cm')}
-                              context={heightComparison.label}
-                              tone={heightComparison.direction}
-                            />
-                            <ComparisonMetric
-                              label="Weight"
-                              value={formatMetric(clubProfile.weightKg, 'kg')}
-                              context={weightComparison.label}
-                              tone={weightComparison.direction}
-                            />
-                            <ComparisonMetric
-                              label="BMI"
-                              value={clubProfile.bmi === null ? '--' : clubProfile.bmi.toFixed(1)}
-                              context={bmiComparison.label}
-                              tone={bmiComparison.direction}
-                            />
-                          </div>
+                          <AnthropometricComparisonChart rows={anthropometricRows} />
 
                           <div className="mt-4 flex flex-wrap gap-2">
                             <span className="rounded-full bg-white/82 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
@@ -630,31 +634,73 @@ function DecisionCard({ title, body }: { title: string; body: string }) {
   );
 }
 
-function ComparisonMetric({
-  label,
-  value,
-  context,
-  tone,
-}: {
-  label: string;
-  value: string;
-  context: string;
-  tone: 'above' | 'below' | 'level' | 'unavailable';
-}) {
-  const toneClass =
-    tone === 'above'
+function AnthropometricComparisonChart({ rows }: { rows: AnthropometricComparisonRow[] }) {
+  return (
+    <div className="mt-4 space-y-3 rounded-[22px] border border-white/70 bg-white/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.84)]">
+      {rows.map((row) => (
+        <div key={row.label}>
+          <AnthropometricComparisonRowView row={row} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AnthropometricComparisonRowView({ row }: { row: AnthropometricComparisonRow }) {
+  const markerClass =
+    row.tone === 'above'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : tone === 'below'
-        ? 'border-amber-200 bg-amber-50 text-amber-700'
-        : tone === 'level'
+      : row.tone === 'below'
+        ? 'border-[var(--color-accent)]/18 bg-[var(--color-accent-soft)] text-[var(--color-accent-deep)]'
+        : row.tone === 'level'
           ? 'border-[var(--color-primary)]/16 bg-[var(--color-primary)]/6 text-[var(--color-primary)]'
-          : 'border-[var(--color-mid)]/14 bg-white/78 text-[var(--color-mid)]';
+          : 'border-[var(--color-mid)]/14 bg-white text-[var(--color-mid)]';
+
+  const playerPercent = row.playerPercent ?? 50;
+  const baselinePercent = row.baselinePercent ?? 50;
 
   return (
-    <div className={`rounded-2xl border px-3 py-3 ${toneClass}`}>
-      <p className="text-[10px] font-black uppercase tracking-[0.18em]">{label}</p>
-      <p className="mt-1 text-sm font-black">{value}</p>
-      <p className="mt-2 text-xs font-semibold leading-5">{context}</p>
+    <div className="rounded-[20px] border border-[var(--color-mid)]/10 bg-white/76 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+            {row.label}
+          </p>
+          <p className="mt-1 text-lg font-black text-[var(--color-dark)]">{row.valueLabel}</p>
+        </div>
+        <div className={`rounded-2xl border px-3 py-2 text-right ${markerClass}`}>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em]">Team</p>
+          <p className="mt-0.5 text-xs font-black">{row.baselineLabel}</p>
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <div className="relative h-8 rounded-full bg-[linear-gradient(90deg,rgba(190,23,23,0.10),rgba(49,39,131,0.08),rgba(16,185,129,0.12))]">
+          <span
+            className="absolute top-1/2 h-7 w-px -translate-y-1/2 rounded-full bg-[var(--color-mid)]/40"
+            style={{ left: `${baselinePercent}%` }}
+          />
+          {row.playerPercent !== null ? (
+            <span
+              className="absolute top-1/2 flex h-8 min-w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[var(--color-primary)] px-2 text-[10px] font-black text-white shadow-[0_8px_20px_rgba(49,39,131,0.22)]"
+              style={{ left: `${playerPercent}%` }}
+            >
+              {row.difference === null ? '--' : row.difference > 0 ? `+${row.difference}` : row.difference}
+            </span>
+          ) : (
+            <span className="absolute inset-y-1 left-3 flex items-center rounded-full bg-white/74 px-3 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+              Needs data
+            </span>
+          )}
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">
+          <span>Below avg</span>
+          <span>Team avg</span>
+          <span>Above avg</span>
+        </div>
+      </div>
+
+      <p className="mt-3 text-xs font-semibold leading-5 text-[var(--color-mid)]">{row.context}</p>
     </div>
   );
 }

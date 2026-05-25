@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildClubRosterSnapshot,
+  buildAnthropometricComparisonRows,
   buildNumericComparison,
   buildPlayerDevelopmentSummary,
   buildRadarChartPoints,
@@ -139,6 +140,68 @@ describe('buildNumericComparison', () => {
       direction: 'level',
       label: 'Right on team average',
     });
+  });
+});
+
+describe('buildAnthropometricComparisonRows', () => {
+  it('builds centered comparison markers against team averages', () => {
+    expect(
+      buildAnthropometricComparisonRows([
+        { label: 'Height', value: 184, baseline: 180, unit: 'cm', digits: 0, tolerance: 12 },
+        { label: 'Weight', value: 72, baseline: 74, unit: 'kg', digits: 0, tolerance: 10 },
+        { label: 'BMI', value: 22.84, baseline: 22.8, unit: '', digits: 1, tolerance: 3 },
+      ]),
+    ).toEqual([
+      {
+        label: 'Height',
+        valueLabel: '184 cm',
+        baselineLabel: '180 cm avg',
+        context: '4 above team average',
+        tone: 'above',
+        difference: 4,
+        playerPercent: 64,
+        baselinePercent: 50,
+      },
+      {
+        label: 'Weight',
+        valueLabel: '72 kg',
+        baselineLabel: '74 kg avg',
+        context: '2 below team average',
+        tone: 'below',
+        difference: -2,
+        playerPercent: 41.6,
+        baselinePercent: 50,
+      },
+      {
+        label: 'BMI',
+        valueLabel: '22.8',
+        baselineLabel: '22.8 avg',
+        context: 'Right on team average',
+        tone: 'level',
+        difference: 0,
+        playerPercent: 50,
+        baselinePercent: 50,
+      },
+    ]);
+  });
+
+  it('keeps unavailable metrics renderable without fake chart positions', () => {
+    expect(
+      buildAnthropometricComparisonRows([
+        { label: 'Height', value: null, baseline: 180, unit: 'cm', digits: 0, tolerance: 12 },
+      ]),
+    ).toEqual([
+      {
+        label: 'Height',
+        valueLabel: '-- cm',
+        baselineLabel: '180 cm avg',
+        context: 'No comparison yet',
+        tone: 'unavailable',
+        difference: null,
+        playerPercent: null,
+        baselinePercent: null,
+      },
+    ]);
   });
 });
 

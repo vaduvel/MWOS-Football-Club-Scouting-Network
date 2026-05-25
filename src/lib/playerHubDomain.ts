@@ -8,6 +8,26 @@ type RadarMetricInput = {
   maxValue?: number;
 };
 
+type AnthropometricComparisonInput = {
+  label: string;
+  value: number | null;
+  baseline: number | null;
+  unit: string;
+  digits?: number;
+  tolerance: number;
+};
+
+export type AnthropometricComparisonRow = {
+  label: string;
+  valueLabel: string;
+  baselineLabel: string;
+  context: string;
+  tone: 'above' | 'below' | 'level' | 'unavailable';
+  difference: number | null;
+  playerPercent: number | null;
+  baselinePercent: number | null;
+};
+
 export type RadarChartPoint = {
   label: string;
   value: number;
@@ -76,6 +96,23 @@ function clampMetricValue(value: number, maxValue: number) {
   return Math.min(Math.max(value, 0), maxValue);
 }
 
+function formatComparisonValue(value: number | null, unit: string, digits: number) {
+  const suffix = unit ? ` ${unit}` : '';
+  if (value === null || !Number.isFinite(value)) {
+    return `--${suffix}`;
+  }
+
+  return `${value.toFixed(digits)}${suffix}`;
+}
+
+function clampPercent(value: number) {
+  return Math.min(Math.max(value, 8), 92);
+}
+
+function roundPercent(value: number) {
+  return Number(value.toFixed(1));
+}
+
 export function buildRadarChartPoints(
   metrics: RadarMetricInput[],
   size = 180,
@@ -135,6 +172,45 @@ export function buildNumericComparison(
     direction: difference > 0 ? ('above' as const) : ('below' as const),
     label: `${Math.abs(difference).toFixed(digits)} ${difference > 0 ? 'above' : 'below'} team average`,
   };
+}
+
+export function buildAnthropometricComparisonRows(
+  metrics: AnthropometricComparisonInput[],
+): AnthropometricComparisonRow[] {
+  return metrics.map((metric) => {
+    const digits = metric.digits ?? 1;
+    const comparison = buildNumericComparison(metric.value, metric.baseline, digits);
+    const baselineLabel = metric.baseline === null || !Number.isFinite(metric.baseline)
+      ? `--${metric.unit ? ` ${metric.unit}` : ''} avg`
+      : `${formatComparisonValue(metric.baseline, metric.unit, digits)} avg`;
+
+    if (comparison.difference === null) {
+      return {
+        label: metric.label,
+        valueLabel: formatComparisonValue(metric.value, metric.unit, digits),
+        baselineLabel,
+        context: comparison.label,
+        tone: comparison.direction,
+        difference: null,
+        playerPercent: null,
+        baselinePercent: null,
+      };
+    }
+
+    const safeTolerance = Math.max(0.1, metric.tolerance);
+    const playerPercent = roundPercent(clampPercent(50 + (comparison.difference / safeTolerance) * 42));
+
+    return {
+      label: metric.label,
+      valueLabel: formatComparisonValue(metric.value, metric.unit, digits),
+      baselineLabel,
+      context: comparison.label,
+      tone: comparison.direction,
+      difference: comparison.difference,
+      playerPercent,
+      baselinePercent: 50,
+    };
+  });
 }
 
 export function buildTrendChartPath(points: TrendPointInput[], width = 240, height = 92) {
