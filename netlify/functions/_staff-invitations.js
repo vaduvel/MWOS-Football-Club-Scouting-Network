@@ -277,6 +277,51 @@ export async function fetchInvitationByToken(serviceSupabase, invitationToken) {
   return data || null;
 }
 
+export async function fetchPendingInvitationsByEmail(serviceSupabase, email) {
+  const { data, error } = await serviceSupabase
+    .from('staff_invitations')
+    .select(`
+      id,
+      email,
+      email_normalized,
+      full_name,
+      status,
+      invitation_token,
+      inviter_user_id,
+      resolved_user_id,
+      message_type,
+      last_sent_at,
+      accepted_at,
+      cancelled_at,
+      expires_at,
+      created_at,
+      updated_at,
+      staff_invitation_roles (
+        role_id,
+        roles (
+          id,
+          slug,
+          label
+        )
+      ),
+      staff_invitation_teams (
+        team_id,
+        teams (
+          id,
+          slug,
+          name,
+          is_active
+        )
+      )
+    `)
+    .eq('email_normalized', normalizeEmail(email))
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
 export function flattenInvitationRoles(invitation) {
   return unique(
     (invitation?.staff_invitation_roles || []).flatMap((row) => {
@@ -293,6 +338,89 @@ export function flattenInvitationTeams(invitation) {
       return joined;
     }),
   );
+}
+
+function uniqueAccessRecords(records) {
+  return Array.from(
+    records.reduce((items, record) => {
+      if (record?.id) {
+        items.set(record.id, record);
+      }
+      return items;
+    }, new Map()).values(),
+  );
+}
+
+export function mergeInvitationAccess(invitations) {
+  return {
+    roles: uniqueAccessRecords(invitations.flatMap((invitation) => flattenInvitationRoles(invitation))),
+    teams: uniqueAccessRecords(invitations.flatMap((invitation) => flattenInvitationTeams(invitation))),
+  };
+}
+
+function isMissingCompletionRpc(error) {
+  const message = String(error?.message || '');
+  return (
+    error?.code === 'PGRST202' ||
+    error?.code === '42883' ||
+    (message.includes('complete_staff_invitations') && message.includes('schema cache'))
+  );
+}
+
+export async function completeUserInvitations(serviceSupabase, {
+  userId,
+  email,
+  invitationToken = '',
+  invitations,
+}) {
+  const { roles, teams } = mergeInvitationAccess(invitations);
+  const { data: rpcData, error: rpcError } = await serviceSupabase.rpc('complete_staff_invitations', {
+    target_user_id: userId,
+    target_email: normalizeEmail(email),
+    target_invitation_token: invitationToken || null,
+  });
+
+  if (!rpcError) {
+    const result = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+    return {
+      completedCount: Number(result?.completed_count || 0),
+      roles,
+      teams,
+      usedAtomicRpc: true,
+    };
+  }
+
+  if (!isMissingCompletionRpc(rpcError)) {
+    throw rpcError;
+  }
+
+  await applyUserAccess(serviceSupabase, userId, roles, teams);
+
+  const invitationIds = invitations.map((invitation) => invitation.id);
+  let completedCount = 0;
+  if (invitationIds.length > 0) {
+    const nowIso = new Date().toISOString();
+    const { data: updatedInvitations, error: updateError } = await serviceSupabase
+      .from('staff_invitations')
+      .update({
+        status: 'accepted',
+        resolved_user_id: userId,
+        accepted_at: nowIso,
+      })
+      .in('id', invitationIds)
+      .eq('status', 'pending')
+      .select('id');
+
+    if (updateError) throw updateError;
+    completedCount = updatedInvitations?.length || 0;
+  }
+
+  return {
+    completedCount,
+    roles,
+    teams,
+    usedAtomicRpc: false,
+  };
 }
 
 export function buildSupabaseInviteActionLink({ hashedToken, redirectTo }) {
