@@ -94,11 +94,32 @@ export default function AcceptInvitation() {
       }
 
       try {
-        const summary = await fetchInvitationSummary(invitationToken);
+        let summary = await fetchInvitationSummary(invitationToken);
         if (!mounted) return;
+
+        if (summary.status === 'pending') {
+          await acceptStaffInvitation(invitationToken);
+          const authState = await getSessionWithProfile();
+          if (!mounted) return;
+          setAuth(authState.user, authState.session);
+          summary = {
+            ...summary,
+            status: 'accepted',
+            statusLabel: 'Accepted',
+          };
+        }
+
         setInvitation(summary);
-        setReady(summary.status === 'pending');
-        setNotice(getInvitationStatusNotice(summary.status));
+        setReady(summary.status === 'accepted');
+        setNotice(
+          summary.status === 'accepted'
+            ? {
+                tone: 'success',
+                title: 'Access activated',
+                message: 'Your roles and teams are active. Set a password below so you can sign in again from any device.',
+              }
+            : getInvitationStatusNotice(summary.status),
+        );
       } catch (err: any) {
         if (!mounted) return;
         setError(mapAcceptInvitationError(err.message || 'Failed to load the invitation.'));
@@ -132,8 +153,8 @@ export default function AcceptInvitation() {
     setSubmitting(true);
 
     try {
-      await updatePassword(password);
       await acceptStaffInvitation(invitationToken);
+      await updatePassword(password);
       const authState = await getSessionWithProfile();
       setAuth(authState.user, authState.session);
       navigate('/', { replace: true });
@@ -249,7 +270,7 @@ export default function AcceptInvitation() {
                       className="mwos-btn mwos-btn-primary w-full disabled:opacity-60"
                     >
                       {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
-                      Activate Account
+                      Save Password &amp; Open Workspace
                     </button>
                   </form>
                 ) : (

@@ -587,6 +587,13 @@ export interface StaffInvitationActionResponse {
   shareLink?: string;
 }
 
+export interface StaffInvitationCompletionResponse {
+  ok: boolean;
+  message: string;
+  completedCount: number;
+  roles: string[];
+}
+
 export interface AcceptInvitationSummary {
   invitationToken: string;
   email: string;
@@ -1121,6 +1128,16 @@ async function upsertProfile(user: User) {
   return toAppUser(data as ProfileRow, access.roles, access.teams);
 }
 
+async function hydrateAuthenticatedUser(user: User) {
+  try {
+    await reconcilePendingStaffInvitations();
+  } catch (error) {
+    console.warn('Could not reconcile pending staff invitations during authentication.', error);
+  }
+
+  return upsertProfile(user);
+}
+
 export async function getSessionWithProfile(): Promise<{ session: Session | null; user: AppUser | null }> {
   assertSupabaseConfigured();
   const {
@@ -1136,7 +1153,7 @@ export async function getSessionWithProfile(): Promise<{ session: Session | null
     return { session: null, user: null };
   }
 
-  const user = await upsertProfile(session.user);
+  const user = await hydrateAuthenticatedUser(session.user);
   return { session, user };
 }
 
@@ -1153,7 +1170,7 @@ export function subscribeToAuthChanges(
       }
 
       try {
-        const user = await upsertProfile(session.user);
+        const user = await hydrateAuthenticatedUser(session.user);
         callback({ session, user });
       } catch (error) {
         console.error('Failed to hydrate profile after auth change.', error);
@@ -1177,7 +1194,7 @@ export async function signIn(email: string, password: string) {
     throw new Error('Sign-in succeeded but no session was returned.');
   }
 
-  const user = await upsertProfile(data.user);
+  const user = await hydrateAuthenticatedUser(data.user);
   return { session: data.session, user };
 }
 
@@ -1215,7 +1232,7 @@ export async function signUp(
     };
   }
 
-  const user = await upsertProfile(data.user);
+  const user = await hydrateAuthenticatedUser(data.user);
   return {
     session: data.session,
     user,
@@ -2649,13 +2666,34 @@ export async function fetchInvitationSummary(invitationToken: string): Promise<A
 }
 
 export async function acceptStaffInvitation(invitationToken: string) {
-  return callFunctionRequest<{ ok: boolean; message: string; roles: string[] }>('accept-staff-invite', {
+  return callFunctionRequest<StaffInvitationCompletionResponse>('accept-staff-invite', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ invitationToken }),
   });
+}
+
+let pendingStaffInvitationReconciliation: Promise<StaffInvitationCompletionResponse> | null = null;
+
+export function reconcilePendingStaffInvitations() {
+  if (!pendingStaffInvitationReconciliation) {
+    pendingStaffInvitationReconciliation = callFunctionRequest<StaffInvitationCompletionResponse>(
+      'accept-staff-invite',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      },
+    ).finally(() => {
+      pendingStaffInvitationReconciliation = null;
+    });
+  }
+
+  return pendingStaffInvitationReconciliation;
 }
 
 export async function saveUserClubAccess(userId: string, roleSlugs: string[], teamIds: string[]) {

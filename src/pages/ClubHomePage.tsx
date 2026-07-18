@@ -8,6 +8,7 @@ import {
   FileText,
   Home,
   Mail,
+  RefreshCw,
   Shield,
   Star,
   type LucideIcon,
@@ -23,6 +24,9 @@ import {
   canAccessScoutingModule,
   canAccessTrainingModule,
   canAccessTransportModule,
+  getDefaultModulePath,
+  getSessionWithProfile,
+  reconcilePendingStaffInvitations,
   type AppUser,
   type StaffAccessEventRecord,
 } from '../lib/data';
@@ -735,10 +739,39 @@ function ModuleGrid({
 }
 
 export default function ClubHomePage() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, setAuth } = useAuthStore();
+  const navigate = useNavigate();
   const [workspace, setWorkspace] = useState<ClubHomeWorkspace | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshingAccess, setRefreshingAccess] = useState(false);
+  const [accessRecoveryMessage, setAccessRecoveryMessage] = useState('');
+
+  const handleRefreshAccess = async () => {
+    setRefreshingAccess(true);
+    setAccessRecoveryMessage('');
+
+    try {
+      const completion = await reconcilePendingStaffInvitations();
+      const authState = await getSessionWithProfile();
+      setAuth(authState.user, authState.session);
+
+      if (authState.user?.roles.length) {
+        navigate(getDefaultModulePath(authState.user), { replace: true });
+        return;
+      }
+
+      setAccessRecoveryMessage(
+        completion.message || 'No active invitation was found. Ask your club admin to resend the invitation.',
+      );
+    } catch (refreshError: any) {
+      setAccessRecoveryMessage(
+        refreshError.message || 'Access could not be refreshed. Ask your club admin to resend the invitation.',
+      );
+    } finally {
+      setRefreshingAccess(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -945,6 +978,32 @@ export default function ClubHomePage() {
 
               {workspace.view === 'pending' ? (
                 <>
+                  <section className="rounded-[28px] border border-[var(--color-primary)]/16 bg-white p-4 shadow-sm md:p-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h2 className="text-balance text-lg font-black text-[var(--color-dark)]">
+                          Already opened your invitation?
+                        </h2>
+                        <p className="mt-2 max-w-2xl text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                          Refresh your access to finish any verified invitation that did not complete on this device.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleRefreshAccess()}
+                        disabled={refreshingAccess}
+                        className="mwos-btn mwos-btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <RefreshCw size={16} className={refreshingAccess ? 'animate-spin' : ''} />
+                        {refreshingAccess ? 'Refreshing...' : 'Refresh Access'}
+                      </button>
+                    </div>
+                    {accessRecoveryMessage ? (
+                      <p className="mt-3 text-pretty text-sm font-semibold text-[var(--color-accent)]" role="status">
+                        {accessRecoveryMessage}
+                      </p>
+                    ) : null}
+                  </section>
                   <NotificationsFeed items={workspace.notifications} unreadCount={workspace.unreadNotificationCount} />
                   <ModuleGrid view={workspace.view} user={user} />
                 </>
