@@ -169,9 +169,9 @@ export function buildScoutingWorkspaceActions(input: {
     });
   } else {
     actions.push({
-      label: 'Training',
-      helper: 'Jump from scouting into team planning.',
-      path: '/training',
+      label: 'Club Home',
+      helper: 'Return to your role-aware club workspace.',
+      path: '/',
       tone: 'soft',
     });
   }

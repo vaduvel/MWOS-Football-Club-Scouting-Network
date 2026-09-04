@@ -63,6 +63,6 @@ describe('scoutingWorkspaceDomain', () => {
 
     expect(leadershipActions.map((action) => action.label)).toEqual(['New Report', 'Player Hub', 'Oversight']);
     expect(reviewActions.map((action) => action.label)).toEqual(['Player Hub', 'Oversight']);
-    expect(scoutActions.map((action) => action.label)).toEqual(['New Report', 'Player Hub', 'Training']);
+    expect(scoutActions.map((action) => action.label)).toEqual(['New Report', 'Player Hub', 'Club Home']);
   });
 });
