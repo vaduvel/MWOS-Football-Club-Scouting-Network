@@ -1061,7 +1061,7 @@ alter table public.staff_invitation_roles enable row level security;
 alter table public.staff_invitation_teams enable row level security;
 alter table public.staff_access_events enable row level security;
 
-revoke all on table public.staff_access_events from anon;
+revoke all on table public.staff_access_events from anon, authenticated;
 grant select, insert on table public.staff_access_events to authenticated;
 grant select, insert, update, delete on table public.staff_access_events to service_role;
 alter table public.training_plans enable row level security;
