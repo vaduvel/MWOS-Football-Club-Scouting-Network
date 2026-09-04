@@ -1,18 +1,20 @@
 # Vercel Migration Checklist
 
-Last updated: 2026-05-21
+Last updated: 2026-09-04
 
 ## Goal
 
-Move MWOS Club Management from Netlify hosting to Vercel without breaking the current live experience on `mwos-hub.com`.
+Keep MWOS Club Management standardized on Vercel production and finish removing the remaining Netlify-era naming and configuration without breaking `mwos-hub.com`.
 
 ## Current state
 
-- Current Netlify production: `https://mwos-hub.com`
+- Current production domain: `https://mwos-hub.com` on Vercel
 - Vercel project: `daniels-projects-cb179d85/scout-report-builder`
 - Vercel project id: `prj_od3xuvwheCXDXYIGWtDg9bYmoAwt`
 - Vercel production URL: `https://scout-report-builder.vercel.app`
-- Vercel env vars: configured for core production runtime
+- GitHub `main` deployments are created by the Vercel Git integration
+- Supabase provides Auth and PostgreSQL for the production runtime
+- The former Netlify site remains reachable only as a legacy deployment
 
 ## Safe migration principle
 
@@ -171,16 +173,17 @@ Run on Vercel URL:
 - Legacy `/.netlify/functions/*` URLs are routed to the same Vercel adapter for compatibility.
 - Release readiness and role surface smoke tests pass against the shared Supabase project.
 
-## Known blockers before real cutover
+## Remaining cleanup after cutover
 
-- `mwos-hub.com` is still pointed at Netlify until DNS is switched.
-- Vercel Hobby cron cannot run the previous 5-minute reminder schedule as-is; training reminders need an approved scheduler strategy.
-- `GEMINI_API_KEY` is not configured, so the optional club assistant stays off.
-- Supabase redirect URLs should be checked one final time before invite/reset tests on Vercel production.
+- Confirm the Vercel billing plan before moving the 5-minute training reminder schedule. Hobby permits only daily cron jobs; Pro permits per-minute schedules.
+- Add `CRON_SECRET` and validate it in the reminder endpoint before enabling a Vercel cron.
+- Rename the historical `netlify/functions` folder to a platform-neutral handler folder in a separate refactor.
+- Remove legacy Netlify URLs from Supabase redirects only after all old invite/reset links have expired.
+- Confirm whether the optional `GEMINI_API_KEY` should be enabled for the club assistant.
 
 ## Immediate next actions
 
-1. Deploy the migrated runtime to Vercel production.
-2. Test login, role access, invite creation, email delivery, OCR import and notification endpoints on Vercel production.
-3. Add `mwos-hub.com` to the Vercel project and update Cloudflare DNS after production verification.
-4. Re-test invite + accept invite + password reset on `https://mwos-hub.com`.
+1. Push changes to a branch and validate the Vercel Preview.
+2. Test login, role access, invite reconciliation, report save and notification endpoints on Preview.
+3. Merge into `main` only after the full verification passes.
+4. Re-test the same flows on `https://mwos-hub.com` and inspect Vercel runtime errors.

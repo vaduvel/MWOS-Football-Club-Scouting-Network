@@ -640,10 +640,10 @@ textarea {
 
 .mwos-bottom-nav-label {
   margin-top: 0.125rem;
-  font-size: 0.6875rem;
-  font-weight: 800;
+  font-size: 0.71875rem;
+  font-weight: 900;
   line-height: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   text-transform: none;
 }
 
@@ -725,7 +725,8 @@ textarea {
 }
 
 .mwos-mobile-input,
-.mwos-mobile-textarea {
+.mwos-mobile-textarea,
+.mwos-input {
   width: 100%;
   border-radius: 1rem;
   border: 1px solid rgba(142, 154, 175, 0.24);
@@ -742,7 +743,8 @@ textarea {
     opacity 160ms ease;
 }
 
-.mwos-mobile-input {
+.mwos-mobile-input,
+.mwos-input {
   min-height: var(--mwos-touch-target);
 }
 
@@ -752,13 +754,15 @@ textarea {
 }
 
 .mwos-mobile-input:focus,
-.mwos-mobile-textarea:focus {
+.mwos-mobile-textarea:focus,
+.mwos-input:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 28%, white);
 }
 
 .mwos-mobile-input:disabled,
-.mwos-mobile-textarea:disabled {
+.mwos-mobile-textarea:disabled,
+.mwos-input:disabled {
   opacity: 0.6;
 }
 

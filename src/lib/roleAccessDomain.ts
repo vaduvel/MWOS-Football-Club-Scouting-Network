@@ -2,6 +2,16 @@ export interface RoleAccessUserShape {
   roles: string[];
 }
 
+export const MODULE_ACCESS_ROLE_SLUGS = {
+  training: ['admin', 'executive_director', 'technical_director', 'coach'],
+  matchDay: ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach'],
+  transport: ['admin', 'executive_director', 'technical_director', 'coach', 'driver'],
+  scouting: ['admin', 'executive_director', 'technical_director', 'scout'],
+  playerHub: ['admin', 'executive_director', 'technical_director', 'scout'],
+  scoutingAuthoring: ['admin', 'scout'],
+  oversight: ['admin', 'executive_director', 'technical_director', 'board_observer'],
+} as const;
+
 const CLUB_ROLE_PRIORITY = [
   'admin',
   'executive_director',
@@ -37,32 +47,36 @@ export function userHasRole(user: RoleAccessUserShape | null | undefined, role: 
   return user.roles.some((item) => normalizeRoleSlug(item) === target);
 }
 
-export function userHasAnyRole(user: RoleAccessUserShape | null | undefined, roles: string[]) {
+export function userHasAnyRole(user: RoleAccessUserShape | null | undefined, roles: readonly string[]) {
   return roles.some((role) => userHasRole(user, role));
 }
 
 export function canAccessTrainingModule(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'coach']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.training);
+}
+
+export function canAccessMatchDayModule(user: RoleAccessUserShape | null | undefined) {
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.matchDay);
 }
 
 export function canAccessTransportModule(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'driver']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.transport);
 }
 
 export function canAccessScoutingModule(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'scout']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.scouting);
 }
 
 export function canAccessPlayerHub(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'scout']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.playerHub);
 }
 
 export function canCreateScoutingReports(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'scout']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.scoutingAuthoring);
 }
 
 export function canAccessOversightModule(user: RoleAccessUserShape | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'board_observer']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.oversight);
 }
 
 export function getPrimaryRoleSlug(user: RoleAccessUserShape | null | undefined) {

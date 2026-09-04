@@ -70,10 +70,37 @@ function getCoachPrimaryActionIcon(kind: TrainingCoachFlowActionKind) {
 }
 
 function getCoachPrimaryActionMobileLabel(kind: TrainingCoachFlowActionKind) {
-  if (kind === 'add_sessions') return 'Start';
-  if (kind === 'review_missing_info') return 'Review';
+  if (kind === 'add_sessions') return 'Continue';
+  if (kind === 'review_missing_info') return 'Review day';
   if (kind === 'share_plan') return 'Share';
   return 'Publish';
+}
+
+function getCoachMobileActionCopy(kind: TrainingCoachFlowActionKind) {
+  if (kind === 'review_missing_info') {
+    return {
+      eyebrow: 'Review first',
+      title: 'Fix the highlighted days before you publish',
+      helper:
+        'Open the first flagged session, complete the missing details, then come back to publish the week.',
+    };
+  }
+
+  if (kind === 'share_plan') {
+    return {
+      eyebrow: 'Plan is live',
+      title: 'Share only when staff need the final message',
+      helper:
+        'The training week is already published. Save changes inside the editor, then use Share when the WhatsApp summary is needed.',
+    };
+  }
+
+  return {
+    eyebrow: 'Plan actions',
+    title: 'Save progress first, then publish the week',
+    helper:
+      'Use Save while you are editing. Use the main action only when the day details are ready for staff visibility.',
+  };
 }
 
 function buildImportedSourceCard(source: TrainingPlanSourceDraftInput) {
@@ -578,6 +605,9 @@ export default function TrainingPage() {
   const primaryActionKind = coachFlow?.primaryAction.kind || 'add_sessions';
   const PrimaryActionIcon = getCoachPrimaryActionIcon(primaryActionKind);
   const shareIsPrimary = primaryActionKind === 'share_plan';
+  const showCoachMobileActionCard =
+    workspace?.canManage && hasPlanActivity && primaryActionKind !== 'add_sessions';
+  const coachMobileActionCopy = getCoachMobileActionCopy(primaryActionKind);
 
   return (
     <div className="min-h-dvh bg-[var(--color-light)] md:flex">
@@ -734,7 +764,7 @@ export default function TrainingPage() {
                 )}
               </section>
 
-              {workspace.canManage ? (
+              {showCoachMobileActionCard ? (
                 <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:hidden">
                   <div className="mwos-surface-intro">
                     <div className="mwos-surface-intro-icon flex size-9 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
@@ -742,37 +772,35 @@ export default function TrainingPage() {
                     </div>
                     <div className="mwos-surface-intro-copy">
                       <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
-                        Next step
+                        {coachMobileActionCopy.eyebrow}
                       </p>
                       <h2 className="mt-1 text-lg font-black text-[var(--color-dark)]">
-                        Save your work, then move the plan forward
+                        {coachMobileActionCopy.title}
                       </h2>
                       <p className="mt-1.5 text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                        Use Save for progress. Use the main action only when you are ready to review, publish or share.
+                        {coachMobileActionCopy.helper}
                       </p>
                     </div>
                   </div>
                   <div
                     className={cn(
                       'mt-4 grid gap-2',
-                      hasPlanActivity ? 'grid-cols-2' : 'grid-cols-1',
+                      'grid-cols-2',
                     )}
                   >
-                    {hasPlanActivity ? (
-                      <button
-                        type="button"
-                        onClick={() => void handleSave('draft')}
-                        disabled={loading || savingState !== null}
-                        className="mwos-btn mwos-btn-secondary w-full uppercase tracking-[0.12em]"
-                      >
-                        {savingState === 'draft' ? (
-                          <Loader2 size={16} className="animate-spin" />
-                        ) : (
-                          <Save size={16} />
-                        )}
-                        Save
-                      </button>
-                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => void handleSave('draft')}
+                      disabled={loading || savingState !== null}
+                      className="mwos-btn mwos-btn-secondary w-full uppercase tracking-[0.12em]"
+                    >
+                      {savingState === 'draft' ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Save size={16} />
+                      )}
+                      Save
+                    </button>
 
                     <button
                       type="button"
@@ -802,13 +830,13 @@ export default function TrainingPage() {
                     </div>
                     <div className="mwos-surface-intro-copy">
                       <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
-                        Optional weekly notes
+                        Optional weekly context
                       </p>
                       <h2 className="mt-1 text-xl font-black text-[var(--color-dark)]">
-                        Add a headline only if staff need the weekly context
+                        Add extra context only if staff need it
                       </h2>
                       <p className="mt-1.5 max-w-2xl text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                        Keep this light. Coaches should spend most of their time in the daily session form, not in extra weekly copy.
+                        Keep this light. Coaches should spend most of their time in the daily session form, not in extra weekly copy or duplicate review surfaces.
                       </p>
                     </div>
                   </div>
@@ -816,82 +844,70 @@ export default function TrainingPage() {
                     Open
                   </span>
                 </summary>
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mwos-form-label text-[var(--color-mid)]">
-                      Weekly headline
-                    </label>
-                    <input
-                      value={workspace.headline}
-                      onChange={(event) =>
-                        setWorkspace((current) =>
-                          current ? { ...current, headline: event.target.value } : current,
-                        )
-                      }
-                      disabled={!workspace.canManage}
-                      placeholder="Pre-season speed / match prep / recovery balance"
-                      className="w-full rounded-2xl border border-[var(--color-mid)]/22 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[var(--color-primary)]"
-                    />
-                  </div>
-                  <div>
-                    <label className="mwos-form-label text-[var(--color-mid)]">
-                      Weekly objective
-                    </label>
-                    <textarea
-                      value={workspace.objective}
-                      onChange={(event) =>
-                        setWorkspace((current) =>
-                          current ? { ...current, objective: event.target.value } : current,
-                        )
-                      }
-                      disabled={!workspace.canManage}
-                      rows={3}
-                      placeholder="What is the main aim of this week for the team?"
-                      className="w-full rounded-2xl border border-[var(--color-mid)]/22 bg-white px-3 py-3 text-sm font-semibold leading-6 outline-none focus:border-[var(--color-primary)]"
-                    />
-                  </div>
-                </div>
-              </details>
-
-              <details className="group hidden rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:block md:p-6">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                  <div className="mwos-surface-intro">
-                    <div className="mwos-surface-intro-icon flex size-9 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
-                      <LayoutGrid size={18} />
+                <div className="mt-5 grid gap-5">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mwos-form-label text-[var(--color-mid)]">
+                        Weekly headline
+                      </label>
+                      <input
+                        value={workspace.headline}
+                        onChange={(event) =>
+                          setWorkspace((current) =>
+                            current ? { ...current, headline: event.target.value } : current,
+                          )
+                        }
+                        disabled={!workspace.canManage}
+                        placeholder="Pre-season speed / match prep / recovery balance"
+                        className="w-full rounded-2xl border border-[var(--color-mid)]/22 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[var(--color-primary)]"
+                      />
                     </div>
-                    <div className="mwos-surface-intro-copy">
-                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]/72">
-                        Week overview
-                      </p>
-                      <h2 className="mt-1 text-balance text-xl font-black text-[var(--color-dark)]">
-                        Preview the week after filling the form
-                      </h2>
-                      <p className="mt-1.5 max-w-2xl text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                        This is a reading view of the week, not another place to edit it.
-                      </p>
+                    <div>
+                      <label className="mwos-form-label text-[var(--color-mid)]">
+                        Weekly objective
+                      </label>
+                      <textarea
+                        value={workspace.objective}
+                        onChange={(event) =>
+                          setWorkspace((current) =>
+                            current ? { ...current, objective: event.target.value } : current,
+                          )
+                        }
+                        disabled={!workspace.canManage}
+                        rows={3}
+                        placeholder="What is the main aim of this week for the team?"
+                        className="w-full rounded-2xl border border-[var(--color-mid)]/22 bg-white px-3 py-3 text-sm font-semibold leading-6 outline-none focus:border-[var(--color-primary)]"
+                      />
                     </div>
                   </div>
-                  <span className="shrink-0 rounded-full bg-[var(--color-light)] px-3 py-1 text-xs font-black text-[var(--color-primary)]">
-                    Open
-                  </span>
-                </summary>
-                <div className="mt-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
-                    Quick preview
-                  </p>
-                  <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                    This is a quick preview, not another editor. The form above is the only place where a coach fills the plan.
-                  </p>
-                </div>
 
-                <TrainingPlanBoard
-                  days={workspace.days}
-                  selectedDayIndex={selectedDayIndex}
-                  onSelect={(index) => {
-                    updateSearch({ dayIndex: index });
-                    window.setTimeout(handleJumpToDayEditor, 80);
-                  }}
-                />
+                  <div className="rounded-[24px] border border-[var(--color-mid)]/12 bg-[var(--color-light)]/45 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex size-9 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+                        <LayoutGrid size={18} />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
+                          Week preview
+                        </p>
+                        <p className="mt-2 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                          This is a read-only preview of the week. The form above stays the only place where a coach edits the plan.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <TrainingPlanBoard
+                        days={workspace.days}
+                        selectedDayIndex={selectedDayIndex}
+                        onSelect={(index) => {
+                          updateSearch({ dayIndex: index });
+                          window.setTimeout(handleJumpToDayEditor, 80);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </details>
 
               {canViewRawSource && displaySourceCard ? (
@@ -915,19 +931,19 @@ export default function TrainingPage() {
                         Plan actions
                       </p>
                       <h2 className="mt-1 text-xl font-black text-[var(--color-dark)]">
-                        Save, publish, then share
+                        Keep one forward action active at a time
                       </h2>
                       <p className="mt-1.5 max-w-2xl text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                        Publish is the main forward action. Save keeps progress. Share comes after the plan is ready for staff.
+                        Save while you edit. Publish when staff should rely on the plan. Share only after the plan is ready to be seen in WhatsApp.
                       </p>
                     </div>
                   </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <button
                       type="button"
                       onClick={() => void handleSave('draft')}
                       disabled={!workspace.canManage || savingState !== null}
-                      className="mwos-btn mwos-btn-tertiary"
+                      className="mwos-btn mwos-btn-secondary"
                     >
                       {savingState === 'draft' ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
                       Save draft
@@ -941,27 +957,45 @@ export default function TrainingPage() {
                       {savingState === 'publish' ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
                       Publish
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleOpenWhatsAppShare}
-                      disabled={savingState !== null}
-                      className={cn('mwos-btn', shareIsPrimary ? 'mwos-btn-success' : 'mwos-btn-secondary')}
-                    >
-                      <MessageCircleMore size={17} />
-                      Share WhatsApp
-                    </button>
-                    {workspace.planId ? (
-                      <button
-                        type="button"
-                        onClick={() => void handleSave('archive')}
-                        disabled={!workspace.canManage || savingState !== null}
-                        className="mwos-btn mwos-btn-danger sm:col-span-3 xl:col-span-1"
-                      >
-                        {savingState === 'archive' ? <Loader2 size={17} className="animate-spin" /> : <ShieldCheck size={17} />}
-                        Archive
-                      </button>
-                    ) : null}
                   </div>
+
+                  {workspace.planId ? (
+                    <div className="mt-4 space-y-3 border-t border-[var(--color-mid)]/10 pt-4">
+                      <div className="rounded-[20px] border border-[var(--color-mid)]/12 bg-[var(--color-light)]/45 px-4 py-3">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">
+                          After publish
+                        </p>
+                        <p className="mt-1.5 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                          Use WhatsApp only when the saved plan is ready for staff to act on. Archive stays a back-office action.
+                        </p>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={handleOpenWhatsAppShare}
+                          disabled={savingState !== null}
+                          className={cn('mwos-btn', shareIsPrimary ? 'mwos-btn-primary' : 'mwos-btn-tertiary')}
+                        >
+                          <MessageCircleMore size={17} />
+                          Share WhatsApp
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleSave('archive')}
+                          disabled={!workspace.canManage || savingState !== null}
+                          className="mwos-btn mwos-btn-danger"
+                        >
+                          {savingState === 'archive' ? <Loader2 size={17} className="animate-spin" /> : <ShieldCheck size={17} />}
+                          Archive
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                      WhatsApp sharing unlocks after the first save.
+                    </p>
+                  )}
                 </article>
 
                 {workspace.planId ? (

@@ -37,6 +37,10 @@ on public.staff_access_events (target_email);
 
 alter table public.staff_access_events enable row level security;
 
+revoke all on table public.staff_access_events from anon, authenticated;
+grant select, insert on table public.staff_access_events to authenticated;
+grant select, insert, update, delete on table public.staff_access_events to service_role;
+
 drop policy if exists "staff_access_events_select_admin" on public.staff_access_events;
 create policy "staff_access_events_select_admin"
 on public.staff_access_events

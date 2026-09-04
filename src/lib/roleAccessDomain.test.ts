@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canAccessOversightModule,
+  canAccessMatchDayModule,
   canAccessPlayerHub,
   canAccessScoutingModule,
   canAccessTrainingModule,
@@ -29,8 +30,10 @@ describe('roleAccessDomain', () => {
     expect(canAccessScoutingModule({ roles: ['executive_director'] })).toBe(true);
     expect(canAccessPlayerHub({ roles: ['executive_director'] })).toBe(true);
     expect(canAccessOversightModule({ roles: ['board_observer'] })).toBe(true);
+    expect(canAccessMatchDayModule({ roles: ['board_observer'] })).toBe(true);
     expect(canAccessTrainingModule({ roles: ['coach'] })).toBe(true);
-    expect(canAccessTransportModule({ roles: ['coach'] })).toBe(false);
+    expect(canAccessMatchDayModule({ roles: ['coach'] })).toBe(true);
+    expect(canAccessTransportModule({ roles: ['coach'] })).toBe(true);
     expect(canAccessTransportModule({ roles: ['driver'] })).toBe(true);
     expect(canAccessScoutingModule({ roles: ['scout'] })).toBe(true);
     expect(canAccessPlayerHub({ roles: ['scout'] })).toBe(true);
@@ -54,9 +57,10 @@ describe('roleAccessDomain', () => {
     const boardObserver = { roles: ['board_observer'] };
 
     expect(canAccessTrainingModule(coach)).toBe(true);
-    expect(canAccessTransportModule(coach)).toBe(false);
+    expect(canAccessTransportModule(coach)).toBe(true);
     expect(canAccessTransportModule(driver)).toBe(true);
     expect(canAccessTrainingModule(driver)).toBe(false);
+    expect(canAccessMatchDayModule(driver)).toBe(false);
     expect(canAccessOversightModule(boardObserver)).toBe(true);
     expect(canAccessTrainingModule(boardObserver)).toBe(false);
     expect(canAccessTransportModule(boardObserver)).toBe(false);

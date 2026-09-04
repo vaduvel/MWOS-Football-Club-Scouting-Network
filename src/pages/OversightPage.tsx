@@ -38,6 +38,7 @@ import {
   canAccessTrainingModule,
   canAccessTransportModule,
   cancelStaffInvitation,
+  isAuthSessionMissingUserError,
   resendStaffInvitation,
   userHasAnyRole,
   type StaffInvitationRecord,
@@ -864,6 +865,10 @@ export default function OversightPage() {
       } catch (loadError: any) {
         if (!isMounted) return;
         console.error('Failed to load oversight workspace.', loadError);
+        if (isAuthSessionMissingUserError(loadError)) {
+          void logout();
+          return;
+        }
         setError(loadError.message || 'Failed to load oversight workspace.');
       } finally {
         if (isMounted) {
@@ -898,6 +903,10 @@ export default function OversightPage() {
       setActionMessage(message);
     } catch (mutationError: any) {
       console.error('Oversight action failed.', mutationError);
+      if (isAuthSessionMissingUserError(mutationError)) {
+        void logout();
+        return;
+      }
       setActionError(mutationError.message || 'The requested oversight action failed.');
     } finally {
       setBusyKey(null);

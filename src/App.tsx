@@ -19,7 +19,12 @@ const TransportPage = lazy(() => import('./pages/TransportPage'));
 const OversightPage = lazy(() => import('./pages/OversightPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 import MissingConfigScreen from './components/MissingConfigScreen';
-import { getSessionWithProfile, subscribeToAuthChanges } from './lib/data';
+import {
+  clearLocalAuthSession,
+  getSessionWithProfile,
+  isAuthSessionMissingUserError,
+  subscribeToAuthChanges,
+} from './lib/data';
 import {
   canAccessOversightModule,
   canAccessMatchDayModule,
@@ -193,6 +198,13 @@ export default function App() {
         setAuth(authState.user, authState.session);
       } catch (error) {
         console.error('Failed to initialize Supabase session.', error);
+        if (isAuthSessionMissingUserError(error)) {
+          try {
+            await clearLocalAuthSession();
+          } catch (signOutError) {
+            console.warn('Failed to clear invalid Supabase session.', signOutError);
+          }
+        }
         if (!isMounted) return;
         setAuth(null, null);
       } finally {
@@ -435,11 +447,13 @@ export default function App() {
             <Route path="/" element={<ProtectedRoute><ClubHomePage /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
             <Route path="/training" element={<RoleRoute canAccess={canAccessTrainingModule}><TrainingPage /></RoleRoute>} />
+            <Route path="/match" element={<Navigate to="/match-day" replace />} />
             <Route path="/match-day" element={<RoleRoute canAccess={canAccessMatchDayModule}><MatchDayPage /></RoleRoute>} />
             <Route path="/transport" element={<RoleRoute canAccess={canAccessTransportModule}><TransportPage /></RoleRoute>} />
             <Route path="/scouting" element={<RoleRoute canAccess={canAccessScoutingModule}><Dashboard /></RoleRoute>} />
             <Route path="/players" element={<RoleRoute canAccess={canAccessPlayerHub}><PlayersPage /></RoleRoute>} />
             <Route path="/players/:playerKey" element={<RoleRoute canAccess={canAccessPlayerHub}><PlayerProfilePage /></RoleRoute>} />
+            <Route path="/lead" element={<Navigate to="/oversight" replace />} />
             <Route path="/oversight" element={<RoleRoute canAccess={canAccessOversightModule}><OversightPage /></RoleRoute>} />
             <Route path="/scouting/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
             <Route path="/scouting/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />

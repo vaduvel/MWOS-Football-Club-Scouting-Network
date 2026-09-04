@@ -116,37 +116,42 @@ Important:
 - adminul poate invita staff-ul prin `manual link` sau `WhatsApp`
 - `Settings -> Launch Readiness` explică limpede în ce mod operează sistemul
 
-## Deploy pe Netlify
+## Arhitectură și deploy în producție
 
-1. Conectează repository-ul în Netlify.
-2. Setează:
-   - Build command:
-     ```bash
-     npm run build
-     ```
-   - Publish directory:
-     `dist`
-3. Adaugă environment variables:
-  - `VITE_APP_URL=https://mwos-hub.com`
-  - `APP_BASE_URL=https://mwos-hub.com`
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - opțional: `GEMINI_API_KEY`
-   - opțional: `RESEND_API_KEY`
-   - opțional: `NOTIFICATION_FROM_EMAIL`
-   - opțional: `NOTIFICATION_REPLY_TO_EMAIL`
+Platforma finală este:
 
-Fișierul [netlify.toml](/Users/vaduvageorge/Desktop/Scout%20Report%20Builder/netlify.toml) este deja pregătit pentru:
+- **Vercel** pentru frontendul Vite/React și funcțiile serverless din `/api`
+- **Supabase** pentru Auth, PostgreSQL, roluri, echipe și RLS
+- **Resend** pentru emailurile trimise din funcțiile serverless
+- `https://mwos-hub.com` este domeniul Vercel de producție
 
-- publish din `dist`
-- functii din `netlify/functions`
-- SPA redirects
-- API rewrites pentru endpoint-urile admin / onboarding
+Proiectul Vercel este `scout-report-builder`. Configurația versionată este în
+[`vercel.json`](vercel.json), iar adaptorul API este în [`api/[...slug].ts`](api/%5B...slug%5D.ts).
 
-Preview stabil de branch pentru `feat/club-management`:
+Fluxul de release:
 
-- [club-management-preview--scout-report-builder.netlify.app](https://club-management-preview--scout-report-builder.netlify.app)
+1. Se creează un branch `codex/*` sau `feat/*` și se publică în GitHub.
+2. Integrarea GitHub–Vercel creează automat un **Preview Deployment**.
+3. Se rulează smoke testele și testele browser pe URL-ul Preview.
+4. Branch-ul se integrează în `main` numai după validare.
+5. Vercel publică automat commitul din `main` pe `https://mwos-hub.com`.
+
+Environment variables necesare în Vercel:
+
+- `VITE_APP_URL=https://mwos-hub.com`
+- `APP_BASE_URL=https://mwos-hub.com`
+- `VITE_SERVERLESS_FUNCTIONS_BASE_URL=/api`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- opțional: `GEMINI_API_KEY`
+- opțional: `RESEND_API_KEY`
+- opțional: `NOTIFICATION_FROM_EMAIL`
+- opțional: `NOTIFICATION_REPLY_TO_EMAIL`
+
+`netlify.toml`, URL-urile Netlify și folderul istoric `netlify/functions` sunt păstrate temporar
+doar pentru compatibilitate. Nu reprezintă fluxul curent de producție și nu trebuie folosite pentru
+deploy-uri noi. Funcțiile din acel folder sunt executate în producție prin adaptorul Vercel `/api`.
 
 ## Configurare Supabase Auth
 
@@ -160,6 +165,8 @@ Preview stabil de branch pentru `feat/club-management`:
   - `https://mwos-hub.com/reset-password`
   - `https://www.mwos-hub.com/accept-invite`
   - `https://www.mwos-hub.com/reset-password`
+  - `https://scout-report-builder.vercel.app/accept-invite`
+  - `https://scout-report-builder.vercel.app/reset-password`
   - `https://club-management-preview--scout-report-builder.netlify.app/accept-invite`
   - `https://club-management-preview--scout-report-builder.netlify.app/reset-password`
   - `https://scout-report-builder.netlify.app/accept-invite`

@@ -71,7 +71,7 @@ function buildSidebarItems(user: AppUser | null): SidebarItem[] {
   }
 
   if (canAccessOversightModule(user)) {
-    items.push({ key: 'oversight', label: 'Oversight', mobileLabel: 'Lead', path: '/oversight', icon: Shield });
+    items.push({ key: 'oversight', label: 'Oversight', mobileLabel: 'Review', path: '/oversight', icon: Shield });
   }
 
   items.push({ key: 'settings', label: 'Settings', mobileLabel: 'Prefs', path: '/settings', icon: Settings });
@@ -109,7 +109,7 @@ function buildAccessProfileCopy(roleSlug: string) {
     case 'board_observer':
       return 'Read-only briefing access across oversight and club notifications.';
     case 'coach':
-      return 'Your workspace stays centered on planning and team execution.';
+      return 'Plan training and match day for your teams, then coordinate their transport.';
     case 'driver':
       return 'Your navigation stays focused on transport actions and departure updates.';
     case 'scout':
@@ -146,6 +146,7 @@ function buildMobilePrimaryKeys(user: AppUser | null, roleSlug: string) {
   if (userHasAnyRole(user, ['coach'])) {
     pushKey('training');
     pushKey('match-day');
+    pushKey('transport');
   }
 
   if (userHasAnyRole(user, ['driver'])) {
