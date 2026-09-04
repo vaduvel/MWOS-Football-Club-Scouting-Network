@@ -102,7 +102,9 @@ export default function PwaStatusDock({
                       ? 'Synced'
                       : syncDetail.state === 'error'
                         ? 'Sync Error'
-                        : 'Offline Draft'}
+                        : syncDetail.state === 'local' && online
+                          ? 'Draft Backup'
+                          : 'Offline Draft'}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[var(--color-dark)]">{syncDetail.message}</p>
               </div>

@@ -422,8 +422,23 @@ export default function MatchDayPage() {
                     ))}
 
                     {summaries.length === 0 ? (
-                      <div className="rounded-[24px] border border-dashed border-[var(--color-mid)]/22 bg-[var(--color-light)]/55 p-4 text-sm font-semibold text-[var(--color-mid)]">
-                        No match-day fixtures yet for this team.
+                      <div className="rounded-[24px] border border-dashed border-[var(--color-mid)]/22 bg-[var(--color-light)]/55 p-4">
+                        <p className="text-sm font-black text-[var(--color-dark)]">
+                          No match-day fixtures yet for this team.
+                        </p>
+                        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                          Start with the next fixture, then attach transport and squad selection once the core record exists.
+                        </p>
+                        {workspace?.canManage ? (
+                          <button
+                            type="button"
+                            onClick={handleCreateNew}
+                            className="mwos-btn mwos-btn-primary mt-3 w-full"
+                          >
+                            <Plus size={16} />
+                            Create first fixture
+                          </button>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
@@ -444,6 +459,19 @@ export default function MatchDayPage() {
                         </div>
                       </div>
 
+                      <div className={`mt-5 mwos-inline-strip ${workspace.canManage ? 'mwos-inline-strip-training' : 'mwos-inline-strip-staff'}`}>
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
+                            {workspace.canManage ? 'Start here' : 'Read-only mode'}
+                          </p>
+                          <p className="mt-1.5 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                            {workspace.canManage
+                              ? 'Save the fixture first. Then link transport, open the training week, and lock the squad board.'
+                              : 'This role can follow the fixture, transport link, training context, and squad board, but cannot edit them.'}
+                          </p>
+                        </div>
+                      </div>
+
                       <div className="mt-5 grid gap-4 md:grid-cols-2">
                         <FieldBlock label="Team">
                           <select
@@ -455,7 +483,7 @@ export default function MatchDayPage() {
                               }
                             }}
                             disabled={!workspace.canManage}
-                            className="mwos-input"
+                            className="mwos-select-field mwos-input"
                           >
                             {teams.map((team) => (
                               <option key={team.id} value={team.id}>
@@ -501,7 +529,7 @@ export default function MatchDayPage() {
                             value={workspace.matchDate}
                             onChange={(event) => handleWorkspaceChange('matchDate', event.target.value)}
                             disabled={!workspace.canManage}
-                            className="mwos-input"
+                            className="mwos-date-field mwos-input"
                           />
                         </FieldBlock>
 
@@ -524,35 +552,48 @@ export default function MatchDayPage() {
                       </div>
 
                       {workspace.canManage ? (
-                        <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                          <ActionButton
-                            label="Save draft"
-                            icon={Save}
-                            onClick={() => void handleSave('draft')}
-                            active={savingState === 'draft'}
-                            tone="neutral"
-                          />
-                          <ActionButton
-                            label="Publish"
-                            icon={Send}
-                            onClick={() => void handleSave('publish')}
-                            active={savingState === 'publish'}
-                            tone="primary"
-                          />
-                          <ActionButton
-                            label="Complete"
-                            icon={CheckCircle2}
-                            onClick={() => void handleSave('complete')}
-                            active={savingState === 'complete'}
-                            tone="success"
-                          />
-                          <ActionButton
-                            label="Cancel"
-                            icon={Ban}
-                            onClick={() => void handleSave('cancel')}
-                            active={savingState === 'cancel'}
-                            tone="danger"
-                          />
+                        <div className="mt-5 space-y-3">
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <ActionButton
+                              label="Save draft"
+                              icon={Save}
+                              onClick={() => void handleSave('draft')}
+                              active={savingState === 'draft'}
+                              tone="neutral"
+                            />
+                            <ActionButton
+                              label="Publish"
+                              icon={Send}
+                              onClick={() => void handleSave('publish')}
+                              active={savingState === 'publish'}
+                              tone="primary"
+                            />
+                          </div>
+
+                          <div className="rounded-[24px] border border-[var(--color-mid)]/12 bg-[var(--color-light)]/45 p-4">
+                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-mid)]">
+                              Change of status
+                            </p>
+                            <p className="mt-1.5 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+                              Use Complete after full time. Use Cancel only if the fixture is off or should no longer drive transport and squad decisions.
+                            </p>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                              <ActionButton
+                                label="Complete"
+                                icon={CheckCircle2}
+                                onClick={() => void handleSave('complete')}
+                                active={savingState === 'complete'}
+                                tone="success"
+                              />
+                              <ActionButton
+                                label="Cancel"
+                                icon={Ban}
+                                onClick={() => void handleSave('cancel')}
+                                active={savingState === 'cancel'}
+                                tone="danger"
+                              />
+                            </div>
+                          </div>
                         </div>
                       ) : (
                         <div className="mt-5 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 p-4 text-sm font-semibold text-[var(--color-mid)]">
@@ -598,7 +639,7 @@ export default function MatchDayPage() {
 
                           <button
                             onClick={() => navigate(workspace.transportPlan!.linkPath)}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white"
+                            className="mwos-btn mwos-btn-secondary"
                           >
                             <Bus size={16} />
                             Open transport plan
@@ -614,7 +655,7 @@ export default function MatchDayPage() {
                             <button
                               onClick={() => void handleCreateTransport()}
                               disabled={transportBusy}
-                              className="inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white disabled:opacity-60"
+                              className="mwos-btn mwos-btn-primary disabled:opacity-60"
                             >
                               {transportBusy ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                               Create transport plan
@@ -667,7 +708,7 @@ export default function MatchDayPage() {
 
                           <button
                             onClick={() => navigate(workspace.trainingContext!.linkPath)}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black text-white"
+                            className="mwos-btn mwos-btn-secondary"
                           >
                             <CalendarRange size={16} />
                             Open training week
@@ -753,7 +794,7 @@ export default function MatchDayPage() {
                                     value={player.availabilityStatus}
                                     onChange={(event) => handlePlayerChange(player.clubPlayerId, 'availabilityStatus', event.target.value)}
                                     disabled={!workspace.canManage}
-                                    className="mwos-input"
+                                    className="mwos-select-field mwos-input"
                                   >
                                     <option value="available">Available</option>
                                     <option value="doubtful">Doubtful</option>
@@ -766,7 +807,7 @@ export default function MatchDayPage() {
                                     value={player.selectionStatus}
                                     onChange={(event) => handlePlayerChange(player.clubPlayerId, 'selectionStatus', event.target.value)}
                                     disabled={!workspace.canManage}
-                                    className="mwos-input"
+                                    className="mwos-select-field mwos-input"
                                   >
                                     <option value="starter">Starter</option>
                                     <option value="bench">Bench</option>
@@ -832,7 +873,7 @@ function HeroMetric({ label, value }: { label: string; value: string }) {
 function FieldBlock({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">{label}</span>
+      <span className="mwos-form-label mb-0 text-[var(--color-mid)]">{label}</span>
       <div className="mt-2">{children}</div>
     </label>
   );
@@ -897,17 +938,17 @@ function ActionButton({
   tone: 'neutral' | 'primary' | 'success' | 'danger';
 }) {
   const tones = {
-    neutral: 'border-[var(--color-mid)]/18 bg-white text-[var(--color-dark)]',
-    primary: 'bg-[var(--color-primary)] text-white',
-    success: 'bg-emerald-600 text-white',
-    danger: 'bg-rose-600 text-white',
+    neutral: 'mwos-btn-secondary',
+    primary: 'mwos-btn-primary',
+    success: 'mwos-btn-success',
+    danger: 'mwos-btn-danger',
   };
 
   return (
     <button
       onClick={onClick}
       disabled={active}
-      className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black shadow-[0_12px_24px_rgba(49,39,131,0.12)] disabled:opacity-70 ${tones[tone]}`}
+      className={`mwos-btn w-full disabled:opacity-70 ${tones[tone]}`}
     >
       {active ? <Loader2 size={16} className="animate-spin" /> : <Icon size={16} />}
       {label}

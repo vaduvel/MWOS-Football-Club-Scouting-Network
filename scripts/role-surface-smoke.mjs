@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import {
   canAccessOversightModule,
+  canAccessMatchDayModule,
   canAccessPlayerHub,
   canAccessScoutingModule,
   canAccessTrainingModule,
@@ -35,6 +36,7 @@ const qaAccounts = [
     expectedLeadership: 'admin',
     expectedModules: {
       training: true,
+      matchDay: true,
       transport: true,
       scouting: true,
       players: true,
@@ -48,6 +50,7 @@ const qaAccounts = [
     expectedLeadership: 'technical_director',
     expectedModules: {
       training: true,
+      matchDay: true,
       transport: true,
       scouting: true,
       players: true,
@@ -61,6 +64,7 @@ const qaAccounts = [
     expectedLeadership: 'board_observer',
     expectedModules: {
       training: false,
+      matchDay: true,
       transport: false,
       scouting: false,
       players: false,
@@ -74,7 +78,8 @@ const qaAccounts = [
     expectedLeadership: 'none',
     expectedModules: {
       training: true,
-      transport: false,
+      matchDay: true,
+      transport: true,
       scouting: false,
       players: false,
       oversight: false,
@@ -87,6 +92,7 @@ const qaAccounts = [
     expectedLeadership: 'none',
     expectedModules: {
       training: false,
+      matchDay: false,
       transport: true,
       scouting: false,
       players: false,
@@ -100,6 +106,7 @@ const qaAccounts = [
     expectedLeadership: 'none',
     expectedModules: {
       training: false,
+      matchDay: false,
       transport: false,
       scouting: true,
       players: true,
@@ -176,6 +183,7 @@ export async function runRoleSurfaceSmoke({ password = process.env.ROLE_QA_PASSW
     const user = { roles: roleSlugs };
     const actualModules = {
       training: canAccessTrainingModule(user),
+      matchDay: canAccessMatchDayModule(user),
       transport: canAccessTransportModule(user),
       scouting: canAccessScoutingModule(user),
       players: canAccessPlayerHub(user),

@@ -30,6 +30,10 @@ import {
   type GlobalScoutingPipelineSummary,
   type PlayerDevelopmentSummary,
 } from './playerHubDomain';
+import { isAuthSessionMissingUserError } from './authSessionDomain';
+import { MODULE_ACCESS_ROLE_SLUGS } from './roleAccessDomain';
+
+export { isAuthSessionMissingUserError } from './authSessionDomain';
 
 export interface AppRole {
   slug: string;
@@ -767,36 +771,36 @@ export function userHasRole(user: Pick<AppUser, 'roles'> | null | undefined, rol
   return user.roles.some((item) => normalizeRoleSlug(item) === target);
 }
 
-export function userHasAnyRole(user: Pick<AppUser, 'roles'> | null | undefined, roles: string[]) {
+export function userHasAnyRole(user: Pick<AppUser, 'roles'> | null | undefined, roles: readonly string[]) {
   return roles.some((role) => userHasRole(user, role));
 }
 
 export function canAccessTrainingModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'coach']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.training);
 }
 
 export function canAccessMatchDayModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.matchDay);
 }
 
 export function canAccessTransportModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'driver']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.transport);
 }
 
 export function canAccessScoutingModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'scout']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.scouting);
 }
 
 export function canAccessPlayerHub(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'scout']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.playerHub);
 }
 
 export function canCreateScoutingReports(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'scout']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.scoutingAuthoring);
 }
 
 export function canAccessOversightModule(user: Pick<AppUser, 'roles'> | null | undefined) {
-  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'board_observer']);
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.oversight);
 }
 
 export function canManageAnnouncements(user: Pick<AppUser, 'roles'> | null | undefined) {
@@ -1174,6 +1178,13 @@ export function subscribeToAuthChanges(
         callback({ session, user });
       } catch (error) {
         console.error('Failed to hydrate profile after auth change.', error);
+        if (isAuthSessionMissingUserError(error)) {
+          try {
+            await clearLocalAuthSession();
+          } catch (signOutError) {
+            console.warn('Failed to clear invalid auth session after change event.', signOutError);
+          }
+        }
         callback({ session: null, user: null });
       }
     })();
@@ -1243,6 +1254,14 @@ export async function signUp(
 export async function signOut() {
   assertSupabaseConfigured();
   const { error } = await supabase.auth.signOut();
+  if (error) {
+    throw error;
+  }
+}
+
+export async function clearLocalAuthSession() {
+  assertSupabaseConfigured();
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
   if (error) {
     throw error;
   }
@@ -1658,48 +1677,17 @@ export async function saveReport(report: Report) {
     video_url: report.video_url ?? null,
   };
 
-  let savedReportId = reportId;
+  const { data: savedReport, error: saveError } = await supabase
+    .from('reports')
+    .upsert(reportPayload, { onConflict: 'id' })
+    .select('id')
+    .single();
 
-  if (report.id) {
-    const { data: updatedReport, error: updateError } = await supabase
-      .from('reports')
-      .update(reportPayload)
-      .eq('id', reportId)
-      .select('id')
-      .maybeSingle();
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    if (updatedReport?.id) {
-      savedReportId = updatedReport.id;
-    } else {
-      const { data: insertedReport, error: insertError } = await supabase
-        .from('reports')
-        .insert(reportPayload)
-        .select('id')
-        .single();
-
-      if (insertError) {
-        throw insertError;
-      }
-
-      savedReportId = (insertedReport as { id: string }).id;
-    }
-  } else {
-    const { data: insertedReport, error: insertError } = await supabase
-      .from('reports')
-      .insert(reportPayload)
-      .select('id')
-      .single();
-
-    if (insertError) {
-      throw insertError;
-    }
-
-    savedReportId = (insertedReport as { id: string }).id;
+  if (saveError) {
+    throw saveError;
   }
+
+  const savedReportId = (savedReport as { id: string }).id;
 
   const playerIdMap = new Map<string, string>();
   const playersPayload = report.players.map((player, index) => {
