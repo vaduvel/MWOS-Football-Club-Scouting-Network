@@ -7,6 +7,7 @@ import {
   buildMatchDayStatusTotals,
   linkedTransportBelongsToTeam,
   pickNextRelevantFixture,
+  resolveNextMatchDayStatus,
   type MatchDayLinkedTransportStatus,
   type MatchDayAvailabilityStatus,
   type MatchDaySelectionStatus,
@@ -16,6 +17,7 @@ import {
 import { summarizeTrainingWeekAroundFixture } from './trainingMatchContextDomain';
 import { supabase } from './supabase';
 import { buildTransportLinkPath } from './transportData';
+import { orderTeamsWithAssignmentsFirst } from './roleAccessDomain';
 
 type MatchDayRow = {
   id: string;
@@ -365,7 +367,10 @@ async function resolveMatchDayTeams() {
 
     return {
       user: authUser,
-      teams: ((data || []) as AppTeam[]).map(toTeamRecord),
+      teams: orderTeamsWithAssignmentsFirst(
+        ((data || []) as AppTeam[]).map(toTeamRecord),
+        authUser.teams,
+      ),
     };
   }
 
@@ -745,14 +750,7 @@ export async function saveMatchDayFixture(
   }
 
   const nowIso = new Date().toISOString();
-  const nextStatus: MatchDayWorkflowStatus =
-    action === 'publish'
-      ? 'published'
-      : action === 'complete'
-        ? 'completed'
-        : action === 'cancel'
-          ? 'cancelled'
-          : 'draft';
+  const nextStatus = resolveNextMatchDayStatus(current?.status || null, action);
 
   const payload = {
     team_id: teamId,

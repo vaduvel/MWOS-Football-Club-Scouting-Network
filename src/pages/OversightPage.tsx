@@ -14,6 +14,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import AppSidebar from '../components/AppSidebar';
+import ConfirmActionModal from '../components/ConfirmActionModal';
 import OversightAttentionList from '../components/oversight/OversightAttentionList';
 import OversightMetricStrip from '../components/oversight/OversightMetricStrip';
 import OversightTeamMatrix from '../components/oversight/OversightTeamMatrix';
@@ -49,6 +50,10 @@ import { changeTransportPlanStatus } from '../lib/transportData';
 import { useAuthStore } from '../store/auth';
 
 type FeedTone = 'neutral' | 'training' | 'transport' | 'reports' | 'alerts' | 'staff';
+type PendingOversightAction = {
+  kind: 'complete-transport' | 'cancel-transport' | 'cancel-invite';
+  id: string;
+};
 
 function formatIsoDate(value: string | null | undefined) {
   if (!value) return 'Not scheduled';
@@ -65,7 +70,8 @@ function formatTimeValue(value: string | null | undefined) {
 }
 
 function formatRoleLabelCount(label: string, count: number) {
-  return `${count} ${label}${count === 1 ? '' : 's'}`;
+  if (count === 1) return `${count} ${label}`;
+  return `${count} ${label === 'Coach' ? 'Coaches' : `${label}s`}`;
 }
 
 function FeedShell({
@@ -843,6 +849,7 @@ export default function OversightPage() {
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingOversightAction | null>(null);
 
   async function loadWorkspace() {
     const nextWorkspace = await fetchOversightWorkspace();
@@ -993,7 +1000,16 @@ export default function OversightPage() {
               ) : null}
 
               <section className="grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
-                <OversightAttentionList items={workspace.attentionItems} />
+                <OversightAttentionList
+                  items={workspace.attentionItems}
+                  canOpenPath={(path) => {
+                    if (path.startsWith('/training')) return canOpenTraining;
+                    if (path.startsWith('/transport')) return canOpenTransport;
+                    if (path.startsWith('/scouting') || path.startsWith('/report')) return canOpenScouting;
+                    if (path.startsWith('/settings')) return canManageAccess;
+                    return true;
+                  }}
+                />
                 {canSeeCoverage && workspace.roleSummary && workspace.staffingHealth ? (
                   <div className="grid gap-4">
                     <RoleCoverageCard summary={workspace.roleSummary} />
@@ -1013,16 +1029,8 @@ export default function OversightPage() {
                   canManage={canManageTransport}
                   interactive={canOpenTransport}
                   busyKey={busyKey}
-                  onComplete={(planId) =>
-                    void runAction(`transport:complete:${planId}`, async () => {
-                      await changeTransportPlanStatus(planId, 'complete');
-                      return 'Transport plan marked as completed.';
-                    })}
-                  onCancel={(planId) =>
-                    void runAction(`transport:cancel:${planId}`, async () => {
-                      await changeTransportPlanStatus(planId, 'cancel');
-                      return 'Transport plan cancelled from leadership workspace.';
-                    })}
+                  onComplete={(planId) => setPendingAction({ kind: 'complete-transport', id: planId })}
+                  onCancel={(planId) => setPendingAction({ kind: 'cancel-transport', id: planId })}
                 />
                 <ReportsFeed items={workspace.recentReports} interactive={canOpenScouting} />
                 {canManageAccess && workspace.canSeeInvitationFeed ? (
@@ -1034,15 +1042,9 @@ export default function OversightPage() {
                         const response = await resendStaffInvitation(invitationId);
                         return response.message || 'Invitation resent.';
                       })}
-                    onCancel={(invitationId) =>
-                      void runAction(`invite:cancel:${invitationId}`, async () => {
-                        const response = await cancelStaffInvitation(invitationId);
-                        return response.message || 'Invitation cancelled.';
-                      })}
+                    onCancel={(invitationId) => setPendingAction({ kind: 'cancel-invite', id: invitationId })}
                   />
-                ) : (
-                  <LeadershipReadOnlyNote />
-                )}
+                ) : null}
                 {canManageAccess ? (
                   <StaffAccessActivityFeed items={workspace.recentStaffAccessEvents} />
                 ) : (
@@ -1053,6 +1055,48 @@ export default function OversightPage() {
           ) : null}
         </div>
       </main>
+      <ConfirmActionModal
+        open={pendingAction !== null}
+        title={pendingAction?.kind === 'complete-transport'
+          ? 'Mark this trip as completed?'
+          : pendingAction?.kind === 'cancel-transport'
+            ? 'Cancel this transport plan?'
+            : 'Cancel this staff invitation?'}
+        description={pendingAction?.kind === 'complete-transport'
+          ? 'This locks the final trip details so staff can rely on one completed record.'
+          : pendingAction?.kind === 'cancel-transport'
+            ? 'This removes the trip from active planning and locks the record.'
+            : 'The current activation link will stop working. A new invitation can be created later.'}
+        confirmLabel={pendingAction?.kind === 'complete-transport'
+          ? 'Mark completed'
+          : pendingAction?.kind === 'cancel-transport'
+            ? 'Cancel transport'
+            : 'Cancel invitation'}
+        tone={pendingAction?.kind === 'complete-transport' ? 'warning' : 'danger'}
+        loading={busyKey !== null}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={() => {
+          const action = pendingAction;
+          if (!action) return;
+
+          const operation = action.kind === 'complete-transport'
+            ? runAction(`transport:complete:${action.id}`, async () => {
+                await changeTransportPlanStatus(action.id, 'complete');
+                return 'Transport plan marked as completed.';
+              })
+            : action.kind === 'cancel-transport'
+              ? runAction(`transport:cancel:${action.id}`, async () => {
+                  await changeTransportPlanStatus(action.id, 'cancel');
+                  return 'Transport plan cancelled from leadership workspace.';
+                })
+              : runAction(`invite:cancel:${action.id}`, async () => {
+                  const response = await cancelStaffInvitation(action.id);
+                  return response.message || 'Invitation cancelled.';
+                });
+
+          void operation.finally(() => setPendingAction(null));
+        }}
+      />
     </div>
   );
 }

@@ -57,7 +57,10 @@ export default async function route(req: any, res: any) {
   const routeKey = getRouteKey(req)
 
   if (routeKey === 'training-reminders') {
-    return serveFetchResponse(res, () => triggerTrainingReminders())
+    return serveFetchResponse(res, () => triggerTrainingReminders({
+      method: req.method || 'GET',
+      headers: req.headers || {},
+    }))
   }
 
   const handler = HANDLERS[routeKey]

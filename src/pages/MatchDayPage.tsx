@@ -16,6 +16,7 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import AppSidebar from '../components/AppSidebar';
+import ConfirmActionModal from '../components/ConfirmActionModal';
 import {
   createLinkedTransportPlan,
   fetchMatchDaySummaries,
@@ -28,7 +29,12 @@ import {
   type MatchDayWorkspace,
   type SaveMatchDayFixtureInput,
 } from '../lib/matchDayData';
-import { buildMatchDayStatusTotals, groupMatchDaySelections } from '../lib/matchDayDomain';
+import { buildMatchDayStatusTotals, groupMatchDaySelections, isTerminalMatchDayStatus } from '../lib/matchDayDomain';
+import {
+  canAccessPlayerHub,
+  canAccessTrainingModule,
+  canAccessTransportModule,
+} from '../lib/roleAccessDomain';
 import { useAuthStore } from '../store/auth';
 
 export default function MatchDayPage() {
@@ -44,6 +50,7 @@ export default function MatchDayPage() {
   const [transportBusy, setTransportBusy] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [pendingTerminalAction, setPendingTerminalAction] = useState<'complete' | 'cancel' | null>(null);
 
   const teamId = searchParams.get('team') || '';
   const selectedMatchDayId = searchParams.get('match') || '';
@@ -319,6 +326,10 @@ export default function MatchDayPage() {
     () => groupMatchDaySelections(workspace?.players || []),
     [workspace?.players],
   );
+  const workspaceIsTerminal = workspace ? isTerminalMatchDayStatus(workspace.status) : false;
+  const canViewPlayerProfiles = canAccessPlayerHub(user);
+  const canOpenTraining = canAccessTrainingModule(user);
+  const canOpenTransport = canAccessTransportModule(user);
 
   return (
     <div className="flex min-h-dvh flex-col bg-[var(--color-light)] md:flex-row">
@@ -387,6 +398,20 @@ export default function MatchDayPage() {
                       </button>
                     ) : null}
                   </div>
+
+                  <label className="mt-4 block">
+                    <span className="mwos-form-label mb-2 text-[var(--color-mid)]">Team</span>
+                    <select
+                      value={teamId}
+                      onChange={(event) => updateSearch({ team: event.target.value, match: null, draft: null })}
+                      disabled={teams.length < 2}
+                      className="mwos-select-field mwos-input"
+                    >
+                      {teams.map((team) => (
+                        <option key={team.id} value={team.id}>{team.name}</option>
+                      ))}
+                    </select>
+                  </label>
 
                   <div className="mt-4 space-y-3">
                     {summaries.map((summary) => (
@@ -459,13 +484,13 @@ export default function MatchDayPage() {
                         </div>
                       </div>
 
-                      <div className={`mt-5 mwos-inline-strip ${workspace.canManage ? 'mwos-inline-strip-training' : 'mwos-inline-strip-staff'}`}>
+                      <div className={`mt-5 mwos-inline-strip ${workspace.canManage && !workspaceIsTerminal ? 'mwos-inline-strip-training' : 'mwos-inline-strip-staff'}`}>
                         <div>
                           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">
-                            {workspace.canManage ? 'Start here' : 'Read-only mode'}
+                            {workspace.canManage && !workspaceIsTerminal ? 'Start here' : 'Read-only mode'}
                           </p>
                           <p className="mt-1.5 text-sm font-semibold leading-6 text-[var(--color-mid)]">
-                            {workspace.canManage
+                            {workspace.canManage && !workspaceIsTerminal
                               ? 'Save the fixture first. Then link transport, open the training week, and lock the squad board.'
                               : 'This role can follow the fixture, transport link, training context, and squad board, but cannot edit them.'}
                           </p>
@@ -482,7 +507,7 @@ export default function MatchDayPage() {
                                 handleWorkspaceChange('team', nextTeam);
                               }
                             }}
-                            disabled={!workspace.canManage}
+                            disabled={teams.length < 2}
                             className="mwos-select-field mwos-input"
                           >
                             {teams.map((team) => (
@@ -497,7 +522,7 @@ export default function MatchDayPage() {
                           <input
                             value={workspace.opponent}
                             onChange={(event) => handleWorkspaceChange('opponent', event.target.value)}
-                            disabled={!workspace.canManage}
+                            disabled={!workspace.canManage || workspaceIsTerminal}
                             className="mwos-input"
                             placeholder="Opponent"
                           />
@@ -507,7 +532,7 @@ export default function MatchDayPage() {
                           <input
                             value={workspace.competition}
                             onChange={(event) => handleWorkspaceChange('competition', event.target.value)}
-                            disabled={!workspace.canManage}
+                            disabled={!workspace.canManage || workspaceIsTerminal}
                             className="mwos-input"
                             placeholder="League / Cup / Friendly"
                           />
@@ -517,7 +542,7 @@ export default function MatchDayPage() {
                           <input
                             value={workspace.venue}
                             onChange={(event) => handleWorkspaceChange('venue', event.target.value)}
-                            disabled={!workspace.canManage}
+                            disabled={!workspace.canManage || workspaceIsTerminal}
                             className="mwos-input"
                             placeholder="Home / Away / Ground"
                           />
@@ -528,7 +553,7 @@ export default function MatchDayPage() {
                             type="date"
                             value={workspace.matchDate}
                             onChange={(event) => handleWorkspaceChange('matchDate', event.target.value)}
-                            disabled={!workspace.canManage}
+                            disabled={!workspace.canManage || workspaceIsTerminal}
                             className="mwos-date-field mwos-input"
                           />
                         </FieldBlock>
@@ -538,7 +563,7 @@ export default function MatchDayPage() {
                             type="time"
                             value={workspace.kickoffTime}
                             onChange={(event) => handleWorkspaceChange('kickoffTime', event.target.value)}
-                            disabled={!workspace.canManage}
+                            disabled={!workspace.canManage || workspaceIsTerminal}
                             className="mwos-input"
                           />
                         </FieldBlock>
@@ -551,18 +576,18 @@ export default function MatchDayPage() {
                         <MetaChip label="Bench" value={String(grouped.bench.length)} />
                       </div>
 
-                      {workspace.canManage ? (
+                      {workspace.canManage && !workspaceIsTerminal ? (
                         <div className="mt-5 space-y-3">
                           <div className="grid gap-2 sm:grid-cols-2">
                             <ActionButton
-                              label="Save draft"
+                              label={workspace.status === 'draft' ? 'Save draft' : 'Save changes'}
                               icon={Save}
                               onClick={() => void handleSave('draft')}
                               active={savingState === 'draft'}
                               tone="neutral"
                             />
                             <ActionButton
-                              label="Publish"
+                              label={workspace.status === 'draft' ? 'Publish' : 'Publish update'}
                               icon={Send}
                               onClick={() => void handleSave('publish')}
                               active={savingState === 'publish'}
@@ -581,15 +606,17 @@ export default function MatchDayPage() {
                               <ActionButton
                                 label="Complete"
                                 icon={CheckCircle2}
-                                onClick={() => void handleSave('complete')}
+                                onClick={() => setPendingTerminalAction('complete')}
                                 active={savingState === 'complete'}
+                                disabled={workspace.status !== 'published'}
                                 tone="success"
                               />
                               <ActionButton
                                 label="Cancel"
                                 icon={Ban}
-                                onClick={() => void handleSave('cancel')}
+                                onClick={() => setPendingTerminalAction('cancel')}
                                 active={savingState === 'cancel'}
+                                disabled={!workspace.id}
                                 tone="danger"
                               />
                             </div>
@@ -597,7 +624,9 @@ export default function MatchDayPage() {
                         </div>
                       ) : (
                         <div className="mt-5 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 p-4 text-sm font-semibold text-[var(--color-mid)]">
-                          This role can review the board, but only coaches, the technical director, or admins can edit it.
+                          {workspaceIsTerminal
+                            ? 'This match day is completed or cancelled and is now locked to protect the final club record.'
+                            : 'This role can review the board, but only coaches, the technical director, or admins can edit it.'}
                         </div>
                       )}
                     </div>
@@ -637,13 +666,19 @@ export default function MatchDayPage() {
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => navigate(workspace.transportPlan!.linkPath)}
-                            className="mwos-btn mwos-btn-secondary"
-                          >
-                            <Bus size={16} />
-                            Open transport plan
-                          </button>
+                          {canOpenTransport ? (
+                            <button
+                              onClick={() => navigate(workspace.transportPlan!.linkPath)}
+                              className="mwos-btn mwos-btn-secondary"
+                            >
+                              <Bus size={16} />
+                              Open transport plan
+                            </button>
+                          ) : (
+                            <p className="text-sm font-semibold text-[var(--color-mid)]">
+                              Transport details are shown here in read-only mode for this role.
+                            </p>
+                          )}
                         </div>
                       ) : workspace.id ? (
                         <div className="mt-5 space-y-4">
@@ -651,7 +686,7 @@ export default function MatchDayPage() {
                             Create a linked travel plan only when this fixture needs a departure time, driver assignment, or destination tracking.
                           </p>
 
-                          {workspace.canManage ? (
+                          {workspace.canManage && !workspaceIsTerminal ? (
                             <button
                               onClick={() => void handleCreateTransport()}
                               disabled={transportBusy}
@@ -706,13 +741,19 @@ export default function MatchDayPage() {
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => navigate(workspace.trainingContext!.linkPath)}
-                            className="mwos-btn mwos-btn-secondary"
-                          >
-                            <CalendarRange size={16} />
-                            Open training week
-                          </button>
+                          {canOpenTraining ? (
+                            <button
+                              onClick={() => navigate(workspace.trainingContext!.linkPath)}
+                              className="mwos-btn mwos-btn-secondary"
+                            >
+                              <CalendarRange size={16} />
+                              Open training week
+                            </button>
+                          ) : (
+                            <p className="text-sm font-semibold text-[var(--color-mid)]">
+                              Training context is shown here in read-only mode for this role.
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <div className="mt-5 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 p-4 text-sm font-semibold text-[var(--color-mid)]">
@@ -733,7 +774,7 @@ export default function MatchDayPage() {
                           </div>
                         </div>
 
-                        {workspace.canManage ? (
+                        {workspace.canManage && !workspaceIsTerminal ? (
                           <button
                             onClick={() => void handleSaveSquad()}
                             disabled={savingSquad}
@@ -775,14 +816,16 @@ export default function MatchDayPage() {
                                   </p>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => navigate(`/players/${encodeURIComponent(`club:${player.clubPlayerId}`)}`)}
-                                    className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-primary)]/18 bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/8"
-                                  >
-                                    <UserRound size={12} />
-                                    Profile
-                                  </button>
+                                  {canViewPlayerProfiles ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => navigate(`/players/${encodeURIComponent(`club:${player.clubPlayerId}`)}`)}
+                                      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-primary)]/18 bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/8"
+                                    >
+                                      <UserRound size={12} />
+                                      Profile
+                                    </button>
+                                  ) : null}
                                   <QuickTag label={player.availabilityStatus} tone={availabilityTone(player.availabilityStatus)} />
                                   <QuickTag label={player.selectionStatus} tone={selectionTone(player.selectionStatus)} />
                                 </div>
@@ -793,7 +836,7 @@ export default function MatchDayPage() {
                                   <select
                                     value={player.availabilityStatus}
                                     onChange={(event) => handlePlayerChange(player.clubPlayerId, 'availabilityStatus', event.target.value)}
-                                    disabled={!workspace.canManage}
+                                    disabled={!workspace.canManage || workspaceIsTerminal}
                                     className="mwos-select-field mwos-input"
                                   >
                                     <option value="available">Available</option>
@@ -806,7 +849,7 @@ export default function MatchDayPage() {
                                   <select
                                     value={player.selectionStatus}
                                     onChange={(event) => handlePlayerChange(player.clubPlayerId, 'selectionStatus', event.target.value)}
-                                    disabled={!workspace.canManage}
+                                    disabled={!workspace.canManage || workspaceIsTerminal}
                                     className="mwos-select-field mwos-input"
                                   >
                                     <option value="starter">Starter</option>
@@ -819,7 +862,7 @@ export default function MatchDayPage() {
                                   <input
                                     value={player.notes}
                                     onChange={(event) => handlePlayerChange(player.clubPlayerId, 'notes', event.target.value)}
-                                    disabled={!workspace.canManage}
+                                    disabled={!workspace.canManage || workspaceIsTerminal}
                                     className="mwos-input"
                                     placeholder="Short context for this player"
                                   />
@@ -857,6 +900,22 @@ export default function MatchDayPage() {
           )}
         </div>
       </main>
+      <ConfirmActionModal
+        open={pendingTerminalAction !== null}
+        title={pendingTerminalAction === 'complete' ? 'Mark this match day as completed?' : 'Cancel this match day?'}
+        description={pendingTerminalAction === 'complete'
+          ? 'This locks the fixture and squad record after full time. It cannot be edited afterwards.'
+          : 'This removes the fixture from active planning and locks the record. It cannot be edited afterwards.'}
+        confirmLabel={pendingTerminalAction === 'complete' ? 'Mark completed' : 'Cancel match day'}
+        tone={pendingTerminalAction === 'complete' ? 'warning' : 'danger'}
+        loading={savingState !== null}
+        onCancel={() => setPendingTerminalAction(null)}
+        onConfirm={() => {
+          const action = pendingTerminalAction;
+          if (!action) return;
+          void handleSave(action).finally(() => setPendingTerminalAction(null));
+        }}
+      />
     </div>
   );
 }
@@ -929,12 +988,14 @@ function ActionButton({
   icon: Icon,
   onClick,
   active,
+  disabled = false,
   tone,
 }: {
   label: string;
   icon: ComponentType<{ size?: number; className?: string }>;
   onClick: () => void;
   active: boolean;
+  disabled?: boolean;
   tone: 'neutral' | 'primary' | 'success' | 'danger';
 }) {
   const tones = {
@@ -947,7 +1008,7 @@ function ActionButton({
   return (
     <button
       onClick={onClick}
-      disabled={active}
+      disabled={active || disabled}
       className={`mwos-btn w-full disabled:opacity-70 ${tones[tone]}`}
     >
       {active ? <Loader2 size={16} className="animate-spin" /> : <Icon size={16} />}

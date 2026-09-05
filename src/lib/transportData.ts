@@ -10,11 +10,13 @@ import {
   buildTransportDraft,
   detectMajorTransportChange,
   normalizeTransportPlan,
+  resolveNextTransportStatus,
   validateTransportPlan,
   type TransportContextType,
   type TransportPlanDraft,
   type TransportPlanStatus,
 } from './transportDomain';
+import { orderTeamsWithAssignmentsFirst } from './roleAccessDomain';
 
 type TransportPlanRow = {
   id: string;
@@ -170,7 +172,10 @@ async function resolveTransportTeams() {
 
     return {
       user: authUser,
-      teams: ((data || []) as AppTeam[]).map(toTeamRecord),
+      teams: orderTeamsWithAssignmentsFirst(
+        ((data || []) as AppTeam[]).map(toTeamRecord),
+        authUser.teams,
+      ),
     };
   }
 
@@ -661,7 +666,7 @@ export async function saveTransportPlan(
         ? toStringValue(currentPlan.driver_user_id)
         : normalized.driverUserId;
 
-  const validationMode = action === 'draft' ? 'draft' : 'publish';
+  const validationMode = action === 'draft' || action === 'cancel' ? 'draft' : 'publish';
   const errors = validateTransportPlan(
     {
       ...normalized,
@@ -675,18 +680,7 @@ export async function saveTransportPlan(
   }
 
   const nowIso = new Date().toISOString();
-  const nextStatus: TransportPlanStatus =
-    action === 'cancel'
-      ? 'cancelled'
-      : action === 'complete'
-        ? 'completed'
-        : action === 'publish'
-          ? currentPlan && currentPlan.status !== 'draft'
-            ? 'updated'
-            : 'published'
-          : currentPlan && ['published', 'updated'].includes(currentPlan.status)
-            ? 'updated'
-            : 'draft';
+  const nextStatus = resolveNextTransportStatus(currentPlan?.status || null, action);
 
   const payload = {
     team_id: teamId,

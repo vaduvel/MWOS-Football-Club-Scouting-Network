@@ -98,6 +98,7 @@ export default function SettingsPage() {
   const [staffRoleFilter, setStaffRoleFilter] = useState('all');
   const [staffTeamFilter, setStaffTeamFilter] = useState('all');
   const [clearAccessDialogOpen, setClearAccessDialogOpen] = useState(false);
+  const [cancelInviteTargetId, setCancelInviteTargetId] = useState<string | null>(null);
   const deferredStaffSearchQuery = useDeferredValue(staffSearchQuery);
 
   useEffect(() => {
@@ -1338,7 +1339,7 @@ export default function SettingsPage() {
                                     {invitationActionKey === `copy:${invitation.id}` ? 'Preparing...' : 'Copy Activation Link'}
                                   </button>
                                   <button
-                                    onClick={() => void handleCancelInvite(invitation.id)}
+                                    onClick={() => setCancelInviteTargetId(invitation.id)}
                                     disabled={invitationActionKey === `cancel:${invitation.id}`}
                                     className="mwos-btn mwos-btn-danger text-sm"
                                   >
@@ -1619,6 +1620,20 @@ export default function SettingsPage() {
         loading={accessLoading}
         onCancel={() => setClearAccessDialogOpen(false)}
         onConfirm={() => void handleConfirmClearAccess()}
+      />
+      <ConfirmActionModal
+        open={cancelInviteTargetId !== null}
+        title="Cancel this staff invitation?"
+        description="The current activation link will stop working. You can create a new invitation later if access is still needed."
+        confirmLabel="Cancel invitation"
+        tone="danger"
+        loading={Boolean(cancelInviteTargetId && invitationActionKey === `cancel:${cancelInviteTargetId}`)}
+        onCancel={() => setCancelInviteTargetId(null)}
+        onConfirm={() => {
+          const invitationId = cancelInviteTargetId;
+          if (!invitationId) return;
+          void handleCancelInvite(invitationId).finally(() => setCancelInviteTargetId(null));
+        }}
       />
     </div>
   );

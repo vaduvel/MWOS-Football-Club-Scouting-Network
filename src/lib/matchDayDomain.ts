@@ -2,6 +2,31 @@ export type MatchDayWorkflowStatus = 'draft' | 'published' | 'completed' | 'canc
 export type MatchDayAvailabilityStatus = 'available' | 'doubtful' | 'unavailable';
 export type MatchDaySelectionStatus = 'starter' | 'bench' | 'out';
 export type MatchDayLinkedTransportStatus = 'draft' | 'published' | 'updated' | 'completed' | 'cancelled';
+export type MatchDaySaveAction = 'draft' | 'publish' | 'complete' | 'cancel';
+
+export function isTerminalMatchDayStatus(status: MatchDayWorkflowStatus) {
+  return status === 'completed' || status === 'cancelled';
+}
+
+export function resolveNextMatchDayStatus(
+  currentStatus: MatchDayWorkflowStatus | null,
+  action: MatchDaySaveAction,
+): MatchDayWorkflowStatus {
+  if (currentStatus && isTerminalMatchDayStatus(currentStatus)) {
+    throw new Error('Completed or cancelled match days are locked and cannot be changed.');
+  }
+
+  if (action === 'complete') {
+    if (currentStatus !== 'published') {
+      throw new Error('Publish the match day before marking it as completed.');
+    }
+    return 'completed';
+  }
+
+  if (action === 'cancel') return 'cancelled';
+  if (action === 'publish') return 'published';
+  return currentStatus === 'published' ? 'published' : 'draft';
+}
 
 export type MatchDayLinkedTransportDraft = {
   title: string;

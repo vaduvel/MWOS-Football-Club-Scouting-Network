@@ -121,7 +121,9 @@ export function buildOversightTeamSnapshot(input: OversightTeamSnapshotInput): O
     teamName: input.teamName,
     coachCount: input.coachCount,
     trainingStatus,
-    trainingHeadline: input.training?.headline || 'No plan published yet',
+    trainingHeadline: input.training
+      ? input.training.headline || 'Training plan details available'
+      : 'No plan published yet',
     trainingWeekStart: input.training?.weekStart || null,
     nextTransportStatus: input.transport?.status || 'none',
     nextTransportLabel: getTransportLabel(input.transport),

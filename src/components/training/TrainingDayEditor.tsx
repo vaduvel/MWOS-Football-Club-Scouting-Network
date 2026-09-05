@@ -252,7 +252,7 @@ export default function TrainingDayEditor({
                 <select
                   value={teamId}
                   onChange={(event) => onSelectTeam(event.target.value)}
-                  disabled={!canEdit}
+                  disabled={teams.length < 2}
                   className="mwos-select-field mwos-mobile-input block w-full min-w-0 max-w-full font-black sm:text-base"
                 >
                   {teams.map((team) => (
@@ -274,7 +274,7 @@ export default function TrainingDayEditor({
                 type="date"
                 value={weekStart || ''}
                 onChange={(event) => onSelectWeek?.(event.target.value)}
-                disabled={!canEdit || !onSelectWeek}
+                disabled={!onSelectWeek}
                 className="mwos-date-field mwos-mobile-input block w-full min-w-0 max-w-full font-black sm:text-base"
               />
               {weekLabel ? (
@@ -287,7 +287,7 @@ export default function TrainingDayEditor({
               <select
                 value={day.dayIndex}
                 onChange={(event) => onSelectDay?.(Number(event.target.value))}
-                disabled={!canEdit || !onSelectDay}
+                disabled={!onSelectDay}
                 className="mwos-select-field mwos-mobile-input block w-full min-w-0 max-w-full font-black sm:text-base"
               >
                 {(days.length ? days : [day]).map((option) => (

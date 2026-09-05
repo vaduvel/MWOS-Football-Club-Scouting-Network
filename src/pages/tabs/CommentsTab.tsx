@@ -196,6 +196,8 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
                       <button
                         onClick={() => handleRequestDelete(comment)}
                         disabled={deletingId === comment.id}
+                        aria-label={`Delete comment by ${comment.authorName}`}
+                        title="Delete comment"
                         className="rounded-full border border-[var(--color-mid)]/18 p-2 text-[var(--color-mid)] transition-colors hover:border-[var(--color-accent)]/25 hover:bg-[var(--color-accent)]/8 hover:text-[var(--color-accent)]"
                       >
                         <Trash2 size={15} />
