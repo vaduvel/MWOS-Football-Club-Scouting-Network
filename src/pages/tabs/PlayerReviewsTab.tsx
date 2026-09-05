@@ -3,12 +3,16 @@ import { useReportStore, PlayerReview } from '../../store/report';
 import { Plus, Trash2, ChevronDown, ChevronUp, UserCheck } from 'lucide-react';
 import { createId } from '../../lib/ids';
 
-export default function PlayerReviewsTab() {
-  const { currentReport, addReview, updateReview, removeReview } = useReportStore();
+export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
+  const { currentReport, addReview, updateReview: updateReviewInStore, removeReview: removeReviewInStore } = useReportStore();
+  const updateReview = (id: PlayerReview['id'], fields: Partial<PlayerReview>) => {
+    if (canEdit) updateReviewInStore(id, fields);
+  };
+  const removeReview = (id: PlayerReview['id']) => {
+    if (canEdit) removeReviewInStore(id);
+  };
   const [expandedId, setExpandedId] = useState<string | number | null>(null);
   const [isCompact, setIsCompact] = useState(false);
-
-  if (!currentReport) return null;
 
   useEffect(() => {
     const syncCompactMode = () => {
@@ -20,7 +24,10 @@ export default function PlayerReviewsTab() {
     return () => window.removeEventListener('resize', syncCompactMode);
   }, []);
 
+  if (!currentReport) return null;
+
   const handleAddReview = () => {
+    if (!canEdit) return;
     const newReview: PlayerReview = {
       id: createId(),
       player_id: '',
@@ -48,10 +55,12 @@ export default function PlayerReviewsTab() {
         {[1, 2, 3, 4, 5].map(val => (
           <button
             key={val}
+            disabled={!canEdit}
+            aria-label={`${label}: ${val} out of 5`}
             onClick={() => updateReview(review.id, { [field]: val })}
             className={`flex ${isCompact ? 'h-9 w-9' : 'h-10 w-10'} items-center justify-center rounded text-xs font-black transition-colors ${
-              (review[field] as number) >= val 
-                ? 'bg-[var(--color-primary)] text-white' 
+              (review[field] as number) >= val
+                ? 'bg-[var(--color-primary)] text-white'
                 : 'bg-white text-[var(--color-mid)] border border-[var(--color-mid)]/30'
             }`}
           >
@@ -70,7 +79,7 @@ export default function PlayerReviewsTab() {
           <h2 className="text-lg font-black uppercase tracking-tighter text-[var(--color-dark)] md:text-2xl">Player Reviews</h2>
           <p className="mt-1 text-xs font-semibold text-[var(--color-mid)] md:text-sm">Score players, verdicts and next-step recommendations.</p>
         </div>
-        <button onClick={handleAddReview} className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-90 md:w-auto md:rounded-xl md:px-6">
+        <button disabled={!canEdit} onClick={handleAddReview} className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-90 md:w-auto md:rounded-xl md:px-6">
           <Plus size={20} />
           <span>Add Review</span>
         </button>
@@ -80,15 +89,14 @@ export default function PlayerReviewsTab() {
         {currentReport.reviews.map((review, index) => {
           const isExpanded = expandedId === review.id;
           const player = currentReport.players.find(p => p.id.toString() === review.player_id.toString());
-          
+
           return (
             <div key={review.id} className="overflow-hidden rounded-2xl border border-[var(--color-mid)]/20 bg-white shadow-sm transition-all">
               {/* Header (Click to expand) */}
-              <div 
-                className="flex cursor-pointer items-start justify-between gap-3 p-4 transition-colors hover:bg-[var(--color-light)]/50 md:p-6"
-                onClick={() => toggleExpand(review.id)}
+              <div
+                className="flex items-start justify-between gap-3 p-4 transition-colors hover:bg-[var(--color-light)]/50 md:p-6"
               >
-                <div className="flex min-w-0 items-center gap-3">
+                <button type="button" onClick={() => toggleExpand(review.id)} aria-expanded={isExpanded} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-lg font-black text-[var(--color-primary)]">
                     {index + 1}
                   </div>
@@ -105,27 +113,28 @@ export default function PlayerReviewsTab() {
                       </span>
                     </div>
                   </div>
-                </div>
+                  {isExpanded ? <ChevronUp size={20} className="ml-auto shrink-0 text-[var(--color-mid)]" /> : <ChevronDown size={20} className="ml-auto shrink-0 text-[var(--color-mid)]" />}
+                </button>
                 <div className="flex items-center gap-1">
-                  <button 
+                  {canEdit && <button
                     onClick={(e) => { e.stopPropagation(); removeReview(review.id); }}
+                    aria-label={`Delete review for ${player?.name || 'unnamed player'}`}
                     className="rounded-lg p-2 text-[var(--color-mid)] transition-colors hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)]"
                   >
                     <Trash2 size={18} />
-                  </button>
-                  {isExpanded ? <ChevronUp size={20} className="text-[var(--color-mid)]" /> : <ChevronDown size={20} className="text-[var(--color-mid)]" />}
+                  </button>}
                 </div>
               </div>
 
               {/* Expanded Content */}
               {isExpanded && (
                 <div className="space-y-4 border-t border-[var(--color-mid)]/20 bg-[var(--color-light)]/30 p-4 md:space-y-8 md:p-6">
-                  
+
                   {/* Player Selection */}
                   <div>
                     <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Select Player</label>
-                    <select 
-                      value={review.player_id} 
+                    <select disabled={!canEdit}
+                      value={review.player_id}
                       onChange={e => updateReview(review.id, { player_id: e.target.value })}
                       className="mwos-select-field w-full rounded-xl border border-[var(--color-mid)]/30 bg-white p-3 font-bold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                     >
@@ -147,32 +156,32 @@ export default function PlayerReviewsTab() {
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
                     <div className="md:col-span-2">
                       <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Overview</label>
-                      <textarea 
-                        value={review.overview} 
+                      <textarea readOnly={!canEdit}
+                        value={review.overview}
                         onChange={e => updateReview(review.id, { overview: e.target.value })}
-                        rows={isCompact ? 4 : 3} 
-                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white" 
-                        placeholder="General summary of performance..." 
+                        rows={isCompact ? 4 : 3}
+                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white"
+                        placeholder="General summary of performance..."
                       />
                     </div>
                     <div>
                       <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Strengths</label>
-                      <textarea 
-                        value={review.strengths} 
+                      <textarea readOnly={!canEdit}
+                        value={review.strengths}
                         onChange={e => updateReview(review.id, { strengths: e.target.value })}
-                        rows={isCompact ? 3 : 4} 
-                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white" 
-                        placeholder="- Good vision&#10;- Strong in the air" 
+                        rows={isCompact ? 3 : 4}
+                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white"
+                        placeholder="- Good vision&#10;- Strong in the air"
                       />
                     </div>
                     <div>
                       <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Areas to Improve</label>
-                      <textarea 
-                        value={review.areas_to_improve} 
+                      <textarea readOnly={!canEdit}
+                        value={review.areas_to_improve}
                         onChange={e => updateReview(review.id, { areas_to_improve: e.target.value })}
-                        rows={isCompact ? 3 : 4} 
-                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white" 
-                        placeholder="- Weak foot crossing&#10;- Tracking back" 
+                        rows={isCompact ? 3 : 4}
+                        className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white"
+                        placeholder="- Weak foot crossing&#10;- Tracking back"
                       />
                     </div>
                   </div>
@@ -205,18 +214,18 @@ export default function PlayerReviewsTab() {
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
                       <div className="md:col-span-2">
                         <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Short Verdict</label>
-                        <input 
-                          type="text" 
-                          value={review.recommendation_verdict} 
+                        <input readOnly={!canEdit}
+                          type="text"
+                          value={review.recommendation_verdict}
                           onChange={e => updateReview(review.id, { recommendation_verdict: e.target.value })}
-                          className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-bold bg-white" 
-                          placeholder="e.g. Sign immediately, Monitor progress" 
+                          className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-bold bg-white"
+                          placeholder="e.g. Sign immediately, Monitor progress"
                         />
                       </div>
                       <div>
                         <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Potential Level</label>
-                        <select 
-                          value={review.potential_level} 
+                        <select disabled={!canEdit}
+                          value={review.potential_level}
                           onChange={e => updateReview(review.id, { potential_level: e.target.value })}
                           className="mwos-select-field w-full rounded-xl border border-[var(--color-mid)]/30 bg-white p-3 font-bold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                         >
@@ -234,12 +243,12 @@ export default function PlayerReviewsTab() {
             </div>
           );
         })}
-        
+
         {currentReport.reviews.length === 0 && (
           <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/20 bg-white py-10 text-center">
             <UserCheck size={48} className="mx-auto mb-4 text-[var(--color-mid)] opacity-50" />
             <p className="text-lg font-bold text-[var(--color-dark)]">No player reviews yet</p>
-            <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">Add the first review to start rating players.</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--color-mid)]">{canEdit ? 'Add the first review to start rating players.' : 'No reviews have been recorded for this report.'}</p>
           </div>
         )}
       </div>

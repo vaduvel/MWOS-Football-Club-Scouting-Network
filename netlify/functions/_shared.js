@@ -307,24 +307,13 @@ export async function requireAdminUser(event) {
     return auth;
   }
 
-  const [rolesResponse, profileResponse] = await Promise.all([
-    auth.supabase
-      .from('user_roles')
-      .select('roles!inner(slug)')
-      .eq('user_id', auth.user.id),
-    auth.supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', auth.user.id)
-      .maybeSingle(),
-  ]);
+  const rolesResponse = await auth.supabase
+    .from('user_roles')
+    .select('roles!inner(slug)')
+    .eq('user_id', auth.user.id);
 
   if (rolesResponse.error) {
     return { error: json(500, { error: rolesResponse.error.message }) };
-  }
-
-  if (profileResponse.error) {
-    return { error: json(500, { error: profileResponse.error.message }) };
   }
 
   const roleRows = rolesResponse.data || [];
@@ -333,7 +322,7 @@ export async function requireAdminUser(event) {
     return joined.some((role) => String(role.slug || '').trim().toLowerCase() === 'admin');
   });
 
-  if (!hasAdminRole && (profileResponse.data?.role || '').trim().toLowerCase() !== 'admin') {
+  if (!hasAdminRole) {
     return { error: json(403, { error: 'Admin access is required.' }) };
   }
 

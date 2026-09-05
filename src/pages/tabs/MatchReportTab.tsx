@@ -15,7 +15,7 @@ import { parseNumberInput } from '../../lib/numericValueDomain';
 
 type SectionKey = 'ocr' | 'details' | 'teams' | 'notes' | 'video';
 
-export default function MatchReportTab() {
+export default function MatchReportTab({ canEdit }: { canEdit: boolean }) {
   const { currentReport, mergeReportFields, updateReportField } = useReportStore();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [ocrResult, setOcrResult] = useState<OcrReportResult | null>(null);
@@ -58,12 +58,14 @@ export default function MatchReportTab() {
   if (!currentReport) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (!canEdit) return;
     const field = e.target.name as keyof typeof currentReport;
     const value = e.target.type === 'number' ? parseNumberInput(e.target.value) : e.target.value;
     updateReportField(field, value);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canEdit) return;
     const nextFile = event.target.files?.[0] || null;
     setSelectedFile(nextFile);
     setOcrResult(null);
@@ -71,7 +73,7 @@ export default function MatchReportTab() {
   };
 
   const handleRunOcr = async () => {
-    if (!selectedFile) return;
+    if (!canEdit || !selectedFile) return;
 
     setOcrLoading(true);
     setOcrError('');
@@ -87,13 +89,13 @@ export default function MatchReportTab() {
   };
 
   const handleApplyDetectedFields = () => {
-    if (!ocrResult) return;
+    if (!canEdit || !ocrResult) return;
 
     mergeReportFields(ocrResult.suggestions);
   };
 
   const handleAppendOcrToNotes = () => {
-    if (!ocrResult?.text) return;
+    if (!canEdit || !ocrResult?.text) return;
 
     const prefix = `[OCR Import: ${ocrResult.fileName}]`;
     const nextNotes = currentReport.general_notes
@@ -114,7 +116,7 @@ export default function MatchReportTab() {
 
   const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !currentReport?.id) return;
+    if (!canEdit || !file || !currentReport?.id) return;
 
     setVideoUploading(true);
     setVideoError('');
@@ -130,7 +132,7 @@ export default function MatchReportTab() {
   };
 
   const handleVideoDelete = async () => {
-    if (!currentReport?.id || !currentReport.video_url) return;
+    if (!canEdit || !currentReport?.id || !currentReport.video_url) return;
 
     setVideoDeleting(true);
     setVideoError('');
@@ -151,7 +153,7 @@ export default function MatchReportTab() {
   return (
     <>
       <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-8">
-      <section className={`${sectionSurface} ${sectionPadding}`}>
+      {canEdit && <section className={`${sectionSurface} ${sectionPadding}`}>
         <button
           type="button"
           onClick={() => toggleSection('ocr')}
@@ -288,7 +290,7 @@ export default function MatchReportTab() {
             </div>
           </div>
         )}
-      </section>
+      </section>}
 
       <section className={`${sectionSurface} ${sectionPadding}`}>
         <button
@@ -312,27 +314,27 @@ export default function MatchReportTab() {
           <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Competition</label>
-            <input name="competition" value={currentReport.competition} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold" placeholder="e.g. Premier League" />
+            <input name="competition" value={currentReport.competition} readOnly={!canEdit} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold" placeholder="e.g. Premier League" />
           </div>
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Date</label>
-            <input type="date" name="date" value={currentReport.date} onChange={handleChange} className="mwos-date-field w-full rounded-xl border border-[var(--color-mid)]/30 p-3 font-semibold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]" />
+            <input type="date" name="date" value={currentReport.date} readOnly={!canEdit} onChange={handleChange} className="mwos-date-field w-full rounded-xl border border-[var(--color-mid)]/30 p-3 font-semibold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]" />
           </div>
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Venue</label>
-            <input name="venue" value={currentReport.venue} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold" placeholder="Stadium Name" />
+            <input name="venue" value={currentReport.venue} readOnly={!canEdit} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold" placeholder="Stadium Name" />
           </div>
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Kick-off Time</label>
-            <input type="time" name="kickoff" value={currentReport.kickoff} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold" />
+            <input type="time" name="kickoff" value={currentReport.kickoff} readOnly={!canEdit} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold" />
           </div>
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Weather</label>
-            <input name="weather" value={currentReport.weather} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold" placeholder="e.g. Sunny, 18°C" />
+            <input name="weather" value={currentReport.weather} readOnly={!canEdit} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold" placeholder="e.g. Sunny, 18°C" />
           </div>
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Pitch Condition</label>
-            <input name="pitch" value={currentReport.pitch} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold" placeholder="e.g. Excellent, Wet" />
+            <input name="pitch" value={currentReport.pitch} readOnly={!canEdit} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold" placeholder="e.g. Excellent, Wet" />
           </div>
           </div>
         )}
@@ -363,15 +365,15 @@ export default function MatchReportTab() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Team Name</label>
-                <input name="home_team" value={currentReport.home_team} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-bold text-lg text-center" />
+                <input name="home_team" value={currentReport.home_team} readOnly={!canEdit} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-bold text-lg text-center" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Score</label>
-                <input type="number" inputMode="numeric" name="home_score" value={currentReport.home_score} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-black text-3xl text-center text-[var(--color-primary)]" />
+                <input type="number" inputMode="numeric" name="home_score" value={currentReport.home_score} readOnly={!canEdit} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-black text-3xl text-center text-[var(--color-primary)]" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Manager</label>
-                <input name="home_manager" value={currentReport.home_manager} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold text-center" />
+                <input name="home_manager" value={currentReport.home_manager} readOnly={!canEdit} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold text-center" />
               </div>
             </div>
           </div>
@@ -381,15 +383,15 @@ export default function MatchReportTab() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Team Name</label>
-                <input name="away_team" value={currentReport.away_team} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none transition-all font-bold text-lg text-center" />
+                <input name="away_team" value={currentReport.away_team} readOnly={!canEdit} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none transition-all font-bold text-lg text-center" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Score</label>
-                <input type="number" inputMode="numeric" name="away_score" value={currentReport.away_score} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none transition-all font-black text-3xl text-center text-[var(--color-accent)]" />
+                <input type="number" inputMode="numeric" name="away_score" value={currentReport.away_score} readOnly={!canEdit} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none transition-all font-black text-3xl text-center text-[var(--color-accent)]" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Manager</label>
-                <input name="away_manager" value={currentReport.away_manager} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none transition-all font-semibold text-center" />
+                <input name="away_manager" value={currentReport.away_manager} readOnly={!canEdit} onChange={handleChange} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] outline-none transition-all font-semibold text-center" />
               </div>
             </div>
           </div>
@@ -419,11 +421,11 @@ export default function MatchReportTab() {
           <div className="mt-6 space-y-6">
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">Focus of the Report</label>
-            <textarea name="focus" value={currentReport.focus} onChange={handleChange} rows={3} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y" placeholder="e.g. Analyzing the opposition's defensive shape..." />
+            <textarea name="focus" value={currentReport.focus} readOnly={!canEdit} onChange={handleChange} rows={3} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y" placeholder="e.g. Analyzing the opposition's defensive shape..." />
           </div>
           <div>
             <label className="block text-xs font-bold text-[var(--color-mid)] uppercase tracking-wider mb-2">General Match Notes</label>
-            <textarea name="general_notes" value={currentReport.general_notes} onChange={handleChange} rows={5} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y" placeholder="Overall impressions of the match..." />
+            <textarea name="general_notes" value={currentReport.general_notes} readOnly={!canEdit} onChange={handleChange} rows={5} className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y" placeholder="Overall impressions of the match..." />
           </div>
           </div>
         )}
@@ -438,7 +440,7 @@ export default function MatchReportTab() {
           <div className="text-left">
             <h2 className="text-xl font-black uppercase tracking-tighter text-[var(--color-dark)] md:text-2xl">Match Video</h2>
             <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">
-              Attach one short clip per report. Keep it under 1 min 30 sec and 30 MB.
+              {canEdit ? 'Attach one short clip per report. Keep it under 1 min 30 sec and 30 MB.' : 'Watch the clip attached to this report.'}
             </p>
           </div>
           {isCompact ? (
@@ -472,8 +474,8 @@ export default function MatchReportTab() {
                   style={{ maxHeight: '320px' }}
                 />
                 <div className="flex items-center justify-between gap-4">
-                  <p className="text-xs font-semibold text-[var(--color-mid)]">1 video attached. Remove it before uploading a new clip.</p>
-                  <button
+                  <p className="text-xs font-semibold text-[var(--color-mid)]">{canEdit ? '1 video attached. Remove it before uploading a new clip.' : '1 video attached.'}</p>
+                  {canEdit && <button
                     type="button"
                     onClick={() => setVideoDeleteConfirmOpen(true)}
                     disabled={videoDeleting}
@@ -481,9 +483,11 @@ export default function MatchReportTab() {
                   >
                     {videoDeleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                     Remove Video
-                  </button>
+                  </button>}
                 </div>
               </div>
+            ) : !canEdit ? (
+              <p className="text-sm font-semibold text-[var(--color-mid)]">No video attached to this report.</p>
             ) : (
               <div>
                 <input
@@ -532,7 +536,7 @@ export default function MatchReportTab() {
       </div>
 
       <ConfirmActionModal
-        open={videoDeleteConfirmOpen}
+        open={canEdit && videoDeleteConfirmOpen}
         title="Remove video?"
         description="This clip will be detached from the report and deleted from storage. The rest of the report stays unchanged."
         confirmLabel="Remove video"

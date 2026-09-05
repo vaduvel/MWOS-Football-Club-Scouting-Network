@@ -108,7 +108,7 @@ const SLOT_LABELS: Record<string, string> = {
   lst: 'LST',
 };
 
-export default function FormationsTab() {
+export default function FormationsTab({ canEdit }: { canEdit: boolean }) {
   const { currentReport, updatePlayer, updateReportField, undo, redo, historyIndex, history } = useReportStore();
   const [activeSide, setActiveSide] = useState<'home' | 'away'>('home');
   const [isLocked, setIsLocked] = useState(false);
@@ -122,10 +122,8 @@ export default function FormationsTab() {
   const [tempPos, setTempPos] = useState<{x: number, y: number} | null>(null);
   const [hoveredSlot, setHoveredSlot] = useState<{id: string, x: number, y: number} | null>(null);
 
-  if (!currentReport) return null;
-
-  const players = currentReport.players.filter(p => p.team_side === activeSide);
-  const formationKey = activeSide === 'home' ? currentReport.formation_home : currentReport.formation_away;
+  const players = currentReport?.players.filter(p => p.team_side === activeSide) || [];
+  const formationKey = (activeSide === 'home' ? currentReport?.formation_home : currentReport?.formation_away) || '4-3-3';
   const currentFormation = FORMATIONS[formationKey] || FORMATIONS['4-3-3'];
   const selectedSlot = currentFormation.find((slot) => slot.id === selectedSlotId) || null;
 
@@ -143,6 +141,16 @@ export default function FormationsTab() {
     setSelectedSlotId(null);
   }, [activeSide, formationKey, isCompact]);
 
+  useEffect(() => {
+    if (!canEdit) {
+      setDraggingId(null);
+      setTempPos(null);
+      setHoveredSlot(null);
+    }
+  }, [canEdit]);
+
+  if (!currentReport) return null;
+
   const getSlotOccupant = (slot: { id: string; x: number; y: number }) =>
     players.find((player) => Math.abs(player.position_x - slot.x) < 2 && Math.abs(player.position_y - slot.y) < 2);
 
@@ -157,6 +165,7 @@ export default function FormationsTab() {
   };
 
   const assignPlayerToSlot = (playerId: string | number, slot: { id: string; x: number; y: number }) => {
+    if (!canEdit) return;
     const selectedPlayer = players.find((player) => player.id === playerId);
     if (!selectedPlayer) return;
 
@@ -173,7 +182,7 @@ export default function FormationsTab() {
   };
 
   const handlePointerDown = (e: React.PointerEvent, player: Player) => {
-    if (isCompact) return;
+    if (!canEdit || isCompact) return;
     e.preventDefault();
     e.stopPropagation();
     
@@ -194,7 +203,7 @@ export default function FormationsTab() {
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (isCompact) return;
+    if (!canEdit || isCompact) return;
     if (draggingId === null || !pitchRef.current) return;
     
     const rect = pitchRef.current.getBoundingClientRect();
@@ -229,7 +238,7 @@ export default function FormationsTab() {
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    if (isCompact) return;
+    if (!canEdit || isCompact) return;
     if (draggingId !== null && tempPos) {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       
@@ -270,6 +279,7 @@ export default function FormationsTab() {
   };
 
   const applyFormation = (preset: string) => {
+    if (!canEdit) return;
     updateReportField(activeSide === 'home' ? 'formation_home' : 'formation_away', preset);
     setSelectedSlotId(null);
     
@@ -319,14 +329,14 @@ export default function FormationsTab() {
             <div>
               <h2 className="text-lg font-black uppercase tracking-tighter text-[var(--color-dark)] md:text-xl">Formation View</h2>
               {isCompact ? (
-                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Tap a slot, then assign a player.</p>
+                <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">{canEdit ? 'Tap a slot, then assign a player.' : 'Tap a slot to inspect its assigned player.'}</p>
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex bg-[var(--color-light)] rounded-md mr-2">
                 <button
-                  onClick={undo}
-                  disabled={historyIndex < 0}
+                  onClick={() => { if (canEdit) undo(); }}
+                  disabled={!canEdit || historyIndex < 0}
                   className="p-2.5 text-[var(--color-dark)] hover:bg-[var(--color-mid)]/20 rounded-l-md disabled:opacity-30 transition-colors"
                   title="Undo"
                 >
@@ -334,8 +344,8 @@ export default function FormationsTab() {
                 </button>
                 <div className="w-px bg-[var(--color-mid)]/20"></div>
                 <button
-                  onClick={redo}
-                  disabled={historyIndex >= history.length - 2}
+                  onClick={() => { if (canEdit) redo(); }}
+                  disabled={!canEdit || historyIndex >= history.length - 2}
                   className="p-2.5 text-[var(--color-dark)] hover:bg-[var(--color-mid)]/20 rounded-r-md disabled:opacity-30 transition-colors"
                   title="Redo"
                 >
@@ -344,6 +354,8 @@ export default function FormationsTab() {
               </div>
 
               <select 
+                disabled={!canEdit}
+                aria-label="Formation"
                 value={formationKey} 
                 onChange={(e) => applyFormation(e.target.value)}
                 className="mwos-select-field rounded-md border border-[var(--color-mid)]/30 bg-[var(--color-light)] px-3 py-1.5 text-xs font-bold text-[var(--color-dark)] outline-none focus:border-[var(--color-primary)]"
@@ -354,6 +366,7 @@ export default function FormationsTab() {
               </select>
               
               <button 
+                disabled={!canEdit}
                 onClick={() => setIsLocked(!isLocked)}
                 className={`px-3 py-1.5 flex items-center gap-1 text-xs font-bold rounded-md transition-colors ${
                   isLocked ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]' : 'bg-[var(--color-light)] text-[var(--color-dark)] hover:bg-[var(--color-mid)]/20'
@@ -368,7 +381,7 @@ export default function FormationsTab() {
 
           <div 
             ref={pitchRef}
-            className={`relative w-full ${isCompact ? 'max-w-[320px]' : 'max-w-[500px]'} aspect-[2/3] bg-[#4CAF50] rounded-lg border-4 border-white shadow-inner overflow-hidden select-none ${isCompact ? '' : 'touch-none'}`}
+            className={`relative w-full ${isCompact ? 'max-w-[320px]' : 'max-w-[500px]'} aspect-[2/3] bg-[#4CAF50] rounded-lg border-4 border-white shadow-inner overflow-hidden select-none ${isCompact || !canEdit ? '' : 'touch-none'}`}
             style={{
               backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10%, rgba(255,255,255,0.1) 10%, rgba(255,255,255,0.1) 20%)'
             }}
@@ -404,12 +417,7 @@ export default function FormationsTab() {
               />
             ))}
 
-            {isCompact ? (
-              formationKey === 'Custom' ? (
-                <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-white/88 px-4 py-3 text-center text-xs font-bold text-[var(--color-dark)] shadow-lg">
-                  Choose a preset formation on mobile, then tap a slot to assign players.
-                </div>
-              ) : (
+            {isCompact && formationKey !== 'Custom' ? (
                 currentFormation.map((slot) => {
                   const occupant = getSlotOccupant(slot);
                   const initials = occupant?.name
@@ -444,7 +452,6 @@ export default function FormationsTab() {
                     </button>
                   );
                 })
-              )
             ) : (
               players.map(player => {
                 const isDragging = draggingId === player.id;
@@ -460,7 +467,7 @@ export default function FormationsTab() {
                     onPointerMove={handlePointerMove}
                     onPointerUp={handlePointerUp}
                     onPointerCancel={handlePointerUp}
-                    className={`absolute w-10 h-10 -ml-5 -mt-5 rounded-full flex flex-col items-center justify-center cursor-grab active:cursor-grabbing transition-transform ${
+                    className={`absolute w-10 h-10 -ml-5 -mt-5 rounded-full flex flex-col items-center justify-center ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''} transition-transform ${
                       isDragging ? 'scale-125 z-50 shadow-2xl' : 'scale-100 z-10 shadow-md hover:scale-110'
                     }`}
                     style={{
@@ -480,7 +487,7 @@ export default function FormationsTab() {
             )}
           </div>
           <p className="mt-3 text-center text-[11px] font-semibold text-[var(--color-mid)] md:mt-4 md:text-xs">
-            {isCompact
+            {!canEdit ? 'Saved formation. Select Home or Away to review each team.' : isCompact
               ? formationKey === 'Custom'
                 ? 'Pick a preset shape to enable touch placement.'
                 : 'Tap a pitch slot, then choose a player.'
@@ -500,7 +507,9 @@ export default function FormationsTab() {
                 {selectedSlot ? SLOT_LABELS[selectedSlot.id] || selectedSlot.id.toUpperCase() : 'Pick a slot on the pitch'}
               </p>
               <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">
-                {formationKey === 'Custom'
+                {!canEdit
+                  ? selectedSlot ? getSlotOccupant(selectedSlot)?.name || 'No player assigned to this position.' : 'Choose a position to see who is assigned.'
+                  : formationKey === 'Custom'
                   ? 'Choose a preset shape first.'
                   : selectedSlot
                     ? 'Tap a player below to place them here.'
@@ -535,9 +544,9 @@ export default function FormationsTab() {
                         assignPlayerToSlot(player.id, selectedSlot);
                       }
                     }}
-                    disabled={!selectedSlot || formationKey === 'Custom'}
+                    disabled={!canEdit || !selectedSlot || formationKey === 'Custom'}
                     className={`flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left text-sm transition-colors ${
-                      selectedSlot && formationKey !== 'Custom'
+                      canEdit && selectedSlot && formationKey !== 'Custom'
                         ? 'border-[var(--color-primary)]/14 bg-[var(--color-primary)]/5 active:bg-[var(--color-primary)]/10'
                         : 'border-[var(--color-mid)]/14 bg-[var(--color-light)]/45'
                     }`}
@@ -559,7 +568,7 @@ export default function FormationsTab() {
                           {player.rating}
                         </span>
                       ) : null}
-                      {selectedSlot && formationKey !== 'Custom' ? (
+                      {canEdit && selectedSlot && formationKey !== 'Custom' ? (
                         <span className="rounded-full bg-[var(--color-primary)] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
                           Assign
                         </span>

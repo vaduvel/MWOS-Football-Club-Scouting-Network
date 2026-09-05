@@ -1,3 +1,49 @@
+-- Fresh-project foundation recovered from 498035cdb32f70c950d4d0f8e59ef57c9ff23412.
+-- Announcements/Queens additions recovered from a6f62595ff2039426ee9e3a805ae6aea9b2fa5d5.
+-- Must run BEFORE 20260518080602. Existing complete foundations return unchanged.
+-- Not a production repair: partial schemas or existing Auth/Storage data fail closed.
+-- Deliberate security differences: user_roles is authoritative, signup role is Pending,
+-- and table grants are explicit for projects without legacy automatic API exposure.
+
+do $mwos_bootstrap$
+declare
+  expected_foundation constant text[] := array['profiles', 'user_settings', 'roles', 'teams', 'user_roles', 'user_team_assignments', 'staff_invitations', 'staff_invitation_roles', 'staff_invitation_teams', 'staff_access_events', 'training_plans', 'training_plan_days', 'training_plan_comments', 'transport_plans', 'transport_plan_comments', 'app_notifications', 'reports', 'players', 'player_reviews', 'watchlist_players', 'report_comments'];
+  foundation_count integer;
+  previous_check_function_bodies text := current_setting('check_function_bodies');
+begin
+  select count(*) into foundation_count
+  from unnest(expected_foundation) as t(table_name)
+  where to_regclass('public.' || table_name) is not null;
+
+  if foundation_count = cardinality(expected_foundation) then
+    raise notice 'MWOS foundation already exists; fresh-project bootstrap skipped without schema changes.';
+    return;
+  end if;
+
+  if foundation_count > 0 or exists (
+    select 1
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relkind in ('r', 'p', 'v', 'm', 'f', 'S')
+      and not exists (
+        select 1 from pg_depend d
+        where d.classid = 'pg_class'::regclass
+          and d.objid = c.oid and d.deptype = 'e'
+      )
+  ) then
+    raise exception 'MWOS bootstrap refused: public contains a partial or unrelated schema. Reconcile it explicitly.';
+  end if;
+
+  if exists (select 1 from auth.users) or exists (select 1 from storage.objects) then
+    raise exception 'MWOS bootstrap refused: Auth users or Storage objects already exist.';
+  end if;
+
+  -- The historical SQL declares some mutually referenced permission helpers later.
+  -- Validate their definitions and RLS behavior after the complete migration chain.
+  perform set_config('check_function_bodies', 'off', true);
+
+  execute $mwos_foundation$
 create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
@@ -30,30 +76,6 @@ create table if not exists public.teams (
   is_active boolean not null default true,
   sort_order integer not null default 0,
   created_at timestamptz not null default timezone('utc', now())
-);
-
-create table if not exists public.club_players (
-  id uuid primary key default gen_random_uuid(),
-  team_id uuid not null references public.teams (id) on delete restrict,
-  source_label text not null default 'anthropometrics_seed',
-  source_row_number integer,
-  squad_number integer,
-  first_name text not null,
-  last_name text not null,
-  display_name text not null,
-  weight_kg numeric(5,2),
-  height_cm numeric(5,2),
-  bmi numeric(5,2),
-  dominant_foot text not null default 'unknown'
-    check (dominant_foot in ('right', 'left', 'both', 'unknown')),
-  nationality text,
-  primary_position text,
-  secondary_position text,
-  is_active boolean not null default true,
-  notes text,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now()),
-  unique (team_id, display_name)
 );
 
 create table if not exists public.user_roles (
@@ -119,7 +141,6 @@ create table if not exists public.staff_access_events (
       'invite_created',
       'invite_resent',
       'invite_cancelled',
-      'invite_expired',
       'invite_applied_existing',
       'invite_accepted'
     )
@@ -164,8 +185,6 @@ create table if not exists public.training_plan_days (
   objectives text,
   exercises text,
   notes text,
-  import_review_state text not null default 'ready' check (import_review_state in ('ready', 'needs_review', 'missing_info')),
-  imported_excerpt text,
   reminder_sent_at timestamptz,
   last_major_change_at timestamptz,
   created_at timestamptz not null default timezone('utc', now()),
@@ -182,22 +201,6 @@ create table if not exists public.training_plan_comments (
   author_role_label text not null default '',
   content text not null,
   created_at timestamptz not null default timezone('utc', now())
-);
-
-create table if not exists public.training_plan_sources (
-  id uuid primary key default gen_random_uuid(),
-  plan_id uuid not null references public.training_plans (id) on delete cascade,
-  source_kind text not null check (source_kind in ('manual', 'pdf_import', 'image_import')),
-  file_name text,
-  mime_type text,
-  storage_path text,
-  preview_text text,
-  extracted_text text,
-  extraction_status text not null default 'draft_generated' check (extraction_status in ('draft_generated', 'reviewed', 'replaced')),
-  created_by uuid not null references auth.users (id) on delete cascade,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now()),
-  unique (plan_id)
 );
 
 create table if not exists public.transport_plans (
@@ -234,35 +237,6 @@ create table if not exists public.transport_plan_comments (
   created_at timestamptz not null default timezone('utc', now())
 );
 
-create table if not exists public.match_days (
-  id uuid primary key default gen_random_uuid(),
-  team_id uuid not null references public.teams (id) on delete cascade,
-  transport_plan_id uuid references public.transport_plans (id) on delete set null,
-  opponent text not null,
-  competition text,
-  match_date date not null,
-  kickoff_time time,
-  venue text,
-  status text not null default 'draft' check (status in ('draft', 'published', 'completed', 'cancelled')),
-  created_by uuid not null references auth.users (id) on delete cascade,
-  updated_by uuid not null references auth.users (id) on delete cascade,
-  published_by uuid references auth.users (id) on delete set null,
-  published_at timestamptz,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
-);
-
-create table if not exists public.match_day_players (
-  match_day_id uuid not null references public.match_days (id) on delete cascade,
-  club_player_id uuid not null references public.club_players (id) on delete cascade,
-  availability_status text not null default 'available' check (availability_status in ('available', 'doubtful', 'unavailable')),
-  selection_status text not null default 'out' check (selection_status in ('starter', 'bench', 'out')),
-  notes text,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now()),
-  primary key (match_day_id, club_player_id)
-);
-
 create table if not exists public.app_notifications (
   id uuid primary key default gen_random_uuid(),
   recipient_user_id uuid not null references auth.users (id) on delete cascade,
@@ -280,30 +254,6 @@ create table if not exists public.app_notifications (
   read_at timestamptz,
   created_at timestamptz not null default timezone('utc', now())
 );
-
-create table if not exists public.club_announcements (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  body text not null,
-  target_team_ids uuid[] not null default array[]::uuid[],
-  is_pinned boolean not null default false,
-  expires_at timestamptz,
-  archived_at timestamptz,
-  created_by uuid not null references auth.users (id) on delete cascade,
-  updated_by uuid not null references auth.users (id) on delete cascade,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
-);
-
-create table if not exists public.club_announcement_reads (
-  announcement_id uuid not null references public.club_announcements (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
-  read_at timestamptz not null default timezone('utc', now()),
-  primary key (announcement_id, user_id)
-);
-
-grant select, insert, update, delete on public.club_announcements to authenticated;
-grant select, insert, update on public.club_announcement_reads to authenticated;
 
 create table if not exists public.reports (
   id text primary key default gen_random_uuid()::text,
@@ -335,7 +285,6 @@ alter table public.reports add column if not exists video_url text;
 create table if not exists public.players (
   id text primary key default gen_random_uuid()::text,
   report_id text not null references public.reports (id) on delete cascade,
-  club_player_id uuid references public.club_players (id) on delete set null,
   team_side text not null check (team_side in ('home', 'away')),
   shirt_number integer,
   name text,
@@ -347,8 +296,6 @@ create table if not exists public.players (
   sort_order integer not null default 0,
   created_at timestamptz not null default timezone('utc', now())
 );
-
-create index if not exists players_club_player_id_idx on public.players (club_player_id);
 
 create table if not exists public.player_reviews (
   id text primary key default gen_random_uuid()::text,
@@ -402,9 +349,6 @@ create index if not exists user_roles_user_id_idx on public.user_roles (user_id)
 create index if not exists user_roles_role_id_idx on public.user_roles (role_id);
 create index if not exists user_team_assignments_user_id_idx on public.user_team_assignments (user_id);
 create index if not exists user_team_assignments_team_id_idx on public.user_team_assignments (team_id);
-create index if not exists club_players_team_id_idx on public.club_players (team_id);
-create index if not exists club_players_display_name_idx on public.club_players (display_name);
-create index if not exists club_players_primary_position_idx on public.club_players (primary_position);
 create index if not exists staff_invitations_email_normalized_idx on public.staff_invitations (email_normalized);
 create index if not exists staff_invitations_status_idx on public.staff_invitations (status);
 create index if not exists staff_invitations_inviter_idx on public.staff_invitations (inviter_user_id);
@@ -416,31 +360,21 @@ create index if not exists training_plans_team_id_idx on public.training_plans (
 create index if not exists training_plans_week_start_idx on public.training_plans (week_start);
 create index if not exists training_plan_days_plan_id_idx on public.training_plan_days (plan_id);
 create index if not exists training_plan_days_calendar_date_idx on public.training_plan_days (calendar_date);
-create index if not exists training_plan_sources_plan_id_idx on public.training_plan_sources (plan_id);
-create index if not exists training_plan_sources_created_by_idx on public.training_plan_sources (created_by);
 create index if not exists training_plan_comments_plan_id_idx on public.training_plan_comments (plan_id);
 create index if not exists training_plan_comments_author_id_idx on public.training_plan_comments (author_id);
 create index if not exists transport_plans_team_id_idx on public.transport_plans (team_id);
 create index if not exists transport_plans_event_date_idx on public.transport_plans (event_date);
 create index if not exists transport_plans_driver_user_id_idx on public.transport_plans (driver_user_id);
 create index if not exists transport_plans_status_idx on public.transport_plans (status);
-create unique index if not exists match_days_transport_plan_id_unique_idx
-  on public.match_days (transport_plan_id)
-  where transport_plan_id is not null;
 create index if not exists transport_plan_comments_plan_id_idx on public.transport_plan_comments (plan_id);
 create index if not exists transport_plan_comments_author_id_idx on public.transport_plan_comments (author_id);
 create index if not exists app_notifications_recipient_idx on public.app_notifications (recipient_user_id, created_at desc);
 drop index if exists public.app_notifications_event_key_idx;
 create unique index if not exists app_notifications_event_key_idx on public.app_notifications (recipient_user_id, event_key);
-create index if not exists club_announcements_created_at_idx on public.club_announcements (created_at desc);
-create index if not exists club_announcements_pinned_idx on public.club_announcements (is_pinned desc, created_at desc);
-create index if not exists club_announcements_target_team_ids_idx on public.club_announcements using gin (target_team_ids);
-create index if not exists club_announcement_reads_user_id_idx on public.club_announcement_reads (user_id, read_at desc);
 
 insert into public.roles (slug, label, description)
 values
   ('admin', 'Admin', 'Full club-wide access'),
-  ('executive_director', 'Executive Director', 'Strategic player development and club-wide read access'),
   ('technical_director', 'Technical Director', 'Club-wide read and comment access'),
   ('coach', 'Coach', 'Team-specific training access'),
   ('driver', 'Driver', 'Transport-focused access'),
@@ -458,8 +392,6 @@ values
   ('u17', 'U17', 'U17', true, 30),
   ('u19', 'U19', 'U19', true, 40),
   ('first-team', 'First Team', 'Senior', true, 50),
-  ('queens', 'Queens', 'Women', true, 55),
-  ('queens-u15', 'Queens U15', 'Girls U15', true, 57),
   ('u11', 'U11', 'U11', false, 60),
   ('u9', 'U9', 'U9', false, 70)
 on conflict (slug) do update
@@ -497,45 +429,15 @@ before update on public.staff_invitations
 for each row
 execute procedure public.set_updated_at();
 
-drop trigger if exists set_club_players_updated_at on public.club_players;
-create trigger set_club_players_updated_at
-before update on public.club_players
-for each row
-execute procedure public.set_updated_at();
-
 drop trigger if exists set_training_plan_days_updated_at on public.training_plan_days;
 create trigger set_training_plan_days_updated_at
 before update on public.training_plan_days
 for each row
 execute procedure public.set_updated_at();
 
-drop trigger if exists set_training_plan_sources_updated_at on public.training_plan_sources;
-create trigger set_training_plan_sources_updated_at
-before update on public.training_plan_sources
-for each row
-execute procedure public.set_updated_at();
-
 drop trigger if exists set_transport_plans_updated_at on public.transport_plans;
 create trigger set_transport_plans_updated_at
 before update on public.transport_plans
-for each row
-execute procedure public.set_updated_at();
-
-drop trigger if exists set_match_days_updated_at on public.match_days;
-create trigger set_match_days_updated_at
-before update on public.match_days
-for each row
-execute procedure public.set_updated_at();
-
-drop trigger if exists set_match_day_players_updated_at on public.match_day_players;
-create trigger set_match_day_players_updated_at
-before update on public.match_day_players
-for each row
-execute procedure public.set_updated_at();
-
-drop trigger if exists set_club_announcements_updated_at on public.club_announcements;
-create trigger set_club_announcements_updated_at
-before update on public.club_announcements
 for each row
 execute procedure public.set_updated_at();
 
@@ -558,7 +460,8 @@ begin
   set
     email = excluded.email,
     name = excluded.name,
-    organization = excluded.organization;
+    organization = excluded.organization,
+    role = coalesce(nullif(public.profiles.role, ''), excluded.role, 'Pending');
 
   insert into public.user_settings (user_id)
   values (new.id)
@@ -628,7 +531,6 @@ stable
 as $$
   select
     public.is_admin()
-    or public.has_role('executive_director')
     or public.has_role('technical_director')
     or public.has_role('board_observer')
     or (public.has_role('coach') and public.belongs_to_team(target_team_id));
@@ -646,64 +548,7 @@ as $$
     or (public.has_role('coach') and public.belongs_to_team(target_team_id));
 $$;
 
-create or replace function public.can_manage_club_roster(target_team_id uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select
-    public.is_admin()
-    or public.has_role('technical_director')
-    or (public.has_role('coach') and public.belongs_to_team(target_team_id));
-$$;
-
-create or replace function public.can_view_club_roster(target_team_id uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select
-    public.is_admin()
-    or public.has_role('executive_director')
-    or public.has_role('technical_director')
-    or public.has_role('board_observer')
-    or public.has_role('scout')
-    or (public.has_role('coach') and public.belongs_to_team(target_team_id));
-$$;
-
 create or replace function public.can_comment_training_team(target_team_id uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select
-    public.is_admin()
-    or public.has_role('technical_director')
-    or (public.has_role('coach') and public.belongs_to_team(target_team_id));
-$$;
-
-create or replace function public.can_view_match_day_team(target_team_id uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select
-    public.is_admin()
-    or public.has_role('executive_director')
-    or public.has_role('technical_director')
-    or public.has_role('board_observer')
-    or (public.has_role('coach') and public.belongs_to_team(target_team_id));
-$$;
-
-create or replace function public.can_manage_match_day_team(target_team_id uuid)
 returns boolean
 language sql
 security definer
@@ -725,9 +570,7 @@ stable
 as $$
   select
     public.is_admin()
-    or public.has_role('technical_director')
-    or (public.has_role('coach') and public.belongs_to_team(target_team_id))
-    or (public.has_role('driver') and public.belongs_to_team(target_team_id));
+    or public.has_role('technical_director');
 $$;
 
 create or replace function public.can_view_transport_plan(target_plan_id uuid)
@@ -743,7 +586,6 @@ as $$
     where transport_plans.id = target_plan_id
       and (
         public.is_admin()
-        or public.has_role('executive_director')
         or public.has_role('technical_director')
         or public.has_role('board_observer')
         or (public.has_role('coach') and public.belongs_to_team(transport_plans.team_id))
@@ -766,7 +608,6 @@ as $$
       and (
         public.is_admin()
         or public.has_role('technical_director')
-        or (public.has_role('coach') and public.belongs_to_team(transport_plans.team_id))
         or transport_plans.driver_user_id = auth.uid()
       )
   );
@@ -802,44 +643,6 @@ as $$
   select public.is_admin();
 $$;
 
-create or replace function public.can_manage_club_announcements()
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select public.is_admin() or public.has_role('executive_director') or public.has_role('technical_director');
-$$;
-
-create or replace function public.can_view_club_announcement(
-  target_team_ids uuid[],
-  expires_at timestamptz,
-  archived_at timestamptz
-)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select
-    archived_at is null
-    and (expires_at is null or expires_at > timezone('utc', now()))
-    and public.has_any_role(array['admin', 'executive_director', 'technical_director', 'board_observer', 'coach', 'driver', 'scout'])
-    and (
-      public.can_manage_club_announcements()
-      or public.has_role('board_observer')
-      or coalesce(array_length(target_team_ids, 1), 0) = 0
-      or exists (
-        select 1
-        from public.user_team_assignments uta
-        where uta.user_id = auth.uid()
-          and uta.team_id = any (coalesce(target_team_ids, array[]::uuid[]))
-      )
-    );
-$$;
-
 create or replace function public.role_requires_team(target_slug text)
 returns boolean
 language sql
@@ -863,13 +666,21 @@ as $$
     join public.roles r on r.id = ur.role_id
     where ur.user_id = auth.uid()
       and r.slug = 'admin'
-  );
+  )
+;
 $$;
 
--- Role assignments must be provisioned by a trusted administrator, never profile metadata.
-alter function public.set_updated_at() set search_path = public;
-revoke execute on function public.handle_new_user() from public, anon, authenticated;
-revoke execute on function public.set_updated_at() from public, anon, authenticated;
+insert into public.user_roles (user_id, role_id)
+select
+  p.id,
+  r.id
+from public.profiles p
+join public.roles r
+  on r.slug = case
+    when lower(p.role) = 'admin' then 'admin'
+    else 'scout'
+  end
+on conflict (user_id, role_id) do nothing;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -878,20 +689,6 @@ values (
   true,
   31457280,
   array['video/mp4', 'video/quicktime', 'video/webm']
-)
-on conflict (id) do update
-set
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
-
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'training-plan-sources',
-  'training-plan-sources',
-  false,
-  10485760,
-  array['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 )
 on conflict (id) do update
 set
@@ -916,8 +713,8 @@ with check (
   and exists (
     select 1
     from public.reports
-    where reports.id::text = (storage.foldername(name))[1]
-      and (public.is_admin() or (reports.user_id = auth.uid() and public.has_role('scout')))
+    where reports.id = (storage.foldername(name))[1]
+      and (reports.user_id = auth.uid() or public.is_admin())
   )
 );
 
@@ -931,8 +728,8 @@ using (
   and exists (
     select 1
     from public.reports
-    where reports.id::text = (storage.foldername(name))[1]
-      and (public.is_admin() or (reports.user_id = auth.uid() and public.has_role('scout')))
+    where reports.id = (storage.foldername(name))[1]
+      and (reports.user_id = auth.uid() or public.is_admin())
   )
 )
 with check (
@@ -940,8 +737,8 @@ with check (
   and exists (
     select 1
     from public.reports
-    where reports.id::text = (storage.foldername(name))[1]
-      and (public.is_admin() or (reports.user_id = auth.uid() and public.has_role('scout')))
+    where reports.id = (storage.foldername(name))[1]
+      and (reports.user_id = auth.uid() or public.is_admin())
   )
 );
 
@@ -955,77 +752,8 @@ using (
   and exists (
     select 1
     from public.reports
-    where reports.id::text = (storage.foldername(name))[1]
-      and (public.is_admin() or (reports.user_id = auth.uid() and public.has_role('scout')))
-  )
-);
-
-drop policy if exists "training_sources_select_accessible" on storage.objects;
-create policy "training_sources_select_accessible"
-on storage.objects
-for select
-to authenticated
-using (
-  bucket_id = 'training-plan-sources'
-  and exists (
-    select 1
-    from public.training_plans
-    where training_plans.id::text = (storage.foldername(name))[1]
-      and public.can_view_training_team(training_plans.team_id)
-  )
-);
-
-drop policy if exists "training_sources_owner_insert" on storage.objects;
-create policy "training_sources_owner_insert"
-on storage.objects
-for insert
-to authenticated
-with check (
-  bucket_id = 'training-plan-sources'
-  and exists (
-    select 1
-    from public.training_plans
-    where training_plans.id::text = (storage.foldername(name))[1]
-      and public.can_manage_training_team(training_plans.team_id)
-  )
-);
-
-drop policy if exists "training_sources_owner_update" on storage.objects;
-create policy "training_sources_owner_update"
-on storage.objects
-for update
-to authenticated
-using (
-  bucket_id = 'training-plan-sources'
-  and exists (
-    select 1
-    from public.training_plans
-    where training_plans.id::text = (storage.foldername(name))[1]
-      and public.can_manage_training_team(training_plans.team_id)
-  )
-)
-with check (
-  bucket_id = 'training-plan-sources'
-  and exists (
-    select 1
-    from public.training_plans
-    where training_plans.id::text = (storage.foldername(name))[1]
-      and public.can_manage_training_team(training_plans.team_id)
-  )
-);
-
-drop policy if exists "training_sources_owner_delete" on storage.objects;
-create policy "training_sources_owner_delete"
-on storage.objects
-for delete
-to authenticated
-using (
-  bucket_id = 'training-plan-sources'
-  and exists (
-    select 1
-    from public.training_plans
-    where training_plans.id::text = (storage.foldername(name))[1]
-      and public.can_manage_training_team(training_plans.team_id)
+    where reports.id = (storage.foldername(name))[1]
+      and (reports.user_id = auth.uid() or public.is_admin())
   )
 );
 
@@ -1041,26 +769,16 @@ alter table public.roles enable row level security;
 alter table public.teams enable row level security;
 alter table public.user_roles enable row level security;
 alter table public.user_team_assignments enable row level security;
-alter table public.club_players enable row level security;
 alter table public.staff_invitations enable row level security;
 alter table public.staff_invitation_roles enable row level security;
 alter table public.staff_invitation_teams enable row level security;
 alter table public.staff_access_events enable row level security;
-
-revoke all on table public.staff_access_events from anon, authenticated;
-grant select, insert on table public.staff_access_events to authenticated;
-grant select, insert, update, delete on table public.staff_access_events to service_role;
 alter table public.training_plans enable row level security;
 alter table public.training_plan_days enable row level security;
 alter table public.training_plan_comments enable row level security;
-alter table public.training_plan_sources enable row level security;
 alter table public.transport_plans enable row level security;
 alter table public.transport_plan_comments enable row level security;
-alter table public.match_days enable row level security;
-alter table public.match_day_players enable row level security;
 alter table public.app_notifications enable row level security;
-alter table public.club_announcements enable row level security;
-alter table public.club_announcement_reads enable row level security;
 alter table public.reports enable row level security;
 alter table public.players enable row level security;
 alter table public.player_reviews enable row level security;
@@ -1073,9 +791,6 @@ alter table public.user_settings add column if not exists email_training_td_comm
 alter table public.user_settings add column if not exists email_training_reminder boolean not null default true;
 alter table public.user_settings add column if not exists email_training_schedule_change boolean not null default true;
 alter table public.user_settings add column if not exists email_transport_updates boolean not null default true;
-alter table public.training_plan_days add column if not exists import_review_state text not null default 'ready'
-  check (import_review_state in ('ready', 'needs_review', 'missing_info'));
-alter table public.training_plan_days add column if not exists imported_excerpt text;
 
 drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own"
@@ -1083,7 +798,7 @@ on public.profiles
 for select
 using (
   auth.uid() = id
-  or public.has_any_role(array['admin', 'executive_director', 'technical_director', 'board_observer'])
+  or public.has_any_role(array['admin', 'technical_director', 'board_observer'])
 );
 
 drop policy if exists "profiles_insert_own" on public.profiles;
@@ -1136,7 +851,7 @@ for select
 to authenticated
 using (
   auth.uid() = user_id
-  or public.has_any_role(array['admin', 'executive_director', 'technical_director'])
+  or public.has_any_role(array['admin', 'technical_director'])
 );
 
 drop policy if exists "user_roles_mutate_admin" on public.user_roles;
@@ -1154,7 +869,7 @@ for select
 to authenticated
 using (
   auth.uid() = user_id
-  or public.has_any_role(array['admin', 'executive_director', 'technical_director'])
+  or public.has_any_role(array['admin', 'technical_director'])
 );
 
 drop policy if exists "user_team_assignments_mutate_admin" on public.user_team_assignments;
@@ -1164,39 +879,6 @@ for all
 to authenticated
 using (public.is_admin())
 with check (public.is_admin());
-
-grant select, insert, update, delete on public.club_players to authenticated;
-grant select, insert, update, delete on public.match_days to authenticated;
-grant select, insert, update, delete on public.match_day_players to authenticated;
-
-drop policy if exists "club_players_select_accessible" on public.club_players;
-create policy "club_players_select_accessible"
-on public.club_players
-for select
-to authenticated
-using (public.can_view_club_roster(team_id));
-
-drop policy if exists "club_players_insert_accessible" on public.club_players;
-create policy "club_players_insert_accessible"
-on public.club_players
-for insert
-to authenticated
-with check (public.can_manage_club_roster(team_id));
-
-drop policy if exists "club_players_update_accessible" on public.club_players;
-create policy "club_players_update_accessible"
-on public.club_players
-for update
-to authenticated
-using (public.can_manage_club_roster(team_id))
-with check (public.can_manage_club_roster(team_id));
-
-drop policy if exists "club_players_delete_accessible" on public.club_players;
-create policy "club_players_delete_accessible"
-on public.club_players
-for delete
-to authenticated
-using (public.can_manage_club_roster(team_id));
 
 drop policy if exists "staff_invitations_select_admin" on public.staff_invitations;
 create policy "staff_invitations_select_admin"
@@ -1298,120 +980,6 @@ on public.staff_access_events
 for insert
 to authenticated
 with check (public.can_manage_staff_access());
-
-create or replace function public.complete_staff_invitations(
-  target_user_id uuid,
-  target_email text,
-  target_invitation_token text default null
-)
-returns table (
-  completed_count integer,
-  invitation_ids uuid[],
-  role_slugs text[]
-)
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  normalized_email text := lower(trim(coalesce(target_email, '')));
-  matched_invitation_ids uuid[] := array[]::uuid[];
-  primary_role_label text;
-begin
-  if target_user_id is null or normalized_email = '' then
-    raise exception 'A user and email are required to complete staff invitations.';
-  end if;
-
-  if not exists (
-    select 1
-    from auth.users
-    where id = target_user_id
-      and lower(coalesce(email, '')) = normalized_email
-  ) then
-    raise exception 'The authenticated user does not match the invitation email.';
-  end if;
-
-  perform 1
-  from public.staff_invitations invitation
-  where invitation.email_normalized = normalized_email
-    and invitation.status = 'pending'
-    and invitation.expires_at > timezone('utc', now())
-    and (target_invitation_token is null or invitation.invitation_token = target_invitation_token)
-  for update;
-
-  select coalesce(array_agg(invitation.id order by invitation.created_at), array[]::uuid[])
-  into matched_invitation_ids
-  from public.staff_invitations invitation
-  where invitation.email_normalized = normalized_email
-    and invitation.status = 'pending'
-    and invitation.expires_at > timezone('utc', now())
-    and (target_invitation_token is null or invitation.invitation_token = target_invitation_token);
-
-  if cardinality(matched_invitation_ids) = 0 then
-    return query select 0, array[]::uuid[], array[]::text[];
-    return;
-  end if;
-
-  insert into public.user_roles (user_id, role_id)
-  select target_user_id, invitation_role.role_id
-  from public.staff_invitation_roles invitation_role
-  where invitation_role.invitation_id = any(matched_invitation_ids)
-  on conflict (user_id, role_id) do nothing;
-
-  insert into public.user_team_assignments (user_id, team_id)
-  select target_user_id, invitation_team.team_id
-  from public.staff_invitation_teams invitation_team
-  where invitation_team.invitation_id = any(matched_invitation_ids)
-  on conflict (user_id, team_id) do nothing;
-
-  select role.label
-  into primary_role_label
-  from public.user_roles user_role
-  join public.roles role on role.id = user_role.role_id
-  where user_role.user_id = target_user_id
-  order by
-    case role.slug
-      when 'admin' then 1
-      when 'executive_director' then 2
-      when 'technical_director' then 3
-      when 'coach' then 4
-      when 'driver' then 5
-      when 'scout' then 6
-      when 'board_observer' then 7
-      else 100
-    end,
-    role.label
-  limit 1;
-
-  if primary_role_label is not null then
-    update public.profiles set role = primary_role_label where id = target_user_id;
-  end if;
-
-  update public.staff_invitations
-  set status = 'accepted', resolved_user_id = target_user_id, accepted_at = timezone('utc', now())
-  where id = any(matched_invitation_ids) and status = 'pending';
-
-  return query
-  select
-    cardinality(matched_invitation_ids),
-    matched_invitation_ids,
-    coalesce(
-      array(
-        select distinct role.slug
-        from public.user_roles user_role
-        join public.roles role on role.id = user_role.role_id
-        where user_role.user_id = target_user_id
-        order by role.slug
-      ),
-      array[]::text[]
-    );
-end;
-$$;
-
-revoke all on function public.complete_staff_invitations(uuid, text, text) from public;
-revoke all on function public.complete_staff_invitations(uuid, text, text) from anon;
-revoke all on function public.complete_staff_invitations(uuid, text, text) from authenticated;
-grant execute on function public.complete_staff_invitations(uuid, text, text) to service_role;
 
 drop policy if exists "settings_select_own" on public.user_settings;
 create policy "settings_select_own"
@@ -1546,71 +1114,6 @@ using (
   )
 );
 
-drop policy if exists "training_plan_sources_select_accessible" on public.training_plan_sources;
-create policy "training_plan_sources_select_accessible"
-on public.training_plan_sources
-for select
-to authenticated
-using (
-  exists (
-    select 1
-    from public.training_plans
-    where training_plans.id = training_plan_sources.plan_id
-      and public.can_view_training_team(training_plans.team_id)
-  )
-);
-
-drop policy if exists "training_plan_sources_insert_accessible" on public.training_plan_sources;
-create policy "training_plan_sources_insert_accessible"
-on public.training_plan_sources
-for insert
-to authenticated
-with check (
-  created_by = auth.uid()
-  and exists (
-    select 1
-    from public.training_plans
-    where training_plans.id = training_plan_sources.plan_id
-      and public.can_manage_training_team(training_plans.team_id)
-  )
-);
-
-drop policy if exists "training_plan_sources_update_accessible" on public.training_plan_sources;
-create policy "training_plan_sources_update_accessible"
-on public.training_plan_sources
-for update
-to authenticated
-using (
-  exists (
-    select 1
-    from public.training_plans
-    where training_plans.id = training_plan_sources.plan_id
-      and public.can_manage_training_team(training_plans.team_id)
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.training_plans
-    where training_plans.id = training_plan_sources.plan_id
-      and public.can_manage_training_team(training_plans.team_id)
-  )
-);
-
-drop policy if exists "training_plan_sources_delete_accessible" on public.training_plan_sources;
-create policy "training_plan_sources_delete_accessible"
-on public.training_plan_sources
-for delete
-to authenticated
-using (
-  exists (
-    select 1
-    from public.training_plans
-    where training_plans.id = training_plan_sources.plan_id
-      and public.can_manage_training_team(training_plans.team_id)
-  )
-);
-
 drop policy if exists "training_plan_comments_insert_accessible" on public.training_plan_comments;
 create policy "training_plan_comments_insert_accessible"
 on public.training_plan_comments
@@ -1693,106 +1196,6 @@ for delete
 to authenticated
 using (author_id = auth.uid() or public.is_admin());
 
-drop policy if exists "match_days_select_accessible" on public.match_days;
-create policy "match_days_select_accessible"
-on public.match_days
-for select
-to authenticated
-using (public.can_view_match_day_team(team_id));
-
-drop policy if exists "match_days_insert_accessible" on public.match_days;
-create policy "match_days_insert_accessible"
-on public.match_days
-for insert
-to authenticated
-with check (
-  created_by = auth.uid()
-  and updated_by = auth.uid()
-  and public.can_manage_match_day_team(team_id)
-);
-
-drop policy if exists "match_days_update_accessible" on public.match_days;
-create policy "match_days_update_accessible"
-on public.match_days
-for update
-to authenticated
-using (public.can_manage_match_day_team(team_id))
-with check (
-  updated_by = auth.uid()
-  and public.can_manage_match_day_team(team_id)
-);
-
-drop policy if exists "match_days_delete_accessible" on public.match_days;
-create policy "match_days_delete_accessible"
-on public.match_days
-for delete
-to authenticated
-using (public.is_admin() or public.can_manage_match_day_team(team_id));
-
-drop policy if exists "match_day_players_select_accessible" on public.match_day_players;
-create policy "match_day_players_select_accessible"
-on public.match_day_players
-for select
-to authenticated
-using (
-  exists (
-    select 1
-    from public.match_days
-    where match_days.id = match_day_players.match_day_id
-      and public.can_view_match_day_team(match_days.team_id)
-  )
-);
-
-drop policy if exists "match_day_players_insert_accessible" on public.match_day_players;
-create policy "match_day_players_insert_accessible"
-on public.match_day_players
-for insert
-to authenticated
-with check (
-  exists (
-    select 1
-    from public.match_days
-    where match_days.id = match_day_players.match_day_id
-      and public.can_manage_match_day_team(match_days.team_id)
-  )
-);
-
-drop policy if exists "match_day_players_update_accessible" on public.match_day_players;
-create policy "match_day_players_update_accessible"
-on public.match_day_players
-for update
-to authenticated
-using (
-  exists (
-    select 1
-    from public.match_days
-    where match_days.id = match_day_players.match_day_id
-      and public.can_manage_match_day_team(match_days.team_id)
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.match_days
-    where match_days.id = match_day_players.match_day_id
-      and public.can_manage_match_day_team(match_days.team_id)
-  )
-);
-
-drop policy if exists "match_day_players_delete_accessible" on public.match_day_players;
-create policy "match_day_players_delete_accessible"
-on public.match_day_players
-for delete
-to authenticated
-using (
-  exists (
-    select 1
-    from public.match_days
-    where match_days.id = match_day_players.match_day_id
-      and public.can_manage_match_day_team(match_days.team_id)
-  )
-);
-
 drop policy if exists "app_notifications_select_own" on public.app_notifications;
 create policy "app_notifications_select_own"
 on public.app_notifications
@@ -1833,6 +1236,276 @@ for update
 to authenticated
 using (recipient_user_id = auth.uid())
 with check (recipient_user_id = auth.uid());
+
+drop policy if exists "reports_select_own" on public.reports;
+create policy "reports_select_own"
+on public.reports
+for select
+using (
+  auth.uid() = user_id
+  or public.is_admin()
+  or public.has_any_role(array['technical_director', 'board_observer'])
+);
+
+drop policy if exists "reports_insert_own" on public.reports;
+create policy "reports_insert_own"
+on public.reports
+for insert
+with check (auth.uid() = user_id);
+
+drop policy if exists "reports_update_own" on public.reports;
+create policy "reports_update_own"
+on public.reports
+for update
+using (auth.uid() = user_id or public.is_admin())
+with check (auth.uid() = user_id or public.is_admin());
+
+drop policy if exists "reports_delete_own" on public.reports;
+create policy "reports_delete_own"
+on public.reports
+for delete
+using (auth.uid() = user_id or public.is_admin());
+
+drop policy if exists "players_select_own" on public.players;
+create policy "players_select_own"
+on public.players
+for select
+using (
+  exists (
+    select 1
+    from public.reports
+    where reports.id = players.report_id
+      and (
+        reports.user_id = auth.uid()
+        or public.is_admin()
+        or public.has_any_role(array['technical_director', 'board_observer'])
+      )
+  )
+);
+
+drop policy if exists "players_insert_own" on public.players;
+create policy "players_insert_own"
+on public.players
+for insert
+with check (
+  exists (
+    select 1
+    from public.reports
+    where reports.id = players.report_id
+      and (reports.user_id = auth.uid() or public.is_admin())
+  )
+);
+
+drop policy if exists "players_delete_own" on public.players;
+create policy "players_delete_own"
+on public.players
+for delete
+using (
+  exists (
+    select 1
+    from public.reports
+    where reports.id = players.report_id
+      and (reports.user_id = auth.uid() or public.is_admin())
+  )
+);
+
+drop policy if exists "player_reviews_select_own" on public.player_reviews;
+create policy "player_reviews_select_own"
+on public.player_reviews
+for select
+using (
+  exists (
+    select 1
+    from public.reports
+    where reports.id = player_reviews.report_id
+      and (
+        reports.user_id = auth.uid()
+        or public.is_admin()
+        or public.has_any_role(array['technical_director', 'board_observer'])
+      )
+  )
+);
+
+drop policy if exists "player_reviews_insert_own" on public.player_reviews;
+create policy "player_reviews_insert_own"
+on public.player_reviews
+for insert
+with check (
+  exists (
+    select 1
+    from public.reports
+    where reports.id = player_reviews.report_id
+      and (reports.user_id = auth.uid() or public.is_admin())
+  )
+);
+
+drop policy if exists "player_reviews_delete_own" on public.player_reviews;
+create policy "player_reviews_delete_own"
+on public.player_reviews
+for delete
+using (
+  exists (
+    select 1
+    from public.reports
+    where reports.id = player_reviews.report_id
+      and (reports.user_id = auth.uid() or public.is_admin())
+  )
+);
+
+drop policy if exists "watchlist_players_select_own" on public.watchlist_players;
+create policy "watchlist_players_select_own"
+on public.watchlist_players
+for select
+using (auth.uid() = user_id or public.is_admin());
+
+drop policy if exists "watchlist_players_insert_own" on public.watchlist_players;
+create policy "watchlist_players_insert_own"
+on public.watchlist_players
+for insert
+with check (auth.uid() = user_id or public.is_admin());
+
+drop policy if exists "watchlist_players_update_own" on public.watchlist_players;
+create policy "watchlist_players_update_own"
+on public.watchlist_players
+for update
+using (auth.uid() = user_id or public.is_admin())
+with check (auth.uid() = user_id or public.is_admin());
+
+drop policy if exists "watchlist_players_delete_own" on public.watchlist_players;
+create policy "watchlist_players_delete_own"
+on public.watchlist_players
+for delete
+using (auth.uid() = user_id or public.is_admin());
+
+drop policy if exists "report_comments_select_accessible" on public.report_comments;
+create policy "report_comments_select_accessible"
+on public.report_comments
+for select
+using (
+  exists (
+    select 1
+    from public.reports
+    where reports.id = report_comments.report_id
+      and (
+        reports.user_id = auth.uid()
+        or public.is_admin()
+        or public.has_any_role(array['technical_director', 'board_observer'])
+      )
+  )
+);
+
+drop policy if exists "report_comments_insert_accessible" on public.report_comments;
+create policy "report_comments_insert_accessible"
+on public.report_comments
+for insert
+with check (
+  author_id = auth.uid()
+  and exists (
+    select 1
+    from public.reports
+    where reports.id = report_comments.report_id
+      and (
+        reports.user_id = auth.uid()
+        or public.is_admin()
+        or public.has_role('technical_director')
+      )
+  )
+);
+
+drop policy if exists "report_comments_delete_accessible" on public.report_comments;
+create policy "report_comments_delete_accessible"
+on public.report_comments
+for delete
+using (
+  author_id = auth.uid()
+  or public.is_admin()
+);
+
+$mwos_foundation$;
+
+  -- These additions were shipped through schema.sql without repository migrations.
+  execute $mwos_announcements$
+create table if not exists public.club_announcements (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  target_team_ids uuid[] not null default array[]::uuid[],
+  is_pinned boolean not null default false,
+  expires_at timestamptz,
+  archived_at timestamptz,
+  created_by uuid not null references auth.users (id) on delete cascade,
+  updated_by uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.club_announcement_reads (
+  announcement_id uuid not null references public.club_announcements (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  read_at timestamptz not null default timezone('utc', now()),
+  primary key (announcement_id, user_id)
+);
+
+grant select, insert, update, delete on public.club_announcements to authenticated;
+grant select, insert, update on public.club_announcement_reads to authenticated;
+
+create index if not exists club_announcements_created_at_idx on public.club_announcements (created_at desc);
+create index if not exists club_announcements_pinned_idx on public.club_announcements (is_pinned desc, created_at desc);
+create index if not exists club_announcements_target_team_ids_idx on public.club_announcements using gin (target_team_ids);
+create index if not exists club_announcement_reads_user_id_idx on public.club_announcement_reads (user_id, read_at desc);
+
+insert into public.teams (slug, name, age_group, is_active, sort_order)
+values
+  ('queens', 'Queens', 'Women', true, 55),
+  ('queens-u15', 'Queens U15', 'Girls U15', true, 57)
+on conflict (slug) do nothing;
+
+drop trigger if exists set_club_announcements_updated_at on public.club_announcements;
+create trigger set_club_announcements_updated_at
+before update on public.club_announcements
+for each row
+execute procedure public.set_updated_at();
+
+create or replace function public.can_manage_club_announcements()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select public.is_admin() or public.has_role('technical_director');
+$$;
+
+create or replace function public.can_view_club_announcement(
+  target_team_ids uuid[],
+  expires_at timestamptz,
+  archived_at timestamptz
+)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    archived_at is null
+    and (expires_at is null or expires_at > timezone('utc', now()))
+    and public.has_any_role(array['admin', 'technical_director', 'board_observer', 'coach', 'driver', 'scout'])
+    and (
+      public.can_manage_club_announcements()
+      or public.has_role('board_observer')
+      or coalesce(array_length(target_team_ids, 1), 0) = 0
+      or exists (
+        select 1
+        from public.user_team_assignments uta
+        where uta.user_id = auth.uid()
+          and uta.team_id = any (coalesce(target_team_ids, array[]::uuid[]))
+      )
+    );
+$$;
+
+alter table public.club_announcements enable row level security;
+alter table public.club_announcement_reads enable row level security;
 
 drop policy if exists "club_announcements_select_accessible" on public.club_announcements;
 create policy "club_announcements_select_accessible"
@@ -1904,201 +1577,67 @@ to authenticated
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
 
-drop policy if exists "reports_select_own" on public.reports;
-create policy "reports_select_own"
-on public.reports
-for select
-using (
-  auth.uid() = user_id
-  or public.is_admin()
-  or public.has_any_role(array['executive_director', 'technical_director', 'board_observer'])
-);
 
-drop policy if exists "reports_insert_own" on public.reports;
-create policy "reports_insert_own"
-on public.reports
-for insert
-with check (
-  auth.uid() = user_id
-  and (
-    public.is_admin()
-    or public.has_role('scout')
-  )
-);
+$mwos_announcements$;
 
-drop policy if exists "reports_update_own" on public.reports;
-create policy "reports_update_own"
-on public.reports
-for update
-using (
-  public.is_admin()
-  or (auth.uid() = user_id and public.has_role('scout'))
-)
-with check (
-  public.is_admin()
-  or (auth.uid() = user_id and public.has_role('scout'))
-);
+  -- API table grants are independent of the policies above. No anonymous grant.
+  grant usage on schema public to authenticated, service_role;
+  grant select, insert, update, delete on table
+    public.profiles,
+    public.user_settings,
+    public.roles,
+    public.teams,
+    public.user_roles,
+    public.user_team_assignments,
+    public.staff_invitations,
+    public.staff_invitation_roles,
+    public.staff_invitation_teams,
+    public.staff_access_events,
+    public.training_plans,
+    public.training_plan_days,
+    public.training_plan_comments,
+    public.transport_plans,
+    public.transport_plan_comments,
+    public.app_notifications,
+    public.reports,
+    public.players,
+    public.player_reviews,
+    public.watchlist_players,
+    public.report_comments,
+    public.club_announcements
+  to authenticated;
+  grant select, insert, update on table public.club_announcement_reads to authenticated;
+  grant select, insert, update, delete on table
+    public.profiles,
+    public.user_settings,
+    public.roles,
+    public.teams,
+    public.user_roles,
+    public.user_team_assignments,
+    public.staff_invitations,
+    public.staff_invitation_roles,
+    public.staff_invitation_teams,
+    public.staff_access_events,
+    public.training_plans,
+    public.training_plan_days,
+    public.training_plan_comments,
+    public.transport_plans,
+    public.transport_plan_comments,
+    public.app_notifications,
+    public.reports,
+    public.players,
+    public.player_reviews,
+    public.watchlist_players,
+    public.report_comments,
+    public.club_announcements,
+    public.club_announcement_reads
+  to service_role;
 
-drop policy if exists "reports_delete_own" on public.reports;
-create policy "reports_delete_own"
-on public.reports
-for delete
-using (
-  public.is_admin()
-  or (auth.uid() = user_id and public.has_role('scout'))
-);
+  -- Subsequent historical migrations already grant authenticated access explicitly;
+  -- service_role needs table privileges too, even though it bypasses row policies.
+  alter default privileges in schema public
+    grant select, insert, update, delete on tables to service_role;
 
-drop policy if exists "players_select_own" on public.players;
-create policy "players_select_own"
-on public.players
-for select
-using (
-  exists (
-    select 1
-    from public.reports
-    where reports.id = players.report_id
-      and (
-        reports.user_id = auth.uid()
-        or public.is_admin()
-        or public.has_any_role(array['executive_director', 'technical_director', 'board_observer'])
-      )
-  )
-);
-
-drop policy if exists "players_insert_own" on public.players;
-create policy "players_insert_own"
-on public.players
-for insert
-with check (
-  exists (
-    select 1
-    from public.reports
-    where reports.id = players.report_id
-      and (public.is_admin() or (reports.user_id = auth.uid() and public.has_role('scout')))
-  )
-);
-
-drop policy if exists "players_delete_own" on public.players;
-create policy "players_delete_own"
-on public.players
-for delete
-using (
-  exists (
-    select 1
-    from public.reports
-    where reports.id = players.report_id
-      and (public.is_admin() or (reports.user_id = auth.uid() and public.has_role('scout')))
-  )
-);
-
-drop policy if exists "player_reviews_select_own" on public.player_reviews;
-create policy "player_reviews_select_own"
-on public.player_reviews
-for select
-using (
-  exists (
-    select 1
-    from public.reports
-    where reports.id = player_reviews.report_id
-      and (
-        reports.user_id = auth.uid()
-        or public.is_admin()
-        or public.has_any_role(array['executive_director', 'technical_director', 'board_observer'])
-      )
-  )
-);
-
-drop policy if exists "player_reviews_insert_own" on public.player_reviews;
-create policy "player_reviews_insert_own"
-on public.player_reviews
-for insert
-with check (
-  exists (
-    select 1
-    from public.reports
-    where reports.id = player_reviews.report_id
-      and (public.is_admin() or (reports.user_id = auth.uid() and public.has_role('scout')))
-  )
-);
-
-drop policy if exists "player_reviews_delete_own" on public.player_reviews;
-create policy "player_reviews_delete_own"
-on public.player_reviews
-for delete
-using (
-  exists (
-    select 1
-    from public.reports
-    where reports.id = player_reviews.report_id
-      and (public.is_admin() or (reports.user_id = auth.uid() and public.has_role('scout')))
-  )
-);
-
-drop policy if exists "watchlist_players_select_own" on public.watchlist_players;
-create policy "watchlist_players_select_own"
-on public.watchlist_players
-for select
-using (auth.uid() = user_id or public.is_admin());
-
-drop policy if exists "watchlist_players_insert_own" on public.watchlist_players;
-create policy "watchlist_players_insert_own"
-on public.watchlist_players
-for insert
-with check (auth.uid() = user_id or public.is_admin());
-
-drop policy if exists "watchlist_players_update_own" on public.watchlist_players;
-create policy "watchlist_players_update_own"
-on public.watchlist_players
-for update
-using (auth.uid() = user_id or public.is_admin())
-with check (auth.uid() = user_id or public.is_admin());
-
-drop policy if exists "watchlist_players_delete_own" on public.watchlist_players;
-create policy "watchlist_players_delete_own"
-on public.watchlist_players
-for delete
-using (auth.uid() = user_id or public.is_admin());
-
-drop policy if exists "report_comments_select_accessible" on public.report_comments;
-create policy "report_comments_select_accessible"
-on public.report_comments
-for select
-using (
-  exists (
-    select 1
-    from public.reports
-    where reports.id = report_comments.report_id
-      and (
-        reports.user_id = auth.uid()
-        or public.is_admin()
-        or public.has_any_role(array['executive_director', 'technical_director', 'board_observer'])
-      )
-  )
-);
-
-drop policy if exists "report_comments_insert_accessible" on public.report_comments;
-create policy "report_comments_insert_accessible"
-on public.report_comments
-for insert
-with check (
-  author_id = auth.uid()
-  and exists (
-    select 1
-    from public.reports
-    where reports.id = report_comments.report_id
-      and (
-        reports.user_id = auth.uid()
-        or public.is_admin()
-        or public.has_role('technical_director')
-      )
-  )
-);
-
-drop policy if exists "report_comments_delete_accessible" on public.report_comments;
-create policy "report_comments_delete_accessible"
-on public.report_comments
-for delete
-using (
-  author_id = auth.uid()
-  or public.is_admin()
-);
+  perform set_config('check_function_bodies', previous_check_function_bodies, true);
+end;
+$mwos_bootstrap$;

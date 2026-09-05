@@ -222,7 +222,7 @@ export default function ReportEditor() {
 
     void (async () => {
       if (id && id !== 'new') {
-        const localDraft = await loadLocalDraft(id);
+        const localDraft = canEditReport ? await loadLocalDraft(id) : null;
 
         if (!isMounted) return;
 
@@ -255,7 +255,7 @@ export default function ReportEditor() {
         return;
       }
 
-      const localDraft = await loadLocalDraft();
+      const localDraft = canEditReport ? await loadLocalDraft() : null;
 
       if (!isMounted) return;
 
@@ -300,7 +300,7 @@ export default function ReportEditor() {
     return () => {
       isMounted = false;
     };
-  }, [id, loadAttempt, token, setCurrentReport, user]);
+  }, [canEditReport, id, loadAttempt, token, setCurrentReport, user]);
 
   // Track changes
   useEffect(() => {
@@ -571,11 +571,11 @@ export default function ReportEditor() {
 
             <button
               onClick={handleSave}
-              disabled={saving || isOffline || !hasUnsavedChanges || (!persistedReportId && !canCreateInitialDraft)}
+              disabled={!canEditReport || saving || isOffline || !hasUnsavedChanges || (!persistedReportId && !canCreateInitialDraft)}
               className="flex min-w-[148px] items-center justify-center space-x-2 rounded-xl bg-white px-6 py-2.5 font-bold text-[var(--color-primary)] shadow-md transition-all hover:bg-white/92 disabled:opacity-50"
             >
               <Save size={18} />
-              <span>{saving ? 'Saving...' : 'Save Report'}</span>
+              <span>{!canEditReport ? 'Review mode' : saving ? 'Saving...' : 'Save Report'}</span>
             </button>
           </div>
         </div>
@@ -677,18 +677,17 @@ export default function ReportEditor() {
                   {reviewRoleLabel} review mode is active. This report can be inspected and exported here, while editing stays with admins and scouts.
                 </div>
               ) : null}
-              <fieldset
-                disabled={readOnlyPreviewTab}
+              <div
                 aria-describedby={readOnlyPreviewTab ? 'report-review-mode-note' : undefined}
-                className={`min-w-0 border-0 p-0 ${readOnlyPreviewTab ? 'select-none opacity-75' : ''}`}
+                className="min-w-0"
               >
-                {activeTab === 'match' && <MatchReportTab />}
-                {activeTab === 'teams' && <TeamSheetsTab />}
-                {activeTab === 'formations' && <FormationsTab />}
-                {activeTab === 'reviews' && <PlayerReviewsTab />}
-                {activeTab === 'comments' && <CommentsTab reportId={persistedReportId} />}
+                {activeTab === 'match' && <MatchReportTab canEdit={canEditReport} />}
+                {activeTab === 'teams' && <TeamSheetsTab canEdit={canEditReport} />}
+                {activeTab === 'formations' && <FormationsTab canEdit={canEditReport} />}
+                {activeTab === 'reviews' && <PlayerReviewsTab canEdit={canEditReport} />}
+                {activeTab === 'comments' && <CommentsTab reportId={persistedReportId} canEdit={canEditReport} />}
                 {activeTab === 'export' && <ExportTab />}
-              </fieldset>
+              </div>
             </Suspense>
           </div>
         </main>

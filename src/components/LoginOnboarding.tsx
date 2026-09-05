@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type TouchEvent } from 'react';
 
 type LoginOnboardingProps = {
   onFinish: () => void;
+  onSkip: () => void;
 };
 
 type OnboardingSlide = {
@@ -47,7 +48,7 @@ const ONBOARDING_SLIDES: OnboardingSlide[] = [
 const SWIPE_THRESHOLD = 40;
 const ONBOARDING_BACKGROUND_POSITION = 'calc(50% - 12px) center';
 
-export default function LoginOnboarding({ onFinish }: LoginOnboardingProps) {
+export default function LoginOnboarding({ onFinish, onSkip }: LoginOnboardingProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
@@ -122,6 +123,13 @@ export default function LoginOnboarding({ onFinish }: LoginOnboardingProps) {
       />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.08)_0%,rgba(2,6,23,0.08)_42%,rgba(2,6,23,0.82)_100%)]" />
       <span className="sr-only">{activeSlide.alt}</span>
+      <button
+        type="button"
+        onClick={onSkip}
+        className="absolute right-4 top-[calc(env(safe-area-inset-top)+1rem)] z-10 rounded-full border border-white/30 bg-[#020617]/70 px-5 py-3 text-sm font-semibold text-white"
+      >
+        Skip to sign in
+      </button>
 
       <main className="relative flex h-dvh items-end justify-center px-4 pb-[calc(env(safe-area-inset-bottom)+4.5rem)] pt-[calc(env(safe-area-inset-top)+1rem)]">
         <section className="w-full max-w-[25rem] rounded-[28px] border border-white/16 bg-[rgba(7,12,35,0.5)] p-4 text-white shadow-[0_24px_64px_rgba(2,6,23,0.28)] backdrop-blur-2xl">

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { signOut, updatePassword } from '../lib/data';
+import { signOut, updatePassword } from '../lib/authData';
 import { supabase } from '../lib/supabase';
 
 export default function ResetPassword() {
