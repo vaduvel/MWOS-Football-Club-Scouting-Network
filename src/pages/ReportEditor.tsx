@@ -443,6 +443,11 @@ export default function ReportEditor() {
     Boolean(currentReport.owner_name || currentReport.owner_email) &&
     (isAdmin || isExecutiveDirector || isTechnicalDirector);
   const readOnlyPreviewTab = !canEditReport && activeTab !== 'export';
+  const reviewRoleLabel = isExecutiveDirector
+    ? 'Executive Director'
+    : isTechnicalDirector
+      ? 'Technical Director'
+      : 'Club leadership';
 
   return (
     <div className="min-h-dvh bg-[var(--color-light)] flex flex-col">
@@ -665,18 +670,25 @@ export default function ReportEditor() {
 
             <Suspense fallback={<ReportTabLoadingState />}>
               {readOnlyPreviewTab ? (
-                <div className="mwos-card-tone-alert mb-4 rounded-2xl border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">
-                  Technical Director review mode is active. This report can be inspected and exported here, while editing stays with admins and scouts.
+                <div
+                  id="report-review-mode-note"
+                  className="mwos-card-tone-alert mb-4 rounded-2xl border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]"
+                >
+                  {reviewRoleLabel} review mode is active. This report can be inspected and exported here, while editing stays with admins and scouts.
                 </div>
               ) : null}
-              <div className={readOnlyPreviewTab ? 'pointer-events-none select-none opacity-75' : ''}>
+              <fieldset
+                disabled={readOnlyPreviewTab}
+                aria-describedby={readOnlyPreviewTab ? 'report-review-mode-note' : undefined}
+                className={`min-w-0 border-0 p-0 ${readOnlyPreviewTab ? 'select-none opacity-75' : ''}`}
+              >
                 {activeTab === 'match' && <MatchReportTab />}
                 {activeTab === 'teams' && <TeamSheetsTab />}
                 {activeTab === 'formations' && <FormationsTab />}
                 {activeTab === 'reviews' && <PlayerReviewsTab />}
                 {activeTab === 'comments' && <CommentsTab reportId={persistedReportId} />}
                 {activeTab === 'export' && <ExportTab />}
-              </div>
+              </fieldset>
             </Suspense>
           </div>
         </main>

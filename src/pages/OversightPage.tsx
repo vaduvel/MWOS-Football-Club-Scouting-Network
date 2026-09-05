@@ -70,7 +70,8 @@ function formatTimeValue(value: string | null | undefined) {
 }
 
 function formatRoleLabelCount(label: string, count: number) {
-  return `${count} ${label}${count === 1 ? '' : 's'}`;
+  if (count === 1) return `${count} ${label}`;
+  return `${count} ${label === 'Coach' ? 'Coaches' : `${label}s`}`;
 }
 
 function FeedShell({
@@ -1043,9 +1044,7 @@ export default function OversightPage() {
                       })}
                     onCancel={(invitationId) => setPendingAction({ kind: 'cancel-invite', id: invitationId })}
                   />
-                ) : (
-                  <LeadershipReadOnlyNote />
-                )}
+                ) : null}
                 {canManageAccess ? (
                   <StaffAccessActivityFeed items={workspace.recentStaffAccessEvents} />
                 ) : (
