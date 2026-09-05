@@ -1015,9 +1015,7 @@ export default function OversightPage() {
                     <RoleCoverageCard summary={workspace.roleSummary} />
                     <StaffingHealthCard summary={workspace.staffingHealth} />
                   </div>
-                ) : (
-                  <LeadershipReadOnlyNote />
-                )}
+                ) : null}
               </section>
 
               <OversightTeamMatrix teams={workspace.teamSnapshots} />
