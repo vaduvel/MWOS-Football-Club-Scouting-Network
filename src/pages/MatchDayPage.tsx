@@ -30,7 +30,11 @@ import {
   type SaveMatchDayFixtureInput,
 } from '../lib/matchDayData';
 import { buildMatchDayStatusTotals, groupMatchDaySelections, isTerminalMatchDayStatus } from '../lib/matchDayDomain';
-import { canAccessPlayerHub } from '../lib/roleAccessDomain';
+import {
+  canAccessPlayerHub,
+  canAccessTrainingModule,
+  canAccessTransportModule,
+} from '../lib/roleAccessDomain';
 import { useAuthStore } from '../store/auth';
 
 export default function MatchDayPage() {
@@ -324,6 +328,8 @@ export default function MatchDayPage() {
   );
   const workspaceIsTerminal = workspace ? isTerminalMatchDayStatus(workspace.status) : false;
   const canViewPlayerProfiles = canAccessPlayerHub(user);
+  const canOpenTraining = canAccessTrainingModule(user);
+  const canOpenTransport = canAccessTransportModule(user);
 
   return (
     <div className="flex min-h-dvh flex-col bg-[var(--color-light)] md:flex-row">
@@ -610,6 +616,7 @@ export default function MatchDayPage() {
                                 icon={Ban}
                                 onClick={() => setPendingTerminalAction('cancel')}
                                 active={savingState === 'cancel'}
+                                disabled={!workspace.id}
                                 tone="danger"
                               />
                             </div>
@@ -659,13 +666,19 @@ export default function MatchDayPage() {
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => navigate(workspace.transportPlan!.linkPath)}
-                            className="mwos-btn mwos-btn-secondary"
-                          >
-                            <Bus size={16} />
-                            Open transport plan
-                          </button>
+                          {canOpenTransport ? (
+                            <button
+                              onClick={() => navigate(workspace.transportPlan!.linkPath)}
+                              className="mwos-btn mwos-btn-secondary"
+                            >
+                              <Bus size={16} />
+                              Open transport plan
+                            </button>
+                          ) : (
+                            <p className="text-sm font-semibold text-[var(--color-mid)]">
+                              Transport details are shown here in read-only mode for this role.
+                            </p>
+                          )}
                         </div>
                       ) : workspace.id ? (
                         <div className="mt-5 space-y-4">
@@ -728,13 +741,19 @@ export default function MatchDayPage() {
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => navigate(workspace.trainingContext!.linkPath)}
-                            className="mwos-btn mwos-btn-secondary"
-                          >
-                            <CalendarRange size={16} />
-                            Open training week
-                          </button>
+                          {canOpenTraining ? (
+                            <button
+                              onClick={() => navigate(workspace.trainingContext!.linkPath)}
+                              className="mwos-btn mwos-btn-secondary"
+                            >
+                              <CalendarRange size={16} />
+                              Open training week
+                            </button>
+                          ) : (
+                            <p className="text-sm font-semibold text-[var(--color-mid)]">
+                              Training context is shown here in read-only mode for this role.
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <div className="mt-5 rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 p-4 text-sm font-semibold text-[var(--color-mid)]">
