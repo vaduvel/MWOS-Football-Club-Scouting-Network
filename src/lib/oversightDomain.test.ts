@@ -42,6 +42,26 @@ describe('buildOversightTeamSnapshot', () => {
     expect(snapshot.issues[0]?.title).toBe('Training plan still draft');
   });
 
+  it('does not describe an existing plan as missing when its headline is empty', () => {
+    const snapshot = buildOversightTeamSnapshot({
+      teamId: 'u15',
+      teamSlug: 'u15',
+      teamName: 'U15',
+      coachCount: 1,
+      training: {
+        planId: 'plan-without-headline',
+        status: 'published',
+        headline: '',
+        weekStart: '2026-05-11',
+        updatedAt: '2026-05-12T09:00:00.000Z',
+      },
+      transport: null,
+    });
+
+    expect(snapshot.trainingStatus).toBe('published');
+    expect(snapshot.trainingHeadline).toBe('Training plan details available');
+  });
+
   it('marks a team as ready when training and transport are covered', () => {
     const snapshot = buildOversightTeamSnapshot({
       teamId: 'first-team',

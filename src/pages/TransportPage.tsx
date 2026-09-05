@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Bus, Loader2, Plus } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import AppSidebar from '../components/AppSidebar';
+import ConfirmActionModal from '../components/ConfirmActionModal';
 import TransportCommentsPanel from '../components/transport/TransportCommentsPanel';
 import TransportPlanEditor from '../components/transport/TransportPlanEditor';
 import TransportPlanList from '../components/transport/TransportPlanList';
@@ -34,6 +35,7 @@ export default function TransportPage() {
   const [error, setError] = useState('');
   const [warning, setWarning] = useState('');
   const [success, setSuccess] = useState('');
+  const [pendingTerminalAction, setPendingTerminalAction] = useState<'complete' | 'cancel' | null>(null);
 
   const teamId = searchParams.get('team') || '';
   const selectedPlanId = searchParams.get('plan') || '';
@@ -424,7 +426,13 @@ export default function TransportPage() {
                       drivers={drivers}
                       savingState={savingState}
                       onChange={handleWorkspaceChange}
-                      onAction={(action) => void handleSave(action)}
+                      onAction={(action) => {
+                        if (action === 'complete' || action === 'cancel') {
+                          setPendingTerminalAction(action);
+                          return;
+                        }
+                        void handleSave(action);
+                      }}
                     />
                     <TransportCommentsPanel
                       comments={workspace.comments}
@@ -448,6 +456,22 @@ export default function TransportPage() {
           )}
         </div>
       </main>
+      <ConfirmActionModal
+        open={pendingTerminalAction !== null}
+        title={pendingTerminalAction === 'complete' ? 'Mark this trip as completed?' : 'Cancel this transport plan?'}
+        description={pendingTerminalAction === 'complete'
+          ? 'This locks the final trip details so staff can rely on one completed record.'
+          : 'This removes the trip from active planning and locks the record.'}
+        confirmLabel={pendingTerminalAction === 'complete' ? 'Mark completed' : 'Cancel transport'}
+        tone={pendingTerminalAction === 'complete' ? 'warning' : 'danger'}
+        loading={savingState !== null}
+        onCancel={() => setPendingTerminalAction(null)}
+        onConfirm={() => {
+          const action = pendingTerminalAction;
+          if (!action) return;
+          void handleSave(action).finally(() => setPendingTerminalAction(null));
+        }}
+      />
     </div>
   );
 }

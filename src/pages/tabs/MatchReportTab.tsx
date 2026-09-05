@@ -11,6 +11,7 @@ import {
   type OcrReportResult,
 } from '../../lib/data';
 import { useReportStore } from '../../store/report';
+import { parseNumberInput } from '../../lib/numericValueDomain';
 
 type SectionKey = 'ocr' | 'details' | 'teams' | 'notes' | 'video';
 
@@ -57,7 +58,9 @@ export default function MatchReportTab() {
   if (!currentReport) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    updateReportField(e.target.name as keyof typeof currentReport, e.target.value);
+    const field = e.target.name as keyof typeof currentReport;
+    const value = e.target.type === 'number' ? parseNumberInput(e.target.value) : e.target.value;
+    updateReportField(field, value);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {

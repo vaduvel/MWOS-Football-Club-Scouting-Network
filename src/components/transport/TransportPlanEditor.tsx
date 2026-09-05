@@ -1,7 +1,7 @@
 import { AlertCircle, Ban, CheckCircle2, Loader2, Save, Send, Truck } from 'lucide-react';
 import type { AppTeam } from '../../lib/data';
 import type { TransportDriverOption, TransportWorkspace } from '../../lib/transportData';
-import { normalizeTransportDate, normalizeTransportTime } from '../../lib/transportDomain';
+import { isTerminalTransportStatus, normalizeTransportDate, normalizeTransportTime } from '../../lib/transportDomain';
 
 type SaveAction = 'draft' | 'publish' | 'complete' | 'cancel';
 
@@ -20,7 +20,10 @@ export default function TransportPlanEditor({
   onChange: <K extends keyof TransportWorkspace>(field: K, value: TransportWorkspace[K]) => void;
   onAction: (action: SaveAction) => void;
 }) {
-  const isPublished = ['published', 'updated', 'completed'].includes(workspace.status);
+  const isPublished = ['published', 'updated'].includes(workspace.status);
+  const isTerminal = isTerminalTransportStatus(workspace.status);
+  const canEdit = workspace.canManage && !isTerminal;
+  const publishBlockedByDriver = !workspace.driverUserId;
   const normalizeTimeField = (field: 'departureTime' | 'arrivalTargetTime') => {
     const normalized = normalizeTransportTime(workspace[field]);
     if (normalized !== workspace[field]) {
@@ -68,7 +71,7 @@ export default function TransportPlanEditor({
           <select
             value={workspace.team.id}
             onChange={(event) => onChange('team', teams.find((team) => team.id === event.target.value) || workspace.team)}
-            disabled={!workspace.canCreate || Boolean(workspace.id)}
+            disabled={!workspace.canCreate || Boolean(workspace.id) || isTerminal}
             className="mwos-select-field mwos-mobile-input"
           >
             {teams.map((team) => (
@@ -84,7 +87,7 @@ export default function TransportPlanEditor({
           <select
             value={workspace.contextType}
             onChange={(event) => onChange('contextType', event.target.value as TransportWorkspace['contextType'])}
-            disabled={!workspace.canManage}
+            disabled={!canEdit}
             className="mwos-select-field mwos-mobile-input"
           >
             <option value="match">Match</option>
@@ -98,7 +101,7 @@ export default function TransportPlanEditor({
           <input
             value={workspace.title}
             onChange={(event) => onChange('title', event.target.value)}
-            disabled={!workspace.canManage}
+            disabled={!canEdit}
             placeholder="Example: U19 away transport to Harare"
             className="mwos-mobile-input"
           />
@@ -115,7 +118,7 @@ export default function TransportPlanEditor({
             value={workspace.eventDate}
             onChange={(event) => onChange('eventDate', event.target.value)}
             onBlur={normalizeDateField}
-            disabled={!workspace.canManage}
+            disabled={!canEdit}
             maxLength={10}
             placeholder="YYYY-MM-DD"
             className="mwos-mobile-input"
@@ -133,7 +136,7 @@ export default function TransportPlanEditor({
             value={workspace.departureTime}
             onChange={(event) => onChange('departureTime', event.target.value)}
             onBlur={() => normalizeTimeField('departureTime')}
-            disabled={!workspace.canManage}
+            disabled={!canEdit}
             maxLength={5}
             placeholder="HH:MM"
             className="mwos-mobile-input"
@@ -151,7 +154,7 @@ export default function TransportPlanEditor({
             value={workspace.arrivalTargetTime}
             onChange={(event) => onChange('arrivalTargetTime', event.target.value)}
             onBlur={() => normalizeTimeField('arrivalTargetTime')}
-            disabled={!workspace.canManage}
+            disabled={!canEdit}
             maxLength={5}
             placeholder="HH:MM"
             className="mwos-mobile-input"
@@ -163,7 +166,7 @@ export default function TransportPlanEditor({
           <input
             value={workspace.meetingPoint}
             onChange={(event) => onChange('meetingPoint', event.target.value)}
-            disabled={!workspace.canManage}
+            disabled={!canEdit}
             placeholder="Main gate, academy, hotel..."
             className="mwos-mobile-input"
           />
@@ -174,7 +177,7 @@ export default function TransportPlanEditor({
           <input
             value={workspace.destination}
             onChange={(event) => onChange('destination', event.target.value)}
-            disabled={!workspace.canManage}
+            disabled={!canEdit}
             placeholder="Venue, city or pickup destination..."
             className="mwos-mobile-input"
           />
@@ -186,7 +189,7 @@ export default function TransportPlanEditor({
             <select
               value={workspace.driverUserId}
               onChange={(event) => onChange('driverUserId', event.target.value)}
-              disabled={!workspace.canManage}
+              disabled={!canEdit}
               className="mwos-select-field mwos-mobile-input"
             >
               <option value="">Select driver</option>
@@ -198,14 +201,16 @@ export default function TransportPlanEditor({
             </select>
           ) : (
             <div className="mwos-mobile-input flex items-center">
-              {workspace.driverName || 'You will be assigned automatically'}
+              {workspace.driverName || 'No driver assigned'}
             </div>
           )}
         </label>
 
-        {!workspace.canAssignDriver && workspace.canManage ? (
+        {!workspace.canAssignDriver && canEdit ? (
           <div className="mwos-card-tone-alert md:col-span-2 rounded-2xl border p-3 text-sm font-semibold text-[var(--color-accent-deep)]">
-            Assigned drivers can update trip details and complete the trip, but only admin or technical staff can reassign the driver.
+            {workspace.driverUserId
+              ? 'Only admin or technical staff can reassign the driver.'
+              : 'Save this as a draft. A Technical Director or admin must assign a driver before the plan can be published.'}
           </div>
         ) : null}
 
@@ -214,7 +219,7 @@ export default function TransportPlanEditor({
           <textarea
             value={workspace.contactNotes}
             onChange={(event) => onChange('contactNotes', event.target.value)}
-            disabled={!workspace.canManage}
+            disabled={!canEdit}
             rows={3}
             placeholder="Useful phone numbers, who to call, or urgent coordination notes..."
             className="mwos-mobile-textarea"
@@ -226,7 +231,7 @@ export default function TransportPlanEditor({
           <textarea
             value={workspace.notes}
             onChange={(event) => onChange('notes', event.target.value)}
-            disabled={!workspace.canManage}
+            disabled={!canEdit}
             rows={4}
             placeholder="Luggage notes, route context, player timing, checkpoints..."
             className="mwos-mobile-textarea"
@@ -241,8 +246,14 @@ export default function TransportPlanEditor({
         </div>
       ) : null}
 
+      {isTerminal ? (
+        <div className="mwos-mobile-note mt-5 border border-[var(--color-mid)]/16 bg-[var(--color-light)] text-[var(--color-mid)]">
+          This transport plan is {workspace.status} and locked to protect the final club record.
+        </div>
+      ) : null}
+
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:flex xl:flex-wrap">
-        {workspace.canManage ? (
+        {canEdit ? (
           <button
             type="button"
             onClick={() => onAction('draft')}
@@ -250,15 +261,17 @@ export default function TransportPlanEditor({
             className="mwos-btn mwos-btn-secondary w-full xl:w-auto"
           >
             {savingState === 'draft' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            Save draft
+            {workspace.status === 'draft' ? 'Save draft' : 'Save changes'}
           </button>
         ) : null}
 
-        {workspace.canCreate ? (
+        {workspace.canCreate && !isTerminal ? (
           <button
             type="button"
             onClick={() => onAction('publish')}
-            disabled={savingState !== null}
+            disabled={savingState !== null || publishBlockedByDriver}
+            aria-describedby={publishBlockedByDriver ? 'transport-driver-required' : undefined}
+            title={publishBlockedByDriver ? 'Assign a driver before publishing.' : undefined}
             className="mwos-btn mwos-btn-primary w-full xl:w-auto"
           >
             {savingState === 'publish' ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
@@ -266,11 +279,17 @@ export default function TransportPlanEditor({
           </button>
         ) : null}
 
-        {workspace.canManage && workspace.id ? (
+        {publishBlockedByDriver && !isTerminal ? (
+          <p id="transport-driver-required" className="self-center text-sm font-semibold text-[var(--color-accent-deep)]">
+            Driver assignment required before publish.
+          </p>
+        ) : null}
+
+        {canEdit && workspace.id ? (
           <button
             type="button"
             onClick={() => onAction('complete')}
-            disabled={savingState !== null || workspace.status === 'completed'}
+            disabled={savingState !== null || !['published', 'updated'].includes(workspace.status)}
             className="mwos-btn mwos-btn-success w-full xl:w-auto"
           >
             {savingState === 'complete' ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
@@ -278,11 +297,11 @@ export default function TransportPlanEditor({
           </button>
         ) : null}
 
-        {workspace.canCreate && workspace.id ? (
+        {workspace.canCreate && workspace.id && !isTerminal ? (
           <button
             type="button"
             onClick={() => onAction('cancel')}
-            disabled={savingState !== null || workspace.status === 'cancelled'}
+            disabled={savingState !== null}
             className="mwos-btn mwos-btn-danger w-full xl:w-auto"
           >
             {savingState === 'cancel' ? <Loader2 size={16} className="animate-spin" /> : <Ban size={16} />}

@@ -16,6 +16,31 @@ export type TransportPlanDraft = {
 };
 
 export type TransportValidationMode = 'draft' | 'publish';
+export type TransportSaveAction = 'draft' | 'publish' | 'complete' | 'cancel';
+
+export function isTerminalTransportStatus(status: TransportPlanStatus) {
+  return status === 'completed' || status === 'cancelled';
+}
+
+export function resolveNextTransportStatus(
+  currentStatus: TransportPlanStatus | null,
+  action: TransportSaveAction,
+): TransportPlanStatus {
+  if (currentStatus && isTerminalTransportStatus(currentStatus)) {
+    throw new Error('Completed or cancelled transport plans are locked and cannot be changed.');
+  }
+
+  if (action === 'complete') {
+    if (currentStatus !== 'published' && currentStatus !== 'updated') {
+      throw new Error('Publish the transport plan before marking it as completed.');
+    }
+    return 'completed';
+  }
+
+  if (action === 'cancel') return 'cancelled';
+  if (action === 'publish') return currentStatus && currentStatus !== 'draft' ? 'updated' : 'published';
+  return currentStatus && currentStatus !== 'draft' ? 'updated' : 'draft';
+}
 
 const HH_MM_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const YYYY_MM_DD_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;

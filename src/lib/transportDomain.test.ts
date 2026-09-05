@@ -4,6 +4,7 @@ import {
   buildTransportDraft,
   detectMajorTransportChange,
   normalizeTransportPlan,
+  resolveNextTransportStatus,
   validateTransportPlan,
   type TransportPlanDraft,
 } from './transportDomain';
@@ -15,6 +16,22 @@ describe('buildTransportDraft', () => {
     expect(draft.status).toBe('draft');
     expect(draft.contextType).toBe('match');
     expect(draft.destination).toBe('');
+  });
+});
+
+describe('resolveNextTransportStatus', () => {
+  it('keeps published plans live when saving an edit', () => {
+    expect(resolveNextTransportStatus('published', 'draft')).toBe('updated');
+  });
+
+  it('requires publication before completion', () => {
+    expect(() => resolveNextTransportStatus('draft', 'complete')).toThrow('Publish the transport plan');
+    expect(resolveNextTransportStatus('updated', 'complete')).toBe('completed');
+  });
+
+  it('locks terminal plans', () => {
+    expect(() => resolveNextTransportStatus('completed', 'publish')).toThrow('locked');
+    expect(() => resolveNextTransportStatus('cancelled', 'draft')).toThrow('locked');
   });
 });
 

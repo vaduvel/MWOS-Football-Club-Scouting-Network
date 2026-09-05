@@ -84,6 +84,24 @@ export function getPrimaryRoleSlug(user: RoleAccessUserShape | null | undefined)
   return normalizeRoleList(user.roles)[0] || 'pending';
 }
 
+export function orderTeamsWithAssignmentsFirst<T extends { id: string }>(
+  teams: T[],
+  assignedTeams: Array<{ id: string }> = [],
+) {
+  const assignedOrder = new Map(assignedTeams.map((team, index) => [team.id, index]));
+
+  return [...teams].sort((left, right) => {
+    const leftRank = assignedOrder.get(left.id);
+    const rightRank = assignedOrder.get(right.id);
+    const leftAssigned = leftRank !== undefined;
+    const rightAssigned = rightRank !== undefined;
+
+    if (leftAssigned !== rightAssigned) return leftAssigned ? -1 : 1;
+    if (leftAssigned && rightAssigned) return leftRank - rightRank;
+    return 0;
+  });
+}
+
 export function getDefaultModulePath(user: RoleAccessUserShape | null | undefined) {
   if (canAccessOversightModule(user)) {
     return '/oversight';

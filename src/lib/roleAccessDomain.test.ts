@@ -9,8 +9,26 @@ import {
   getDefaultModulePath,
   getPrimaryRoleSlug,
   normalizeRoleList,
+  orderTeamsWithAssignmentsFirst,
   userHasRole,
 } from './roleAccessDomain';
+
+describe('orderTeamsWithAssignmentsFirst', () => {
+  it('keeps the signed-in user assigned team first for club-wide roles', () => {
+    const teams = [{ id: 'u13' }, { id: 'first-team' }, { id: 'u19' }];
+
+    expect(orderTeamsWithAssignmentsFirst(teams, [{ id: 'first-team' }]).map((team) => team.id)).toEqual([
+      'first-team',
+      'u13',
+      'u19',
+    ]);
+  });
+
+  it('preserves source order when there are no assignments', () => {
+    const teams = [{ id: 'u13' }, { id: 'first-team' }];
+    expect(orderTeamsWithAssignmentsFirst(teams)).toEqual(teams);
+  });
+});
 
 describe('roleAccessDomain', () => {
   it('normalizes and sorts role lists by club priority', () => {

@@ -32,6 +32,7 @@ import {
 } from './playerHubDomain';
 import { isAuthSessionMissingUserError } from './authSessionDomain';
 import { MODULE_ACCESS_ROLE_SLUGS } from './roleAccessDomain';
+import { toNullableFiniteNumber } from './numericValueDomain';
 
 export { isAuthSessionMissingUserError } from './authSessionDomain';
 
@@ -859,10 +860,6 @@ function toNullableText(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function toNullableNumber(value: number | '' | null | undefined) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
 function mapPlayer(row: PlayerRow): Player {
   return {
     id: row.id,
@@ -1664,9 +1661,9 @@ export async function saveReport(report: Report) {
     weather: toNullableText(report.weather),
     pitch: toNullableText(report.pitch),
     home_team: toNullableText(report.home_team),
-    home_score: toNullableNumber(report.home_score),
+    home_score: toNullableFiniteNumber(report.home_score),
     away_team: toNullableText(report.away_team),
-    away_score: toNullableNumber(report.away_score),
+    away_score: toNullableFiniteNumber(report.away_score),
     scout_name: toNullableText(report.scout_name),
     focus: toNullableText(report.focus),
     general_notes: toNullableText(report.general_notes),
@@ -1705,11 +1702,11 @@ export async function saveReport(report: Report) {
       report_id: savedReportId,
       club_player_id: player.club_player_id || null,
       team_side: player.team_side,
-      shirt_number: toNullableNumber(player.shirt_number),
+      shirt_number: toNullableFiniteNumber(player.shirt_number),
       name: toNullableText(player.name),
       subbed: toNullableText(player.subbed),
       goal: toNullableText(player.goal),
-      rating: toNullableNumber(player.rating),
+      rating: toNullableFiniteNumber(player.rating),
       position_x: player.position_x,
       position_y: player.position_y,
       sort_order: index,

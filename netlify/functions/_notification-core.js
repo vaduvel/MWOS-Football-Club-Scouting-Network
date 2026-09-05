@@ -117,7 +117,25 @@ function buildEmailHtml({ title, message, linkPath }) {
   `;
 }
 
-async function sendEmail({ to, subject, html }) {
+const EMAIL_REQUEST_INTERVAL_MS = 130;
+
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function retryAfterMilliseconds(response, attempt) {
+  const retryAfter = response.headers?.get?.('retry-after');
+  const parsedSeconds = Number(retryAfter);
+  if (Number.isFinite(parsedSeconds) && parsedSeconds >= 0) {
+    return Math.min(5_000, parsedSeconds * 1_000);
+  }
+  return Math.min(5_000, 500 * 2 ** attempt);
+}
+
+export async function sendNotificationEmail(
+  { to, subject, html },
+  { fetchImpl = fetch, waitImpl = wait, maxAttempts = 3 } = {},
+) {
   const apiKey = process.env.RESEND_API_KEY;
   const configuredFrom = String(process.env.NOTIFICATION_FROM_EMAIL || '').trim();
   const from = configuredFrom.toLowerCase().includes('@resend.dev')
@@ -129,27 +147,36 @@ async function sendEmail({ to, subject, html }) {
     return { skipped: true, reason: 'Email provider is not configured.' };
   }
 
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject,
-      html,
-      ...(replyTo ? { reply_to: replyTo } : {}),
-    }),
-  });
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const response = await fetchImpl('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject,
+        html,
+        ...(replyTo ? { reply_to: replyTo } : {}),
+      }),
+    });
 
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(body?.message || `Resend request failed with status ${response.status}.`);
+    const body = await response.json().catch(() => null);
+    if (response.ok) {
+      return { skipped: false, body };
+    }
+
+    if (response.status === 429 && attempt < maxAttempts - 1) {
+      await waitImpl(retryAfterMilliseconds(response, attempt));
+      continue;
+    }
+
+    throw new Error(body?.message || `Email delivery failed with status ${response.status}.`);
   }
 
-  return { skipped: false, body };
+  throw new Error('Email delivery failed after retrying.');
 }
 
 async function fetchActorIdentity(serviceSupabase, actorUserId, fallbackEmail = '') {
@@ -413,6 +440,7 @@ async function insertNotifications(serviceSupabase, rows) {
 async function deliverEmails(serviceSupabase, usersById, notifications) {
   const sentIds = [];
   const warnings = [];
+  let attemptedDeliveryCount = 0;
 
   for (const notification of notifications) {
     const recipient = usersById.get(notification.recipient_user_id);
@@ -429,7 +457,12 @@ async function deliverEmails(serviceSupabase, usersById, notifications) {
     }
 
     try {
-      const result = await sendEmail({
+      if (attemptedDeliveryCount > 0) {
+        await wait(EMAIL_REQUEST_INTERVAL_MS);
+      }
+      attemptedDeliveryCount += 1;
+
+      const result = await sendNotificationEmail({
         to: recipient.email,
         subject: notification.title,
         html: buildEmailHtml({
@@ -440,13 +473,14 @@ async function deliverEmails(serviceSupabase, usersById, notifications) {
       });
 
       if (result.skipped) {
-        warnings.push(result.reason);
+        warnings.push('Email alerts are temporarily unavailable. In-app notifications were created.');
         continue;
       }
 
       sentIds.push(notification.id);
     } catch (error) {
-      warnings.push(error.message || 'Failed to send one or more notification emails.');
+      console.error('Notification email delivery failed.', error);
+      warnings.push('Some email alerts could not be delivered. In-app notifications are available.');
     }
   }
 
@@ -461,7 +495,7 @@ async function deliverEmails(serviceSupabase, usersById, notifications) {
     }
   }
 
-  return warnings;
+  return Array.from(new Set(warnings));
 }
 
 export async function emitTrainingEvents(serviceSupabase, actorUserId, actorFallbackEmail, events) {

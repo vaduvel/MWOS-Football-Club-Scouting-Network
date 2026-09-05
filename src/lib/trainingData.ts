@@ -17,6 +17,7 @@ import {
   type TrainingSessionType,
 } from './trainingDomain';
 import type { TrainingImportKind, TrainingImportReviewState } from './trainingImportDomain';
+import { orderTeamsWithAssignmentsFirst } from './roleAccessDomain';
 import {
   annotateTrainingDaysWithMatchContext,
   getTrainingWeekRange,
@@ -485,7 +486,10 @@ async function resolveTrainingTeams() {
 
     return {
       user: authUser,
-      teams: ((data || []) as AppTeam[]).map(toTeamRecord),
+      teams: orderTeamsWithAssignmentsFirst(
+        ((data || []) as AppTeam[]).map(toTeamRecord),
+        authUser.teams,
+      ),
     };
   }
 

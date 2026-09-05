@@ -6,6 +6,7 @@ import {
   groupMatchDaySelections,
   linkedTransportBelongsToTeam,
   pickNextRelevantFixture,
+  resolveNextMatchDayStatus,
   type PlayerMatchDayCandidate,
 } from './matchDayDomain';
 
@@ -27,6 +28,22 @@ describe('buildMatchDayStatusTotals', () => {
       benchCount: 1,
       outCount: 2,
     });
+  });
+});
+
+describe('resolveNextMatchDayStatus', () => {
+  it('does not revert a published fixture when saving edits', () => {
+    expect(resolveNextMatchDayStatus('published', 'draft')).toBe('published');
+  });
+
+  it('requires publication before completion', () => {
+    expect(() => resolveNextMatchDayStatus('draft', 'complete')).toThrow('Publish the match day');
+    expect(resolveNextMatchDayStatus('published', 'complete')).toBe('completed');
+  });
+
+  it('locks terminal fixtures', () => {
+    expect(() => resolveNextMatchDayStatus('completed', 'publish')).toThrow('locked');
+    expect(() => resolveNextMatchDayStatus('cancelled', 'draft')).toThrow('locked');
   });
 });
 

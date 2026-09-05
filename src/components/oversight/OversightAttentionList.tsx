@@ -3,7 +3,13 @@ import { Link } from 'react-router-dom';
 
 import type { OversightAttentionItem } from '../../lib/oversightDomain';
 
-export default function OversightAttentionList({ items }: { items: OversightAttentionItem[] }) {
+export default function OversightAttentionList({
+  items,
+  canOpenPath = () => true,
+}: {
+  items: OversightAttentionItem[];
+  canOpenPath?: (path: string) => boolean;
+}) {
   return (
     <article className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-6 shadow-[0_18px_45px_rgba(49,39,131,0.06)]">
       <div className="mwos-surface-intro">
@@ -20,12 +26,10 @@ export default function OversightAttentionList({ items }: { items: OversightAtte
 
       <div className="mt-5 space-y-3">
         {items.length > 0 ? (
-          items.map((item) => (
-            <Link
-              key={item.id}
-              to={item.linkPath}
-              className={`mwos-subcard ${item.severity === 'high' ? 'mwos-subcard-danger' : 'mwos-subcard-alert'} mwos-subcard-interactive group flex items-start gap-3 transition hover:border-[var(--color-primary)]/22`}
-            >
+          items.map((item) => {
+            const accessible = canOpenPath(item.linkPath);
+            const content = (
+              <>
               <div
                 className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
                   item.severity === 'high'
@@ -49,9 +53,31 @@ export default function OversightAttentionList({ items }: { items: OversightAtte
                 </div>
                 <p className="mwos-subcard-copy mt-2">{item.detail}</p>
               </div>
-              <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
-            </Link>
-          ))
+              {accessible ? (
+                <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--color-mid)] transition group-hover:translate-x-0.5" />
+              ) : (
+                <span className="mt-1 shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-mid)]">Read only</span>
+              )}
+              </>
+            );
+
+            return accessible ? (
+              <Link
+                key={item.id}
+                to={item.linkPath}
+                className={`mwos-subcard ${item.severity === 'high' ? 'mwos-subcard-danger' : 'mwos-subcard-alert'} mwos-subcard-interactive group flex items-start gap-3 transition hover:border-[var(--color-primary)]/22`}
+              >
+                {content}
+              </Link>
+            ) : (
+              <div
+                key={item.id}
+                className={`mwos-subcard ${item.severity === 'high' ? 'mwos-subcard-danger' : 'mwos-subcard-alert'} flex items-start gap-3`}
+              >
+                {content}
+              </div>
+            );
+          })
         ) : (
           <div className="mwos-subcard mwos-subcard-alert border-dashed p-5">
             <p className="mwos-subcard-copy mt-0">No urgent leadership follow-ups right now.</p>

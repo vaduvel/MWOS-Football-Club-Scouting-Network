@@ -15,6 +15,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  AlertCircle,
+  RotateCcw,
 } from 'lucide-react';
 const MatchReportTab = lazy(() => import('./tabs/MatchReportTab'));
 const TeamSheetsTab = lazy(() => import('./tabs/TeamSheetsTab'));
@@ -141,6 +143,9 @@ export default function ReportEditor() {
   const [draftNotice, setDraftNotice] = useState('');
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
   const [mobileTabPickerOpen, setMobileTabPickerOpen] = useState(false);
+  const [loadingReport, setLoadingReport] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const skipDirtyTrackingRef = useRef(false);
   const isAdmin = userHasRole(user, 'admin');
   const isExecutiveDirector = userHasRole(user, 'executive_director');
@@ -205,8 +210,13 @@ export default function ReportEditor() {
     skipDirtyTrackingRef.current = true;
     setPersistedReportId(id && id !== 'new' ? id : undefined);
     setDraftNotice('');
+    setLoadingReport(true);
+    setLoadError('');
 
-    if (!token) return;
+    if (!token) {
+      setLoadingReport(false);
+      return;
+    }
 
     let isMounted = true;
 
@@ -225,6 +235,7 @@ export default function ReportEditor() {
             state: 'local',
             message: 'Recovered a saved draft from this phone.',
           });
+          setLoadingReport(false);
           return;
         }
 
@@ -234,8 +245,12 @@ export default function ReportEditor() {
           setCurrentReport(data);
           setPersistedReportId(id);
           setHasUnsavedChanges(false);
+          setLoadingReport(false);
         } catch (error) {
           console.error('Failed to load report.', error);
+          if (!isMounted) return;
+          setLoadError(error instanceof Error ? error.message : 'This scouting report could not be loaded.');
+          setLoadingReport(false);
         }
         return;
       }
@@ -252,6 +267,7 @@ export default function ReportEditor() {
           state: 'local',
           message: 'Recovered a draft started on this phone.',
         });
+        setLoadingReport(false);
         return;
       }
 
@@ -278,12 +294,13 @@ export default function ReportEditor() {
         reviews: [],
       });
       setHasUnsavedChanges(false);
+      setLoadingReport(false);
     })();
 
     return () => {
       isMounted = false;
     };
-  }, [id, token, setCurrentReport, user]);
+  }, [id, loadAttempt, token, setCurrentReport, user]);
 
   // Track changes
   useEffect(() => {
@@ -389,7 +406,38 @@ export default function ReportEditor() {
     setMobileTabPickerOpen(false);
   };
 
-  if (!currentReport) return <div className="p-10 text-center font-bold">Loading...</div>;
+  if (loadingReport) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-[var(--color-light)] p-6">
+        <ReportTabLoadingState />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-[var(--color-light)] p-6">
+        <section role="alert" className="w-full max-w-lg rounded-[28px] border border-[var(--color-accent)]/18 bg-white p-6 text-center shadow-[0_22px_60px_rgba(15,23,42,0.1)]">
+          <AlertCircle size={34} className="mx-auto text-[var(--color-accent)]" />
+          <h1 className="mt-4 text-2xl font-black text-[var(--color-dark)]">Report unavailable</h1>
+          <p className="mt-3 text-sm font-semibold leading-6 text-[var(--color-mid)]">
+            You may not have access to this report, or it may have been removed. The editor stopped safely instead of staying on a loading screen.
+          </p>
+          <p className="mt-2 text-xs font-semibold text-[var(--color-mid)]">{loadError}</p>
+          <div className="mt-6 grid gap-2 sm:grid-cols-2">
+            <button type="button" onClick={() => navigate('/scouting')} className="mwos-btn mwos-btn-secondary">
+              <ArrowLeft size={16} /> Back to scouting
+            </button>
+            <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="mwos-btn mwos-btn-primary">
+              <RotateCcw size={16} /> Try again
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (!currentReport) return null;
 
   const showOwnerMeta =
     Boolean(currentReport.owner_name || currentReport.owner_email) &&

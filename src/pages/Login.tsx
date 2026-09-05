@@ -189,7 +189,7 @@ export default function Login() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        autoComplete="email"
+                        autoComplete="username"
                         autoCapitalize="none"
                         autoCorrect="off"
                         className="mwos-mobile-input"
