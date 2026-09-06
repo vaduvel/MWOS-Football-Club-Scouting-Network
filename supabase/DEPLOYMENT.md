@@ -14,7 +14,9 @@ The foundation does nothing if all original foundation tables exist. It refuses 
 
 ## Existing production project
 
-Do **not** run `db push --include-all` or the entire canonical `schema.sql` against production. The existing production migration ledger has historical timestamp differences and SQL-editor-applied changes. Reconcile it migration by migration with read-only schema comparison before adopting automatic full-chain production pushes.
+Do **not** run the entire canonical `schema.sql` against production or blindly re-run applied historical migrations. On 6 September 2026 the live schema was compared with the successful Supabase preview: columns, constraints, triggers, table grants and RLS flags matched; the only policy/function difference was roster viewing and the only index difference was notification event-key inference. Targeted migration `20260906124344` aligned those differences.
+
+After this comparison, five historical ledger timestamps were mapped to their corresponding repository versions, and eight already-present migrations/foundation states were recorded without re-executing their SQL. Two announcement migrations were recovered from the original production ledger into Git. All 18 repository versions/names now match production. The pre-reconciliation ledger is preserved in the local QA evidence folder. Future deployment should apply only genuinely new migrations.
 
 The trusted-role/report-authoring repair was applied directly via a targeted migration and is recorded as `20260905175056`. The local file has the same version. It is additive/restrictive authorization repair, not a data rewrite.
 
