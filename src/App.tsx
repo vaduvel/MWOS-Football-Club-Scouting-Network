@@ -1,12 +1,12 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import PwaStatusDock from './components/PwaStatusDock';
 import BrandSplashScreen from './components/BrandSplashScreen';
-import LoginOnboarding from './components/LoginOnboarding';
 import { useAuthStore } from './store/auth';
-import Login from './pages/Login';
-import ResetPassword from './pages/ResetPassword';
-import AcceptInvitation from './pages/AcceptInvitation';
+const LoginOnboarding = lazy(() => import('./components/LoginOnboarding'));
+const Login = lazy(() => import('./pages/Login'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
 const ClubHomePage = lazy(() => import('./pages/ClubHomePage'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const PlayersPage = lazy(() => import('./pages/PlayersPage'));
@@ -24,7 +24,7 @@ import {
   getSessionWithProfile,
   isAuthSessionMissingUserError,
   subscribeToAuthChanges,
-} from './lib/data';
+} from './lib/authData';
 import {
   canAccessOversightModule,
   canAccessMatchDayModule,
@@ -35,7 +35,7 @@ import {
   canAccessTransportModule,
   getDefaultModulePath,
   type AppUser,
-} from './lib/data';
+} from './lib/authData';
 import {
   DRAFT_SYNC_EVENT,
   SERVICE_WORKER_UPDATE_EVENT,
@@ -135,10 +135,16 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, Ap
 }
 
 function RouteLoadingScreen() {
-  return <BrandSplashScreen />;
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-[#020617] px-5 text-white" role="status" aria-live="polite">
+      <div className="text-center">
+        <img src="/branding/mwos-fc-300-2.png" alt="MWOS FC" width="96" height="96" className="mx-auto size-24 object-contain" />
+        <p className="mt-5 text-sm font-semibold">Opening your workspace…</p>
+      </div>
+    </div>
+  );
 }
 
-const POST_LOGIN_SPLASH_MS = 1800;
 const LOGIN_ENTRY_SPLASH_FALLBACK_MS = 3200;
 const LOGIN_ONBOARDING_KEY = 'mwos-login-onboarding-complete-v1';
 
@@ -168,18 +174,16 @@ function RoleRoute({
   return <>{children}</>;
 }
 
-export default function App() {
+function AppContent() {
   const { token, setAuth } = useAuthStore();
   const [loading, setLoading] = useState(true);
-  const [showPostLoginSplash, setShowPostLoginSplash] = useState(false);
   const [showLoginOnboarding, setShowLoginOnboarding] = useState(false);
   const [showLoginEntrySplash, setShowLoginEntrySplash] = useState(false);
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const [installPrompt, setInstallPrompt] = useState<DeferredPromptEvent | null>(null);
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [syncDetail, setSyncDetail] = useState<DraftSyncDetail | null>(null);
-  const pathname = typeof window === 'undefined' ? '' : window.location.pathname;
-  const search = typeof window === 'undefined' ? '' : window.location.search;
+  const { pathname, search } = useLocation();
   const isLoginRoute = pathname === '/login';
   const forceLoginOnboarding = new URLSearchParams(search).get('onboarding') === '1';
 
@@ -324,26 +328,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!token) {
-      setShowPostLoginSplash(false);
-      return;
-    }
-
-    if (sessionStorage.getItem('mwos-post-login-splash') !== '1') {
-      return;
-    }
-
-    sessionStorage.removeItem('mwos-post-login-splash');
-    setShowPostLoginSplash(true);
-
-    const timeoutId = window.setTimeout(() => {
-      setShowPostLoginSplash(false);
-    }, POST_LOGIN_SPLASH_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [token]);
-
-  useEffect(() => {
     if (!isLoginRoute || token) {
       setShowLoginOnboarding(false);
       setShowLoginEntrySplash(false);
@@ -357,7 +341,7 @@ export default function App() {
     const onboardingComplete =
       !forceLoginOnboarding && window.localStorage.getItem(LOGIN_ONBOARDING_KEY) === '1';
     setShowLoginOnboarding(!onboardingComplete);
-    setShowLoginEntrySplash(onboardingComplete);
+    setShowLoginEntrySplash(false);
   }, [forceLoginOnboarding, isLoginRoute, loading, token]);
 
   useEffect(() => {
@@ -405,10 +389,6 @@ export default function App() {
   };
 
   if (loading) {
-    if (isLoginRoute) {
-      return <div className="min-h-dvh bg-[#020617]" />;
-    }
-
     return <RouteLoadingScreen />;
   }
 
@@ -416,7 +396,17 @@ export default function App() {
 
   if (isLoginRoute && !token) {
     if (showLoginOnboarding) {
-      return <LoginOnboarding onFinish={handleLoginOnboardingFinish} />;
+      return (
+        <Suspense fallback={<RouteLoadingScreen />}>
+          <LoginOnboarding
+            onFinish={handleLoginOnboardingFinish}
+            onSkip={() => {
+              window.localStorage.setItem(LOGIN_ONBOARDING_KEY, '1');
+              setShowLoginOnboarding(false);
+            }}
+          />
+        </Suspense>
+      );
     }
 
     if (showLoginEntrySplash) {
@@ -424,11 +414,8 @@ export default function App() {
     }
   }
 
-  if (showPostLoginSplash) return <RouteLoadingScreen />;
-
   return (
-    <AppErrorBoundary>
-      <BrowserRouter>
+    <>
         {token ? (
           <PwaStatusDock
             online={online}
@@ -463,6 +450,15 @@ export default function App() {
             <Route path="*" element={<Navigate to={token ? '/' : '/login'} replace />} />
           </Routes>
         </Suspense>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <AppErrorBoundary>
+      <BrowserRouter>
+        <AppContent />
       </BrowserRouter>
     </AppErrorBoundary>
   );

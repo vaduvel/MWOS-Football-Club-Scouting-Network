@@ -92,6 +92,10 @@ async function callClubRosterApi<T>(params?: Record<string, string>) {
     throw apiError;
   }
 
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw new Error('The club roster API returned an invalid response. Check the API deployment and try again.');
+  }
+
   return body as T;
 }
 

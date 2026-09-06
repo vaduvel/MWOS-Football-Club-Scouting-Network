@@ -9,8 +9,14 @@ import {
 } from '../../lib/clubPlayersData';
 import { suggestClubPlayerMatches } from '../../lib/playerIdentityDomain';
 
-export default function TeamSheetsTab() {
-  const { currentReport, addPlayer, updatePlayer, removePlayer } = useReportStore();
+export default function TeamSheetsTab({ canEdit }: { canEdit: boolean }) {
+  const { currentReport, addPlayer, updatePlayer: updatePlayerInStore, removePlayer: removePlayerInStore } = useReportStore();
+  const updatePlayer = (id: Player['id'], fields: Partial<Player>) => {
+    if (canEdit) updatePlayerInStore(id, fields);
+  };
+  const removePlayer = (id: Player['id']) => {
+    if (canEdit) removePlayerInStore(id);
+  };
   const [activeSide, setActiveSide] = useState<'home' | 'away'>('home');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [clubCandidates, setClubCandidates] = useState<ClubPlayerRosterMatchCandidate[]>([]);
@@ -46,6 +52,7 @@ export default function TeamSheetsTab() {
   }, []);
 
   const handleAddPlayer = () => {
+    if (!canEdit) return;
     addPlayer({
       id: createId(),
       club_player_id: null,
@@ -74,6 +81,7 @@ export default function TeamSheetsTab() {
     );
 
   const handleClubPlayerLink = (player: Player, candidateId: string) => {
+    if (!canEdit) return;
     const candidate = clubCandidates.find((item) => item.id === candidateId);
     if (!candidate) {
       updatePlayer(player.id, { club_player_id: null });
@@ -88,7 +96,7 @@ export default function TeamSheetsTab() {
   };
 
   const renderManualRosterSelect = (player: Player, helperText: string) => {
-    if (clubCandidates.length === 0) {
+    if (!canEdit || clubCandidates.length === 0) {
       return null;
     }
 
@@ -99,7 +107,7 @@ export default function TeamSheetsTab() {
             <Link2 size={12} />
             Manual roster link
           </span>
-          <select
+          <select disabled={!canEdit}
             value={player.club_player_id || ''}
             onChange={(event) => handleClubPlayerLink(player, event.target.value)}
             className="mt-2 w-full rounded-xl border border-[var(--color-mid)]/18 bg-white px-3 py-3 text-sm font-bold text-[var(--color-dark)] outline-none transition-all focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/10"
@@ -158,18 +166,20 @@ export default function TeamSheetsTab() {
                 {linkedCandidate.primaryPosition ? ` · ${linkedCandidate.primaryPosition}` : ''}
               </p>
             </div>
-            <button
+            {canEdit && <button
               type="button"
               onClick={() => updatePlayer(player.id, { club_player_id: null })}
               className="inline-flex items-center gap-1 rounded-full border border-[var(--color-primary)]/18 bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/8"
             >
               <Unlink2 size={12} />
               Clear
-            </button>
+            </button>}
           </div>
         </div>
       );
     }
+
+    if (!canEdit) return null;
 
     if (!hasName) {
       return renderManualRosterSelect(
@@ -228,14 +238,14 @@ export default function TeamSheetsTab() {
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 md:space-y-6">
-      
+
       {/* Team Toggle */}
       <div className="mx-auto flex w-full max-w-md rounded-2xl bg-[var(--color-mid)]/18 p-1">
         <button
           onClick={() => setActiveSide('home')}
           className={`flex-1 rounded-[14px] px-3 py-2.5 text-sm font-bold uppercase tracking-[0.14em] transition-all ${
-            activeSide === 'home' 
-              ? 'bg-white text-[var(--color-primary)] shadow-sm' 
+            activeSide === 'home'
+              ? 'bg-white text-[var(--color-primary)] shadow-sm'
               : 'text-[var(--color-dark)]/60 hover:text-[var(--color-dark)]'
           }`}
         >
@@ -244,8 +254,8 @@ export default function TeamSheetsTab() {
         <button
           onClick={() => setActiveSide('away')}
           className={`flex-1 rounded-[14px] px-3 py-2.5 text-sm font-bold uppercase tracking-[0.14em] transition-all ${
-            activeSide === 'away' 
-              ? 'bg-white text-[var(--color-accent)] shadow-sm' 
+            activeSide === 'away'
+              ? 'bg-white text-[var(--color-accent)] shadow-sm'
               : 'text-[var(--color-dark)]/60 hover:text-[var(--color-dark)]'
           }`}
         >
@@ -264,11 +274,11 @@ export default function TeamSheetsTab() {
             </h2>
           </div>
           <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:flex-wrap">
-            <button onClick={() => setIsImportModalOpen(true)} className="flex items-center justify-center space-x-2 rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-light)] px-3 py-2.5 text-sm font-bold text-[var(--color-primary)] transition-all hover:bg-[var(--color-mid)]/20">
+            <button disabled={!canEdit} onClick={() => canEdit && setIsImportModalOpen(true)} className="flex items-center justify-center space-x-2 rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-light)] px-3 py-2.5 text-sm font-bold text-[var(--color-primary)] transition-all hover:bg-[var(--color-mid)]/20">
               <Download size={16} />
               <span>Import</span>
             </button>
-            <button onClick={handleAddPlayer} className="flex items-center justify-center space-x-2 rounded-2xl bg-[var(--color-dark)] px-3 py-2.5 text-sm font-bold text-white transition-all hover:bg-opacity-90">
+            <button disabled={!canEdit} onClick={handleAddPlayer} className="flex items-center justify-center space-x-2 rounded-2xl bg-[var(--color-dark)] px-3 py-2.5 text-sm font-bold text-white transition-all hover:bg-opacity-90">
               <Plus size={16} />
               <span>Add Player</span>
             </button>
@@ -292,7 +302,7 @@ export default function TeamSheetsTab() {
                   </div>
                 </div>
                 <button
-                  onClick={() => removePlayer(player.id)}
+                  disabled={!canEdit} aria-label={`Delete ${player.name || "player"}`} onClick={() => removePlayer(player.id)}
                   className="rounded-full p-2 text-[var(--color-mid)] transition-colors hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)]"
                 >
                   <Trash2 size={16} />
@@ -302,7 +312,7 @@ export default function TeamSheetsTab() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Player Name</label>
-                  <input
+                  <input readOnly={!canEdit}
                     type="text"
                     value={player.name}
                     onChange={e => updatePlayer(player.id, { name: e.target.value })}
@@ -315,7 +325,7 @@ export default function TeamSheetsTab() {
                 </div>
                 <div>
                   <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Shirt Number</label>
-                  <input
+                  <input readOnly={!canEdit}
                     type="number"
                     inputMode="numeric"
                     value={player.shirt_number}
@@ -326,7 +336,7 @@ export default function TeamSheetsTab() {
                 </div>
                 <div>
                   <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Sub (Min)</label>
-                  <input
+                  <input readOnly={!canEdit}
                     type="text"
                     inputMode="numeric"
                     value={player.subbed}
@@ -337,7 +347,7 @@ export default function TeamSheetsTab() {
                 </div>
                 <div>
                   <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Rating</label>
-                  <input
+                  <input readOnly={!canEdit}
                     type="number"
                     inputMode="decimal"
                     step="0.5"
@@ -351,7 +361,7 @@ export default function TeamSheetsTab() {
                 </div>
                 <div className="col-span-2">
                   <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">Goal (Min)</label>
-                  <input
+                  <input readOnly={!canEdit}
                     type="text"
                     inputMode="numeric"
                     value={player.goal}
@@ -366,7 +376,7 @@ export default function TeamSheetsTab() {
 
           {players.length === 0 && (
             <div className="rounded-[22px] border border-dashed border-[var(--color-mid)]/25 bg-[var(--color-light)]/55 p-6 text-center text-sm font-semibold text-[var(--color-mid)]">
-              No players added yet. Tap “Add Player” or “Import” to build the squad.
+              {canEdit ? 'No players added yet. Tap “Add Player” or “Import” to build the squad.' : 'No players added to this team.'}
             </div>
           )}
         </div>
@@ -387,9 +397,9 @@ export default function TeamSheetsTab() {
             {players.map((player, index) => (
               <tr key={player.id} className="border-b border-[var(--color-mid)]/20 hover:bg-[var(--color-light)] transition-colors">
                 <td className="p-2">
-                  <input 
-                    type="number" 
-                    value={player.shirt_number} 
+                  <input readOnly={!canEdit}
+                    type="number"
+                    value={player.shirt_number}
                     onChange={e => updatePlayer(player.id, { shirt_number: e.target.value ? Number(e.target.value) : '' })}
                     className="w-full p-2 rounded-md border border-transparent hover:border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:bg-white outline-none font-mono font-bold text-center bg-transparent"
                     placeholder="#"
@@ -397,9 +407,9 @@ export default function TeamSheetsTab() {
                 </td>
                 <td className="p-2">
                   <div className="space-y-2">
-                    <input 
-                      type="text" 
-                      value={player.name} 
+                    <input readOnly={!canEdit}
+                      type="text"
+                      value={player.name}
                       onChange={e => updatePlayer(player.id, { name: e.target.value })}
                       className="w-full rounded-md border border-transparent bg-transparent p-2 font-bold outline-none hover:border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:bg-white"
                       placeholder="Player Name"
@@ -408,37 +418,37 @@ export default function TeamSheetsTab() {
                   </div>
                 </td>
                 <td className="p-2">
-                  <input 
-                    type="text" 
-                    value={player.subbed} 
+                  <input readOnly={!canEdit}
+                    type="text"
+                    value={player.subbed}
                     onChange={e => updatePlayer(player.id, { subbed: e.target.value })}
                     className="w-full p-2 rounded-md border border-transparent hover:border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:bg-white outline-none font-semibold text-center bg-transparent"
                     placeholder="e.g. 75"
                   />
                 </td>
                 <td className="p-2">
-                  <input 
-                    type="text" 
-                    value={player.goal} 
+                  <input readOnly={!canEdit}
+                    type="text"
+                    value={player.goal}
                     onChange={e => updatePlayer(player.id, { goal: e.target.value })}
                     className="w-full p-2 rounded-md border border-transparent hover:border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:bg-white outline-none font-semibold text-center bg-transparent"
                     placeholder="e.g. 12, 45"
                   />
                 </td>
                 <td className="p-2">
-                  <input 
-                    type="number" 
+                  <input readOnly={!canEdit}
+                    type="number"
                     step="0.5"
                     min="1"
                     max="10"
-                    value={player.rating} 
+                    value={player.rating}
                     onChange={e => updatePlayer(player.id, { rating: e.target.value ? Number(e.target.value) : '' })}
                     className="w-full p-2 rounded-md border border-transparent hover:border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:bg-white outline-none font-black text-center bg-transparent text-[var(--color-primary)]"
                     placeholder="1-10"
                   />
                 </td>
                 <td className="p-2 text-center">
-                  <button onClick={() => removePlayer(player.id)} className="p-2 text-[var(--color-mid)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 rounded-md transition-colors">
+                  <button disabled={!canEdit} aria-label={`Delete ${player.name || "player"}`} onClick={() => removePlayer(player.id)} className="p-2 text-[var(--color-mid)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 rounded-md transition-colors">
                     <Trash2 size={16} />
                   </button>
                 </td>
@@ -447,7 +457,7 @@ export default function TeamSheetsTab() {
             {players.length === 0 && (
               <tr>
                 <td colSpan={6} className="p-8 text-center text-[var(--color-mid)] font-semibold">
-                  No players added yet. Click "Add Player" or "Import" to start building the squad.
+                  {canEdit ? 'No players added yet. Click "Add Player" or "Import" to start building the squad.' : 'No players added to this team.'}
                 </td>
               </tr>
             )}
@@ -455,8 +465,8 @@ export default function TeamSheetsTab() {
         </table>
         </div>
       </div>
-      
-      <ImportTeamModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} teamSide={activeSide} />
+
+      {canEdit && <ImportTeamModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} teamSide={activeSide} />}
     </div>
   );
 }

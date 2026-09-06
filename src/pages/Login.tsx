@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bus, CalendarRange, FileText, Info, Share2, ShieldCheck, X } from 'lucide-react';
-import { requestPasswordReset, signIn, signUp } from '../lib/data';
+import { requestPasswordReset, signIn, signUp } from '../lib/authData';
 import { useAuthStore } from '../store/auth';
 
 export default function Login() {
@@ -68,7 +68,6 @@ export default function Login() {
 
       if (isLogin) {
         const data = await signIn(submittedEmail, submittedPassword);
-        sessionStorage.setItem('mwos-post-login-splash', '1');
         setAuth(data.user, data.session);
         navigate('/');
         return;
@@ -82,7 +81,6 @@ export default function Login() {
         return;
       }
 
-      sessionStorage.setItem('mwos-post-login-splash', '1');
       setAuth(data.user, data.session);
       navigate('/');
     } catch (err: any) {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
-import type { AppUser } from '../lib/data';
-import { signOut } from '../lib/data';
+import type { AppUser } from '../lib/authData';
+import { signOut } from '../lib/authData';
 
 interface AuthState {
   user: AppUser | null;

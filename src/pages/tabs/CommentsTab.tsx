@@ -20,7 +20,7 @@ function formatTimestamp(value: string) {
   }).format(parsed);
 }
 
-export default function CommentsTab({ reportId }: { reportId?: string }) {
+export default function CommentsTab({ reportId, canEdit }: { reportId?: string; canEdit: boolean }) {
   const { user } = useAuthStore();
   const isAdmin = userHasRole(user, 'admin');
 
@@ -65,7 +65,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
   }, [reportId]);
 
   const handleSubmit = async () => {
-    if (!reportId || !draft.trim()) return;
+    if (!canEdit || !reportId || !draft.trim()) return;
 
     setSubmitting(true);
     setError('');
@@ -82,12 +82,13 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
   };
 
   const handleRequestDelete = (comment: ReportComment) => {
+    if (!canEdit || (!comment.isAuthor && !isAdmin)) return;
     setError('');
     setCommentDeleteTarget(comment);
   };
 
   const handleConfirmDelete = async () => {
-    if (!commentDeleteTarget) return;
+    if (!canEdit || !commentDeleteTarget || (!commentDeleteTarget.isAuthor && !isAdmin)) return;
 
     const comment = commentDeleteTarget;
     setDeletingId(comment.id);
@@ -143,7 +144,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
             </div>
           )}
 
-          <div className="rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.05),rgba(255,255,255,1))] p-4 md:rounded-[24px] md:p-5">
+          {canEdit && <div className="rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.05),rgba(255,255,255,1))] p-4 md:rounded-[24px] md:p-5">
             <label className="block text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">
               Add note
             </label>
@@ -164,7 +165,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
                 {submitting ? 'Posting...' : 'Post Comment'}
               </button>
             </div>
-          </div>
+          </div>}
 
           <div className="space-y-4">
             {loading && (
@@ -192,7 +193,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
                       </p>
                     </div>
 
-                    {(comment.isAuthor || isAdmin) && (
+                    {canEdit && (comment.isAuthor || isAdmin) && (
                       <button
                         onClick={() => handleRequestDelete(comment)}
                         disabled={deletingId === comment.id}
@@ -214,7 +215,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
                 <MessageSquare size={40} className="mx-auto text-[var(--color-mid)]/55" />
                 <p className="mt-4 text-lg font-black text-[var(--color-dark)]">No comments yet</p>
                 <p className="mt-2 text-sm font-semibold text-[var(--color-mid)]">
-                  Start the first follow-up note for this match report.
+                  {canEdit ? 'Start the first follow-up note for this match report.' : 'No follow-up notes have been added to this report.'}
                 </p>
               </div>
             )}
@@ -224,7 +225,7 @@ export default function CommentsTab({ reportId }: { reportId?: string }) {
       </div>
 
       <ConfirmActionModal
-        open={Boolean(commentDeleteTarget)}
+        open={canEdit && Boolean(commentDeleteTarget)}
         title="Delete comment?"
         description="This comment will be removed from the report discussion. This cannot be undone."
         confirmLabel="Delete comment"
