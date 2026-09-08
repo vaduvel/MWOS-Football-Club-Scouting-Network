@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
+import { verifyAccessBoundaries } from './verify-access-boundaries.mjs';
 
 const db = new PGlite({ extensions: { pgcrypto } });
 const shell = `
@@ -40,6 +41,7 @@ try {
   await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub','00000000-0000-4000-a000-000000000001', false); update profiles set role='admin' where id=auth.uid();`);
   assert.equal((await db.query('select is_admin() as allowed')).rows[0].allowed, false);
   console.log('PASS complete migration chain, repeat bootstrap, signup and profile-spoof security');
+  await verifyAccessBoundaries(db);
 } finally {
   await db.close();
 }

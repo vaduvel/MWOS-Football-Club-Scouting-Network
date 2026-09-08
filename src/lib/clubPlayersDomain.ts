@@ -1,6 +1,9 @@
+import { getPlayerAge } from './playerAgeDomain';
+
 export type ClubPlayerFoot = 'right' | 'left' | 'both' | 'unknown';
 
 export interface ClubPlayerDraft {
+  dateOfBirth: string;
   squadNumber: string;
   firstName: string;
   lastName: string;
@@ -17,6 +20,7 @@ export interface ClubPlayerDraft {
 }
 
 export interface ClubPlayerSavePayload {
+  date_of_birth: string | null;
   team_id: string;
   source_label: string;
   source_row_number: number | null;
@@ -125,6 +129,7 @@ function roundMetric(value: number | null, digits = 2) {
 
 export function createEmptyClubPlayerDraft(): ClubPlayerDraft {
   return {
+    dateOfBirth: '',
     squadNumber: '',
     firstName: '',
     lastName: '',
@@ -142,6 +147,7 @@ export function createEmptyClubPlayerDraft(): ClubPlayerDraft {
 }
 
 export function toClubPlayerDraft(input: {
+  dateOfBirth?: string | null;
   squadNumber: number | null;
   firstName: string;
   lastName: string;
@@ -157,6 +163,7 @@ export function toClubPlayerDraft(input: {
   isActive: boolean;
 }): ClubPlayerDraft {
   return {
+    dateOfBirth: input.dateOfBirth || '',
     squadNumber: input.squadNumber === null ? '' : String(input.squadNumber),
     firstName: input.firstName,
     lastName: input.lastName,
@@ -178,6 +185,10 @@ export function buildClubPlayerSavePayload(teamId: string, draft: ClubPlayerDraf
   errors: string[];
 } {
   const errors: string[] = [];
+  const dateOfBirth = normalizeClubPlayerText(draft.dateOfBirth);
+  if (dateOfBirth && getPlayerAge(dateOfBirth) === null) {
+    errors.push('Date of birth must be a valid date that is not in the future.');
+  }
   const normalizedTeamId = normalizeClubPlayerText(teamId);
   const firstName = normalizeClubPlayerName(draft.firstName);
   const lastName = normalizeClubPlayerName(draft.lastName);
@@ -228,6 +239,7 @@ export function buildClubPlayerSavePayload(teamId: string, draft: ClubPlayerDraf
       secondary_position: toNullableText(draft.secondaryPosition),
       notes: toNullableText(draft.notes),
       is_active: draft.isActive,
+      date_of_birth: dateOfBirth || null,
     },
     errors: [],
   };

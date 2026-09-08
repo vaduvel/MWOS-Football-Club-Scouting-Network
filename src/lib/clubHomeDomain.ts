@@ -4,6 +4,7 @@ export type ClubHomeViewMode =
   | 'technical_director'
   | 'board_observer'
   | 'coach'
+  | 'team_manager'
   | 'driver'
   | 'scout'
   | 'pending';
@@ -43,6 +44,7 @@ export function getClubHomeViewMode(roleSlugs: string[]): ClubHomeViewMode {
   if (roles.has('board_observer')) return 'board_observer';
 
   if (roles.has('coach')) return 'coach';
+  if (roles.has('team_manager')) return 'team_manager';
   if (roles.has('driver')) return 'driver';
   if (roles.has('scout')) return 'scout';
   return 'pending';
@@ -103,6 +105,16 @@ export function buildClubHomeHero(view: ClubHomeViewMode, assignedTeams: number)
         primaryLabel: 'Open training plans',
         primaryPath: '/training',
         secondaryLabel: 'Review transport',
+        secondaryPath: '/transport',
+      };
+    case 'team_manager':
+      return {
+        eyebrow: 'Team Manager Workspace',
+        title: 'Organize match days and travel for your teams.',
+        description: 'Coordinate fixtures, venues, departures and contact notes for your assigned teams. Coaches manage squad selection.',
+        primaryLabel: 'Open match days',
+        primaryPath: '/match-day',
+        secondaryLabel: 'Organize transport',
         secondaryPath: '/transport',
       };
     case 'driver':
@@ -261,6 +273,12 @@ export function buildClubHomeMetricCards(
           value: String(input.unreadNotifications),
           detail: 'Notifications needing attention in the workspace.',
         },
+      ];
+    case 'team_manager':
+      return [
+        { label: 'Assigned Teams', value: String(input.assignedTeams), detail: 'Teams whose logistics you manage.' },
+        { label: 'Upcoming Trips', value: String(input.upcomingTransportPlans), detail: 'Active transport plans for your teams.' },
+        { label: 'Unread Alerts', value: String(input.unreadNotifications), detail: 'Team and transport updates waiting for you.' },
       ];
     case 'driver':
       return [

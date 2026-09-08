@@ -28,6 +28,7 @@ describe('buildClubPlayerSavePayload', () => {
 
     expect(result.errors).toEqual([]);
     expect(result.payload).toEqual({
+      date_of_birth: null,
       team_id: 'team-1',
       source_label: 'manual_roster_editor',
       source_row_number: null,
@@ -109,6 +110,7 @@ describe('toClubPlayerDraft', () => {
     });
 
     expect(draft).toEqual({
+      dateOfBirth: '',
       squadNumber: '10',
       firstName: 'Tadiwa',
       lastName: 'Zhou',

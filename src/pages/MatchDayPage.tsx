@@ -238,7 +238,7 @@ export default function MatchDayPage() {
       );
 
       const savedId = fixtureResult.workspace.id;
-      const selectionResult = savedId
+      const selectionResult = savedId && workspace.canManageSquad
         ? await saveMatchDayPlayerSelections(savedId, workspace.players)
         : fixtureResult;
 
@@ -491,7 +491,9 @@ export default function MatchDayPage() {
                           </p>
                           <p className="mt-1.5 text-sm font-semibold leading-6 text-[var(--color-mid)]">
                             {workspace.canManage && !workspaceIsTerminal
-                              ? 'Save the fixture first. Then link transport, open the training week, and lock the squad board.'
+                              ? workspace.canManageSquad
+                                ? 'Save the fixture first. Then link transport, open the training week, and lock the squad board.'
+                                : 'Save the fixture and coordinate transport. Squad selection remains with the coaching staff.'
                               : 'This role can follow the fixture, transport link, training context, and squad board, but cannot edit them.'}
                           </p>
                         </div>
@@ -771,10 +773,11 @@ export default function MatchDayPage() {
                           <div>
                             <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Squad board</p>
                             <h2 className="mt-1 text-xl font-black text-[var(--color-dark)] md:text-2xl">Selection and availability</h2>
+                            {!workspace.canManageSquad ? <p className="mt-1 text-sm text-[var(--color-mid)]">Read-only squad. Coaches, the technical director and admins manage selection.</p> : null}
                           </div>
                         </div>
 
-                        {workspace.canManage && !workspaceIsTerminal ? (
+                        {workspace.canManageSquad && !workspaceIsTerminal ? (
                           <button
                             onClick={() => void handleSaveSquad()}
                             disabled={savingSquad}
@@ -836,7 +839,7 @@ export default function MatchDayPage() {
                                   <select
                                     value={player.availabilityStatus}
                                     onChange={(event) => handlePlayerChange(player.clubPlayerId, 'availabilityStatus', event.target.value)}
-                                    disabled={!workspace.canManage || workspaceIsTerminal}
+                                    disabled={!workspace.canManageSquad || workspaceIsTerminal}
                                     className="mwos-select-field mwos-input"
                                   >
                                     <option value="available">Available</option>
@@ -849,7 +852,7 @@ export default function MatchDayPage() {
                                   <select
                                     value={player.selectionStatus}
                                     onChange={(event) => handlePlayerChange(player.clubPlayerId, 'selectionStatus', event.target.value)}
-                                    disabled={!workspace.canManage || workspaceIsTerminal}
+                                    disabled={!workspace.canManageSquad || workspaceIsTerminal}
                                     className="mwos-select-field mwos-input"
                                   >
                                     <option value="starter">Starter</option>
@@ -862,7 +865,7 @@ export default function MatchDayPage() {
                                   <input
                                     value={player.notes}
                                     onChange={(event) => handlePlayerChange(player.clubPlayerId, 'notes', event.target.value)}
-                                    disabled={!workspace.canManage || workspaceIsTerminal}
+                                    disabled={!workspace.canManageSquad || workspaceIsTerminal}
                                     className="mwos-input"
                                     placeholder="Short context for this player"
                                   />

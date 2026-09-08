@@ -37,6 +37,8 @@ export type RadarChartPoint = {
 };
 
 type RosterSnapshotPlayer = {
+  dateOfBirth?: string | null;
+  isActive?: boolean;
   primaryPosition: string;
   heightCm: number | null;
   weightKg: number | null;

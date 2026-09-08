@@ -110,6 +110,8 @@ function buildAccessProfileCopy(roleSlug: string) {
       return 'Read-only briefing access across oversight and club notifications.';
     case 'coach':
       return 'Plan training and match day for your teams, then coordinate their transport.';
+    case 'team_manager':
+      return 'Organize fixtures, travel and contact notes for your assigned teams.';
     case 'driver':
       return 'Your navigation stays focused on transport actions and departure updates.';
     case 'scout':
@@ -151,6 +153,12 @@ function buildMobilePrimaryKeys(user: AppUser | null, roleSlug: string) {
 
   if (userHasAnyRole(user, ['driver'])) {
     pushKey('transport');
+  }
+
+  if (userHasAnyRole(user, ['team_manager'])) {
+    pushKey('match-day');
+    pushKey('transport');
+    pushKey('notifications');
   }
 
   if (userHasAnyRole(user, ['scout'])) {

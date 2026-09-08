@@ -44,6 +44,7 @@ import {
   type TeamRosterAnalytics,
 } from '../lib/playerHubDomain';
 import { useAuthStore } from '../store/auth';
+import { buildSquadAgeSummary } from '../lib/playerAgeDomain';
 
 const COMPARISON_FIELDS: Array<{ key: keyof PlayerHubEntry['metrics']; label: string }> = [
   { key: 'pace', label: 'Pace' },
@@ -134,10 +135,12 @@ function TeamAnalyticsPanel({
   analytics,
   loading,
   teamName,
+  ageSummary,
 }: {
   analytics: TeamRosterAnalytics;
   loading: boolean;
   teamName: string;
+  ageSummary: ReturnType<typeof buildSquadAgeSummary>;
 }) {
   const statCards = [
     {
@@ -229,6 +232,16 @@ function TeamAnalyticsPanel({
                 <Footprints className="text-[var(--color-primary)]" size={20} />
               </div>
 
+              <div className="mt-4 rounded-2xl border border-[var(--color-mid)]/12 p-3">
+                <p className="text-sm font-semibold text-[var(--color-mid)]">Average age</p>
+                <p className="text-2xl font-bold tabular-nums text-[var(--color-dark)]">
+                  {ageSummary.averageAge === null ? 'Not available' : `${ageSummary.averageAge.toFixed(1)} years`}
+                </p>
+                <p className="mt-1 text-xs text-pretty text-[var(--color-mid)]">
+                  {ageSummary.knownAgeCount} of {ageSummary.totalActivePlayers} active players have a valid date of birth.
+                  {' '}Calculated in completed years as of today.
+                </p>
+              </div>
               <div className="mt-4 space-y-3">
                 {analytics.positionRows.length > 0 ? (
                   analytics.positionRows.map((row) => (
@@ -899,6 +912,7 @@ export default function PlayersPage() {
           )}
 
           <TeamAnalyticsPanel
+            ageSummary={buildSquadAgeSummary(clubRoster?.players || [])}
             analytics={teamRosterAnalytics}
             loading={rosterLoading}
             teamName={clubRoster?.selectedTeamName || 'Club roster'}

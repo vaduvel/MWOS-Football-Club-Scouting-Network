@@ -117,6 +117,7 @@ const MODULE_ORDER: Record<ClubHomeViewMode, string[]> = {
   board_observer: ['oversight', 'match-day', 'home', 'training', 'transport', 'scouting', 'players'],
   coach: ['training', 'match-day', 'transport', 'oversight', 'scouting', 'players', 'home'],
   driver: ['transport', 'training', 'match-day', 'oversight', 'home', 'scouting', 'players'],
+  team_manager: ['match-day', 'transport', 'home', 'training', 'oversight', 'scouting', 'players'],
   scout: ['scouting', 'players', 'match-day', 'training', 'oversight', 'transport', 'home'],
   pending: ['home', 'training', 'match-day', 'transport', 'scouting', 'players', 'oversight'],
 };
@@ -954,7 +955,7 @@ export default function ClubHomePage() {
                 </>
               ) : null}
 
-              {workspace.view === 'driver' ? (
+              {workspace.view === 'driver' || workspace.view === 'team_manager' ? (
                 <>
                   <section className="grid gap-4 xl:grid-cols-2">
                     <TransportFeed plans={workspace.upcomingTransport} />

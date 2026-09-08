@@ -47,7 +47,7 @@ describe('validateClubAccessSelection', () => {
         roleSlugs: ['coach'],
         teamIds: [],
       }),
-    ).toThrow('Select at least one team for coach, driver, or scout access.');
+    ).toThrow('Select at least one team for coach, team manager, driver, or scout access.');
   });
 });
 
