@@ -33,7 +33,7 @@ export function validateClubAccessSelection(input: { roleSlugs: string[]; teamId
   const { roleSlugs, teamIds } = normalizeClubAccessSelection(input);
 
   if (roleSlugs.some(roleRequiresTeam) && teamIds.length === 0) {
-    throw new Error('Select at least one team for coach, driver, or scout access.');
+    throw new Error('Select at least one team for coach, team manager, driver, or scout access.');
   }
 
   return {

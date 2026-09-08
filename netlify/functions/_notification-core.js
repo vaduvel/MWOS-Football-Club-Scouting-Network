@@ -276,7 +276,7 @@ function canReceiveEvent(user, type, teamId, transportPlan = null) {
       return true;
     }
 
-    if (user.roles.includes('coach') && user.teams.includes(teamId)) {
+    if ((user.roles.includes('coach') || user.roles.includes('team_manager')) && user.teams.includes(teamId)) {
       return true;
     }
 

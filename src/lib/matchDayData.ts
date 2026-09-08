@@ -197,6 +197,7 @@ export interface MatchDayWorkspace {
   publishedAt: string | null;
   updatedAt: string | null;
   canManage: boolean;
+  canManageSquad: boolean;
   rosterSetupNotice: string;
 }
 
@@ -381,6 +382,11 @@ async function resolveMatchDayTeams() {
 }
 
 function resolveCanManageMatchDay(user: Awaited<ReturnType<typeof getCurrentAppUser>>, teamId: string) {
+  return resolveCanManageMatchDaySquad(user, teamId) ||
+    (userHasRole(user, 'team_manager') && user.teams.some(team => team.id === teamId));
+}
+
+function resolveCanManageMatchDaySquad(user: Awaited<ReturnType<typeof getCurrentAppUser>>, teamId: string) {
   if (userHasAnyRole(user, ['admin', 'technical_director'])) {
     return true;
   }
@@ -586,6 +592,7 @@ async function buildWorkspaceFromRoster(
   matchDay: MatchDayRow | null,
   playerRows: MatchDayPlayerRow[],
   canManage: boolean,
+  canManageSquad: boolean,
 ) {
   const rosterOverview = await fetchClubRosterOverview(selectedTeam.id);
   const rowsByPlayerId = new Map(playerRows.map((row) => [row.club_player_id, row]));
@@ -609,6 +616,7 @@ async function buildWorkspaceFromRoster(
     publishedAt: matchDay?.published_at || null,
     updatedAt: matchDay?.updated_at || null,
     canManage,
+    canManageSquad,
     rosterSetupNotice: rosterOverview.setupNotice,
   } satisfies MatchDayWorkspace;
 }
@@ -620,7 +628,7 @@ export async function fetchMatchDayTeams() {
 
 export async function fetchMatchDaySummaries(teamId?: string | null): Promise<MatchDaySummary[]> {
   const authUser = await getCurrentAppUser();
-  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach'])) {
+  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach', 'team_manager'])) {
     return [];
   }
 
@@ -678,7 +686,7 @@ export async function fetchMatchDayWorkspace(teamId?: string | null, matchDayId?
       return null;
     }
 
-    return buildWorkspaceFromRoster(selectedTeam, null, [], canManage);
+    return buildWorkspaceFromRoster(selectedTeam, null, [], canManage, resolveCanManageMatchDaySquad(user, selectedTeam.id));
   }
 
   const { data, error } = await supabase
@@ -715,6 +723,7 @@ export async function fetchMatchDayWorkspace(teamId?: string | null, matchDayId?
     matchDay,
     (selectionData || []) as MatchDayPlayerRow[],
     resolveCanManageMatchDay(user, matchDay.team_id),
+    resolveCanManageMatchDaySquad(user, matchDay.team_id),
   );
 }
 
@@ -900,7 +909,7 @@ export async function saveMatchDayPlayerSelections(
   }
 
   const teamId = String(matchDayData.team_id || '');
-  if (!resolveCanManageMatchDay(authUser, teamId)) {
+  if (!resolveCanManageMatchDaySquad(authUser, teamId)) {
     throw new Error('You do not have permission to update this squad board.');
   }
 
@@ -932,7 +941,7 @@ export async function saveMatchDayPlayerSelections(
 
 export async function fetchPlayerMatchDayStatus(clubPlayerId: string): Promise<PlayerMatchDayStatus | null> {
   const authUser = await getCurrentAppUser();
-  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach'])) {
+  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach', 'team_manager'])) {
     return null;
   }
 

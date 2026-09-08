@@ -21,6 +21,7 @@ import type { ClubPlayerMatchCandidate } from './playerIdentityDomain';
 type ClubPlayerRow = ClubRosterApiOverviewPlayerRow;
 
 export interface ClubRosterPlayer {
+  dateOfBirth?: string | null;
   id: string;
   teamId: string;
   teamName: string;
@@ -93,6 +94,7 @@ function mapPlayer(row: ClubPlayerRow, teamName: string): ClubRosterPlayer {
 
   return {
     id: row.id,
+    dateOfBirth: row.date_of_birth || null,
     teamId: row.team_id,
     teamName,
     sourceLabel: row.source_label,

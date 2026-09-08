@@ -194,6 +194,14 @@ export default function ClubRosterSection({
             <RosterTextField label="First name" value={draft.firstName} onChange={(value) => updateDraft('firstName', value)} />
             <RosterTextField label="Last name" value={draft.lastName} onChange={(value) => updateDraft('lastName', value)} />
             <RosterTextField label="Display name" value={draft.displayName} onChange={(value) => updateDraft('displayName', value)} placeholder="Optional override" />
+            <label className="block min-w-0">
+              <span className="mwos-form-label text-[var(--color-mid)]">Date of birth</span>
+              <input type="date" value={draft.dateOfBirth}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(event) => updateDraft('dateOfBirth', event.target.value)}
+                className="mwos-select-field mwos-mobile-input" />
+              <span className="mt-1 block text-xs text-[var(--color-mid)]">Optional; used to calculate squad age.</span>
+            </label>
             <RosterTextField label="Squad no." value={draft.squadNumber} onChange={(value) => updateDraft('squadNumber', value)} inputMode="numeric" />
             <RosterTextField label="Primary position" value={draft.primaryPosition} onChange={(value) => updateDraft('primaryPosition', value)} />
             <RosterTextField label="Secondary position" value={draft.secondaryPosition} onChange={(value) => updateDraft('secondaryPosition', value)} />

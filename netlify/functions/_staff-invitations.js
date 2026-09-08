@@ -56,6 +56,13 @@ export async function fetchRolesAndTeams(serviceSupabase, roleSlugs, teamIds) {
   const roles = rolesResponse.data || [];
   const teams = teamsResponse.data || [];
 
+  if (roleSlugs.some(role => ['coach', 'team_manager', 'driver', 'scout'].includes(role)) && !teams.length) {
+    throw new Error('Select at least one team for team-scoped staff.');
+  }
+  if (teams.some(team => !team.is_active)) {
+    throw new Error('Select active teams for staff access.');
+  }
+
   if (roles.length !== roleSlugs.length) {
     throw new Error('One or more selected roles could not be matched.');
   }

@@ -2,6 +2,7 @@ import type { AppTeam } from './data';
 import { supabase } from './supabase';
 
 export interface ClubRosterApiOverviewPlayerRow {
+  date_of_birth?: string | null;
   id: string;
   team_id: string;
   source_label: string;

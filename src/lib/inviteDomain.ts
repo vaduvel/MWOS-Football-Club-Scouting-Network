@@ -7,7 +7,7 @@ export type InviteDeliveryResult = {
   reason?: string;
 };
 
-const TEAM_SCOPED_ROLES = new Set(['coach', 'driver', 'scout']);
+const TEAM_SCOPED_ROLES = new Set(['coach', 'team_manager', 'driver', 'scout']);
 
 export function formatInviteDeliveryModeLabel(mode: InviteDeliveryMode) {
   switch (mode) {

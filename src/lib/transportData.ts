@@ -200,7 +200,18 @@ async function fetchProfileMap(userIds: string[]) {
     throw error;
   }
 
-  return new Map(((data || []) as ProfileLiteRow[]).map((profile) => [profile.id, profile]));
+  const profiles = new Map(((data || []) as ProfileLiteRow[]).map((profile) => [profile.id, profile]));
+  const user = await getCurrentAppUser();
+  if (userHasRole(user, 'team_manager') && !userHasAnyRole(user, ['admin', 'technical_director'])) {
+    const { data: drivers, error: driverError } = await supabase.rpc('list_team_transport_drivers');
+    if (driverError) throw driverError;
+    for (const driver of drivers || []) {
+      if (uniqueIds.includes(driver.user_id) && !profiles.has(driver.user_id)) {
+        profiles.set(driver.user_id, { id: driver.user_id, name: driver.name, email: '' });
+      }
+    }
+  }
+  return profiles;
 }
 
 async function callNotificationFunction(body: Record<string, unknown>) {
@@ -264,11 +275,11 @@ function resolveTransportManagePermission(
     return true;
   }
 
-  if (plan && userHasRole(user, 'coach') && user.teams.some((team) => team.id === plan.team_id)) {
+  if (plan && userHasAnyRole(user, ['coach', 'team_manager']) && user.teams.some((team) => team.id === plan.team_id)) {
     return true;
   }
 
-  return Boolean(plan?.driver_user_id && plan.driver_user_id === user.id);
+  return userHasRole(user, 'driver') && Boolean(plan?.driver_user_id && plan.driver_user_id === user.id);
 }
 
 function resolveTransportCommentPermission(
@@ -277,15 +288,15 @@ function resolveTransportCommentPermission(
 ) {
   if (!plan) return false;
   if (resolveTransportManagePermission(user, plan)) return true;
-  return userHasRole(user, 'coach') && user.teams.some((team) => team.id === plan.team_id);
+  return userHasAnyRole(user, ['coach', 'team_manager']) && user.teams.some((team) => team.id === plan.team_id);
 }
 
 function resolveCanCreateTransport(user: Awaited<ReturnType<typeof getCurrentAppUser>>) {
-  return userHasAnyRole(user, ['admin', 'technical_director', 'coach', 'driver']);
+  return userHasAnyRole(user, ['admin', 'technical_director', 'coach', 'team_manager', 'driver']);
 }
 
 function resolveCanAssignTransportDriver(user: Awaited<ReturnType<typeof getCurrentAppUser>>) {
-  return userHasAnyRole(user, ['admin', 'technical_director']);
+  return userHasAnyRole(user, ['admin', 'technical_director', 'team_manager']);
 }
 
 function rowToDraft(row: TransportPlanRow): TransportPlanDraft {
@@ -394,6 +405,13 @@ export async function fetchTransportTeams() {
 
 export async function fetchTransportDriverOptions(): Promise<TransportDriverOption[]> {
   const authUser = await getCurrentAppUser();
+  if (userHasRole(authUser, 'team_manager') && !userHasAnyRole(authUser, ['admin', 'technical_director'])) {
+    const { data, error } = await supabase.rpc('list_team_transport_drivers');
+    if (error) throw error;
+    return (data || []).map((row: { user_id: string; name: string; team_names: string[] }) => ({
+      userId: row.user_id, name: row.name, email: '', teamNames: row.team_names,
+    }));
+  }
   if (!userHasAnyRole(authUser, ['admin', 'technical_director'])) {
     return [];
   }
@@ -462,7 +480,7 @@ export async function fetchTransportPlanSummaries(filters: {
   status?: TransportPlanStatus | 'all';
 }): Promise<TransportPlanSummary[]> {
   const authUser = await getCurrentAppUser();
-  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'coach', 'driver'])) {
+  if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'coach', 'team_manager', 'driver'])) {
     return [];
   }
 
@@ -505,7 +523,7 @@ export async function fetchTransportPlanSummaries(filters: {
       arrivalTargetTime: toStringValue(row.arrival_target_time),
       destination: row.destination,
       driverUserId: toStringValue(row.driver_user_id),
-      driverName: driverProfile?.name || getDisplayName(driverProfile?.email) || 'Unassigned',
+      driverName: row.driver_user_id ? driverProfile?.name || getDisplayName(driverProfile?.email) : 'Unassigned',
       status: row.status,
       publishedAt: row.published_at,
       updatedAt: row.updated_at,
@@ -584,7 +602,7 @@ export async function fetchTransportWorkspace(teamId?: string | null, planId?: s
     ...rowToDraft(plan),
     id: plan.id,
     team: selectedTeam,
-    driverName: driverProfile?.name || getDisplayName(driverProfile?.email),
+    driverName: plan.driver_user_id ? driverProfile?.name || getDisplayName(driverProfile?.email) : 'Unassigned',
     comments: ((commentsResponse.data || []) as TransportPlanCommentRow[]).map((comment) => ({
       id: comment.id,
       planId: comment.plan_id,
@@ -636,7 +654,7 @@ export async function saveTransportPlan(
   }
 
   if (!currentPlan && !canCreate) {
-    throw new Error('Only admin, technical staff, coaches, or drivers can create a new transport plan.');
+    throw new Error('Only admin, technical staff, coaches, team managers, or drivers can create a new transport plan.');
   }
 
   if ((action === 'publish' || action === 'cancel') && !canManageExisting) {
@@ -814,6 +832,8 @@ export async function addTransportPlanComment(planId: string, content: string): 
       ? 'Admin'
       : userHasRole(authUser, 'driver')
         ? 'Driver'
+        : userHasRole(authUser, 'team_manager')
+          ? 'Team Manager'
         : 'Coach';
 
   const { error } = await supabase

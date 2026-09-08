@@ -72,6 +72,7 @@ const CLUB_ROLE_PRIORITY = [
   'executive_director',
   'technical_director',
   'coach',
+  'team_manager',
   'driver',
   'scout',
   'board_observer',

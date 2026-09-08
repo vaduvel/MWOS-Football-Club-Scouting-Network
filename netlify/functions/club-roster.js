@@ -67,7 +67,7 @@ function canViewRosterTeam(access, teamId) {
     }
   }
 
-  return access.roles.has('coach') && access.teamIds.has(teamId);
+  return (access.roles.has('coach') || access.roles.has('team_manager')) && access.teamIds.has(teamId);
 }
 
 function filterTeamsForViewer(teams, access) {
@@ -143,7 +143,7 @@ async function buildOverviewResponse(serviceSupabase, access, requestedTeamId) {
   const { data, error } = await serviceSupabase
     .from('club_players')
     .select(
-      'id, team_id, source_label, source_row_number, squad_number, first_name, last_name, display_name, weight_kg, height_cm, bmi, dominant_foot, nationality, primary_position, secondary_position, is_active, notes',
+      'id, team_id, source_label, source_row_number, squad_number, first_name, last_name, display_name, date_of_birth, weight_kg, height_cm, bmi, dominant_foot, nationality, primary_position, secondary_position, is_active, notes',
     )
     .eq('team_id', selectedTeam.id)
     .order('display_name', { ascending: true });
@@ -178,7 +178,7 @@ async function buildProfileResponse(serviceSupabase, access, playerId) {
   const { data, error } = await serviceSupabase
     .from('club_players')
     .select(
-      'id, team_id, source_label, source_row_number, squad_number, first_name, last_name, display_name, weight_kg, height_cm, bmi, dominant_foot, nationality, primary_position, secondary_position, is_active, notes',
+      'id, team_id, source_label, source_row_number, squad_number, first_name, last_name, display_name, date_of_birth, weight_kg, height_cm, bmi, dominant_foot, nationality, primary_position, secondary_position, is_active, notes',
     )
     .eq('id', playerId)
     .maybeSingle();
@@ -225,7 +225,7 @@ export async function handler(event) {
     const serviceSupabase = createServiceSupabaseClient();
     const access = await fetchViewerAccess(serviceSupabase, auth.user.id);
 
-    if (![...GLOBAL_ROSTER_VIEW_ROLES, 'coach'].some((role) => access.roles.has(role))) {
+    if (![...GLOBAL_ROSTER_VIEW_ROLES, 'coach', 'team_manager'].some((role) => access.roles.has(role))) {
       return forbidden();
     }
 

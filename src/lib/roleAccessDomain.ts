@@ -4,8 +4,8 @@ export interface RoleAccessUserShape {
 
 export const MODULE_ACCESS_ROLE_SLUGS = {
   training: ['admin', 'executive_director', 'technical_director', 'coach'],
-  matchDay: ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach'],
-  transport: ['admin', 'executive_director', 'technical_director', 'coach', 'driver'],
+  matchDay: ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach', 'team_manager'],
+  transport: ['admin', 'executive_director', 'technical_director', 'coach', 'team_manager', 'driver'],
   scouting: ['admin', 'executive_director', 'technical_director', 'scout'],
   playerHub: ['admin', 'executive_director', 'technical_director', 'scout'],
   scoutingAuthoring: ['admin', 'scout'],
@@ -17,6 +17,7 @@ const CLUB_ROLE_PRIORITY = [
   'executive_director',
   'technical_director',
   'coach',
+  'team_manager',
   'driver',
   'scout',
   'board_observer',
