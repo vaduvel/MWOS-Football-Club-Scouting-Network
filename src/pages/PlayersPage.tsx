@@ -471,7 +471,7 @@ export default function PlayersPage() {
   }, [filteredEntries, selectedPlayerKey]);
 
   const handleCreateReport = (tab: 'match' | 'teams' = 'match') => {
-    navigate('/scouting/individual/new');
+    navigate(tab === 'teams' ? '/scouting/individual/new' : '/scouting/report/new?tab=match');
   };
 
   const handleOpenReport = (reportId: string) => {
@@ -646,7 +646,7 @@ export default function PlayersPage() {
                       className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white"
                     >
                       <Plus size={15} />
-                      New scouting report
+                      Add Player
                     </button>
                   ) : (
                     <button
@@ -764,14 +764,14 @@ export default function PlayersPage() {
                           className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm transition-all hover:bg-white/16"
                         >
                           <Plus size={16} />
-                          New scouting report
+                          Add Player
                         </button>
                         <button
                           onClick={() => handleCreateReport('match')}
                           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-3 py-2.5 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)] transition-opacity hover:opacity-92"
                         >
                           <Plus size={16} />
-                          New Report
+                          Match Report
                         </button>
                       </>
                     ) : (
@@ -1119,8 +1119,8 @@ export default function PlayersPage() {
                       className="inline-flex items-center justify-between rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] px-4 py-4 text-left"
                     >
                       <div>
-                        <p className="text-sm font-black text-[var(--color-dark)]">New scouting report</p>
-                        <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Open team sheets and start logging a new match squad.</p>
+                        <p className="text-sm font-black text-[var(--color-dark)]">Add Player</p>
+                        <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Create an individual evaluation for an external player.</p>
                       </div>
                       <Plus size={18} className="text-[var(--color-primary)]" />
                     </button>
@@ -1130,7 +1130,7 @@ export default function PlayersPage() {
                       className="inline-flex items-center justify-between rounded-[22px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] px-4 py-4 text-left"
                     >
                       <div>
-                        <p className="text-sm font-black text-[var(--color-dark)]">New Report</p>
+                        <p className="text-sm font-black text-[var(--color-dark)]">Match Report</p>
                         <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Start a fresh match report for the next fixture.</p>
                       </div>
                       <ArrowRight size={18} className="text-[var(--color-accent)]" />

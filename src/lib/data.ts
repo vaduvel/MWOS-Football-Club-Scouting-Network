@@ -872,6 +872,7 @@ function getPlayerClubLabel(player: PlayerRow, report: ReportRow) {
 }
 
 function buildFixtureLabel(report: ReportRow) {
+  if (report.report_type === 'individual') return 'Individual player report';
   return `${toStringValue(report.home_team) || 'Home'} vs ${toStringValue(report.away_team) || 'Away'}`;
 }
 
