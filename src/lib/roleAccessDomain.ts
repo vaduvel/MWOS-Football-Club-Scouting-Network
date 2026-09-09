@@ -68,6 +68,10 @@ export function canAccessScoutingModule(user: RoleAccessUserShape | null | undef
   return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.scouting);
 }
 
+export function canAccessInternalRoster(user: RoleAccessUserShape | null | undefined) {
+  return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach', 'team_manager']);
+}
+
 export function canAccessPlayerHub(user: RoleAccessUserShape | null | undefined) {
   return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.playerHub);
 }

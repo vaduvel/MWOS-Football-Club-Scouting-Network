@@ -387,7 +387,7 @@ export default function TransportPage() {
                 </select>
               </label>
 
-              {workspace?.canCreate ? (
+              {workspace?.canCreate && workspace.id ? (
                 <button
                   type="button"
                   onClick={handleCreateNew}
@@ -434,12 +434,12 @@ export default function TransportPage() {
                         void handleSave(action);
                       }}
                     />
-                    <TransportCommentsPanel
+                    {workspace.id && <TransportCommentsPanel
                       comments={workspace.comments}
                       canComment={workspace.canComment}
                       isSubmitting={commentSaving}
                       onSubmit={handleCommentSubmit}
-                    />
+                    />}
                   </>
                 ) : (
                   <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-4 shadow-[0_18px_45px_rgba(49,39,131,0.06)] md:p-6">

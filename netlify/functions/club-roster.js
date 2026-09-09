@@ -5,7 +5,6 @@ const GLOBAL_ROSTER_VIEW_ROLES = new Set([
   'executive_director',
   'technical_director',
   'board_observer',
-  'scout',
 ]);
 
 function normalizeRoleSlug(value) {

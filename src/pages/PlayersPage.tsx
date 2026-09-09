@@ -22,6 +22,7 @@ import {
   Users,
 } from 'lucide-react';
 import AppSidebar from '../components/AppSidebar';
+import { canAccessInternalRoster } from '../lib/roleAccessDomain';
 import ClubRosterSection from '../components/players/ClubRosterSection';
 import PlayerProfilePanel from '../components/players/PlayerProfilePanel';
 import {
@@ -320,7 +321,11 @@ function TeamAnalyticsPanel({
 }
 
 export default function PlayersPage() {
+  const [selectedHubSection, setHubSection] = useState<'roster' | 'analytics' | 'scouting'>('roster');
+  const [scoutingPagination, setScoutingPagination] = useState({ key: '', page: 0 });
   const { user, logout } = useAuthStore();
+  const canViewRoster = canAccessInternalRoster(user);
+  const hubSection = canViewRoster ? selectedHubSection : 'scouting';
   const navigate = useNavigate();
   const canCreateReports = canCreateScoutingReports(user);
   const canManageWatchlist = canCreateReports;
@@ -378,6 +383,10 @@ export default function PlayersPage() {
       setRosterLoading(true);
       setRosterError('');
       try {
+        if (!canViewRoster) {
+          setClubRoster(null);
+          return;
+        }
         const result = await fetchClubRosterOverview(rosterTeamId || undefined);
         if (!isMounted) return;
         setClubRoster(result);
@@ -398,7 +407,7 @@ export default function PlayersPage() {
     return () => {
       isMounted = false;
     };
-  }, [rosterTeamId]);
+  }, [rosterTeamId, canViewRoster]);
 
   useEffect(() => {
     if (!overview || overview.entries.length === 0) {
@@ -432,6 +441,9 @@ export default function PlayersPage() {
   const leftPlayer = allEntries.find((entry) => entry.playerKey === comparisonLeft) || null;
   const rightPlayer = allEntries.find((entry) => entry.playerKey === comparisonRight) || null;
   const selectedPlayer = filteredEntries.find((entry) => entry.playerKey === selectedPlayerKey) || filteredEntries[0] || null;
+  const scoutingPageKey = JSON.stringify([search, potentialFilter, watchlistOnly]);
+  const scoutingPage = scoutingPagination.key === scoutingPageKey
+    ? Math.min(scoutingPagination.page, Math.max(0, Math.ceil(filteredEntries.length / 6) - 1)) : 0;
   const primaryExportReportId =
     shortlistedEntries.find((entry) => entry.latestReportId)?.latestReportId || '';
   const teamRosterAnalytics = buildTeamRosterAnalytics(
@@ -459,7 +471,7 @@ export default function PlayersPage() {
   }, [filteredEntries, selectedPlayerKey]);
 
   const handleCreateReport = (tab: 'match' | 'teams' = 'match') => {
-    navigate(tab === 'match' ? '/scouting/report/new' : `/scouting/report/new?tab=${tab}`);
+    navigate('/scouting/individual/new');
   };
 
   const handleOpenReport = (reportId: string) => {
@@ -471,8 +483,9 @@ export default function PlayersPage() {
   };
 
   const handleOpenComparison = () => {
+    setHubSection('scouting');
     setShowMobileComparison(true);
-    comparisonSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    requestAnimationFrame(() => comparisonSectionRef.current?.scrollIntoView({ block: 'start' }));
   };
 
   const handleOpenExport = () => {
@@ -585,21 +598,21 @@ export default function PlayersPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/65">
-                      MWOS Scouting Workspace
+                      MWOS Club Workspace
                     </p>
                     <h1 className="mt-1 mwos-display text-[2.2rem] uppercase leading-none tracking-[0.04em] text-white">
                       Player Hub
                     </h1>
                     <p className="mt-2 max-w-[17rem] text-xs font-semibold leading-5 text-white/76">
-                      Track, shortlist and compare players from the same workspace where reports are filed and follow-up is decided.
+                      Manage your roster, review squad analytics or open scouting reports.
                     </p>
                   </div>
                   <button
-                    onClick={() => navigate(canCreateReports ? '/scouting/report/new' : '/scouting')}
+                    onClick={() => navigate(canCreateReports ? '/scouting/individual/new' : '/scouting')}
                     className="inline-flex h-11 min-w-[92px] items-center justify-center gap-2 rounded-2xl bg-white px-3 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_30px_rgba(12,16,53,0.22)]"
                   >
                     <Plus size={15} />
-                    {canCreateReports ? 'Report' : 'Scouting'}
+                    {canCreateReports ? 'Add Player' : 'Scouting'}
                   </button>
                 </div>
 
@@ -607,6 +620,7 @@ export default function PlayersPage() {
                   <div className="flex items-center rounded-2xl border border-white/12 bg-white/10 px-3 py-2.5 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
                     <Search className="mr-2 text-white/68" size={16} />
                     <input
+                      aria-label="Search players"
                       type="text"
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
@@ -615,6 +629,8 @@ export default function PlayersPage() {
                     />
                   </div>
                   <button
+                    hidden={hubSection !== 'scouting'}
+                    aria-expanded={showMobileFilters}
                     onClick={() => setShowMobileFilters((current) => !current)}
                     className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-3 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm"
                   >
@@ -623,7 +639,7 @@ export default function PlayersPage() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                {hubSection === 'scouting' && <><div className="grid grid-cols-2 gap-2">
                   {canCreateReports ? (
                     <button
                       onClick={() => handleCreateReport('teams')}
@@ -671,6 +687,7 @@ export default function PlayersPage() {
 
                 <div className={`${showMobileFilters ? 'grid' : 'hidden'} gap-2`}>
                   <select
+                    aria-label="Potential level"
                     value={potentialFilter}
                     onChange={(event) => setPotentialFilter(event.target.value)}
                     className="mwos-select-field mwos-select-field-inverse rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
@@ -716,8 +733,8 @@ export default function PlayersPage() {
                     </button>
                   </div>
                 </div>
+              </>}
               </div>
-
               <div className="hidden px-6 py-5 md:block">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
                   <div className="max-w-2xl">
@@ -773,6 +790,7 @@ export default function PlayersPage() {
                   <div className="flex items-center rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 shadow-[0_12px_24px_rgba(12,16,53,0.12)] backdrop-blur-sm">
                     <Search className="mr-3 text-white/68" size={18} />
                     <input
+                      aria-label="Search players"
                       type="text"
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
@@ -795,6 +813,7 @@ export default function PlayersPage() {
 
                 <div className="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto_auto]">
                   <select
+                    aria-label="Potential level"
                     value={potentialFilter}
                     onChange={(event) => setPotentialFilter(event.target.value)}
                     className="mwos-select-field mwos-select-field-inverse rounded-2xl border border-white/12 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white outline-none backdrop-blur-sm"
@@ -851,7 +870,7 @@ export default function PlayersPage() {
             </div>
           </section>
 
-          <section className="md:hidden">
+          {hubSection === 'scouting' && <><section className="md:hidden">
             <div className="flex gap-3 overflow-x-auto pb-1">
               <div className="min-w-[148px] rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.06)]">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Tracked</p>
@@ -905,20 +924,34 @@ export default function PlayersPage() {
             </div>
           )}
 
+          </>}
           {rosterError && (
             <div className="mwos-card-tone-danger rounded-2xl border p-4 text-sm font-semibold text-[var(--color-accent-deep)]">
               {rosterError}
             </div>
           )}
 
-          <TeamAnalyticsPanel
+          {canViewRoster && <nav aria-label="Player Hub sections" className="flex flex-wrap gap-2">
+            {(['roster', 'analytics', 'scouting'] as const).map(section => (
+              <button key={section} type="button" aria-pressed={hubSection === section} onClick={() => setHubSection(section)} className={hubSection === section ? 'mwos-btn-primary min-h-11' : 'mwos-btn-secondary min-h-11'}>
+                {{roster: 'Club roster', analytics: 'Squad analytics', scouting: 'Scouting & reports'}[section]}
+              </button>
+            ))}
+          </nav>}
+          {hubSection === 'analytics' && <TeamAnalyticsPanel
             ageSummary={buildSquadAgeSummary(clubRoster?.players || [])}
             analytics={teamRosterAnalytics}
             loading={rosterLoading}
             teamName={clubRoster?.selectedTeamName || 'Club roster'}
-          />
+          />}
+          {hubSection === 'analytics' && <label className="block">
+            <span className="mwos-form-label">Analytics team</span>
+            <select value={rosterTeamId} onChange={event => setRosterTeamId(event.target.value)} className="mwos-select-field mwos-mobile-input">
+              {(clubRoster?.teams || []).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}
+            </select>
+          </label>}
 
-          <ClubRosterSection
+          {canViewRoster && <div hidden={hubSection !== 'roster'}><ClubRosterSection
             overview={clubRoster}
             loading={rosterLoading}
             search={search}
@@ -927,9 +960,9 @@ export default function PlayersPage() {
             savingPlayerId={savingRosterPlayerId}
             onTeamChange={setRosterTeamId}
             onSavePlayer={handleSaveRosterPlayer}
-          />
+          /></div>}
 
-          <section className="grid gap-6 xl:grid-cols-[1.45fr_0.55fr]">
+          {hubSection === 'scouting' && <><section className="grid gap-6 xl:grid-cols-[1.45fr_0.55fr]">
             <PlayerProfilePanel
               entry={selectedPlayer}
               canManageWatchlist={canManageWatchlist}
@@ -1339,7 +1372,7 @@ export default function PlayersPage() {
                 )}
 
                 {!loading &&
-                  filteredEntries.map((entry) => {
+                  filteredEntries.slice(scoutingPage * 6, (scoutingPage + 1) * 6).map((entry) => {
                     const trendMeta = getTrendMeta(entry);
                     const TrendIcon = trendMeta.icon;
 
@@ -1474,6 +1507,11 @@ export default function PlayersPage() {
                     );
                   })}
 
+                {filteredEntries.length > 6 && <nav aria-label="Tracked player pages" className="flex items-center justify-between gap-3">
+                  <button type="button" disabled={scoutingPage === 0} onClick={() => setScoutingPagination({key: scoutingPageKey, page: scoutingPage - 1})} className="mwos-btn-secondary min-h-11 disabled:opacity-50">Previous</button>
+                  <span role="status" className="text-sm tabular-nums">Page {scoutingPage + 1} of {Math.ceil(filteredEntries.length / 6)}</span>
+                  <button type="button" disabled={(scoutingPage + 1) * 6 >= filteredEntries.length} onClick={() => setScoutingPagination({key: scoutingPageKey, page: scoutingPage + 1})} className="mwos-btn-secondary min-h-11 disabled:opacity-50">Next</button>
+                </nav>}
                 {!loading && filteredEntries.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-[var(--color-mid)]/25 bg-[var(--color-light)]/55 p-8 text-center">
                     <Users size={42} className="mx-auto text-[var(--color-mid)]/55" />
@@ -1599,6 +1637,7 @@ export default function PlayersPage() {
               </div>
             </div>
           </section>
+          </>}
         </div>
       </main>
     </div>

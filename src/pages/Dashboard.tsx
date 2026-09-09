@@ -266,6 +266,7 @@ export default function Dashboard() {
 
   const filteredReports = reports.filter(
     (report) =>
+      report.players.some(player => player.name.toLowerCase().includes(search.toLowerCase())) ||
       report.home_team.toLowerCase().includes(search.toLowerCase()) ||
       report.away_team.toLowerCase().includes(search.toLowerCase()) ||
       report.competition.toLowerCase().includes(search.toLowerCase()) ||
@@ -388,8 +389,8 @@ export default function Dashboard() {
             hero={workspaceHero}
             search={search}
             onSearchChange={setSearch}
-            primaryCtaLabel={canCreateReports ? 'New Report' : 'Open Player Hub'}
-            onPrimaryCta={() => navigate(canCreateReports ? '/scouting/report/new' : '/players')}
+            primaryCtaLabel={canCreateReports ? 'Add Player / Individual Report' : 'Open Player Hub'}
+            onPrimaryCta={() => navigate(canCreateReports ? '/scouting/individual/new' : '/players')}
             secondaryCtaLabel={canCreateReports ? 'Open Player Hub' : 'Open Oversight'}
             onSecondaryCta={() => navigate(canCreateReports ? '/players' : '/oversight')}
           />
@@ -467,11 +468,11 @@ export default function Dashboard() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-black text-[var(--color-dark)]">
-                          {report.home_team || 'Home'} vs {report.away_team || 'Away'}
+                          {report.report_type === 'individual' ? report.players[0]?.name || 'Individual player report' : `${report.home_team || 'Home'} vs ${report.away_team || 'Away'}`}
                         </p>
                         <div className="mt-0.5 flex items-center gap-2">
                           <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${variant.badge}`}>
-                            {report.competition || 'Friendly'}
+                            {report.report_type === 'individual' ? 'Individual report' : report.competition || 'Friendly'}
                           </span>
                           <span className="flex items-center text-[10px] font-semibold text-[var(--color-mid)]">
                             <Calendar size={10} className="mr-1" />
@@ -548,7 +549,7 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    <div className={`mb-4 flex items-center justify-between gap-3 rounded-[20px] px-4 py-5 ${variant.surface}`}>
+                    {report.report_type === 'individual' ? <div className="mb-4 rounded-2xl bg-[var(--color-light)] p-5"><p className="text-sm">Individual player report</p><h3 className="mt-2 text-lg font-bold">{report.players[0]?.name || 'Scouted player'}</h3><p className="mt-1 text-sm">{report.home_team || 'External player'}</p></div> : <div className={`mb-4 flex items-center justify-between gap-3 rounded-[20px] px-4 py-5 ${variant.surface}`}>
                       <div className="flex-1 text-center">
                         <p className="truncate text-base font-bold text-[var(--color-dark)]">{report.home_team || 'Home'}</p>
                         <p className={`mt-1 text-xl font-black ${variant.score}`}>
@@ -564,6 +565,7 @@ export default function Dashboard() {
                       </div>
                     </div>
 
+                    }
                     <div className="flex items-center justify-between border-t border-[var(--color-mid)]/20 pt-3">
                       <span className="truncate text-xs font-semibold text-[var(--color-mid)]">{report.venue || 'Unknown Venue'}</span>
                       <span className="text-xs font-bold text-[var(--color-primary)] group-hover:underline">

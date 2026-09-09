@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import { useReportStore, type Report } from '../store/report';
 import {
@@ -318,7 +318,7 @@ export default function ReportEditor() {
 
   const handleSave = useCallback(async () => {
     if (!canEditReport) return;
-    if (!currentReport || !hasUnsavedChanges) return;
+    if (!currentReport || currentReport.report_type === 'individual' || !hasUnsavedChanges) return;
     if (!persistedReportId && !hasMeaningfulDraftContent(currentReport)) return;
 
     setSaving(true);
@@ -361,6 +361,7 @@ export default function ReportEditor() {
   useEffect(() => {
     if (!canEditReport) return;
     if (!hasUnsavedChanges) return;
+    if (currentReport?.report_type === 'individual') return;
     if (!persistedReportId && !canCreateInitialDraft) return;
     if (isOffline) return;
 
@@ -414,6 +415,9 @@ export default function ReportEditor() {
     );
   }
 
+  if (!loadError && currentReport?.report_type === 'individual' && id && id !== 'new') {
+    return <Navigate to={`/scouting/individual/${id}`} replace />;
+  }
   if (loadError) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-[var(--color-light)] p-6">

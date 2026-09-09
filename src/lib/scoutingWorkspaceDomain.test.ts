@@ -61,8 +61,8 @@ describe('scoutingWorkspaceDomain', () => {
       canCreateReports: true,
     });
 
-    expect(leadershipActions.map((action) => action.label)).toEqual(['New Report', 'Player Hub', 'Oversight']);
+    expect(leadershipActions.map((action) => action.label)).toEqual(['Add Player', 'Match Report', 'Player Hub', 'Oversight']);
     expect(reviewActions.map((action) => action.label)).toEqual(['Player Hub', 'Oversight']);
-    expect(scoutActions.map((action) => action.label)).toEqual(['New Report', 'Player Hub', 'Club Home']);
+    expect(scoutActions.map((action) => action.label)).toEqual(['Add Player', 'Match Report', 'Player Hub', 'Club Home']);
   });
 });
