@@ -56,7 +56,7 @@ try {
     ok(replay.status===200 && replay.body.completedCount===0,`${role}: repeat acceptance is idempotent`);
     const assignments=must(await user.from('user_roles').select('roles!inner(slug)').eq('user_id',verified.user.id));
     ok(assignments.length===1 && assignments[0].roles.slug===role,`${role}: exactly the requested role`);
-    const expectedGlobal=['admin','executive_director','technical_director','board_observer','scout'].includes(role);
+    const expectedGlobal=['admin','executive_director','technical_director','board_observer'].includes(role);
     const roster=await api(`club-roster?teamId=${b}`,token);
     ok(roster.status===(expectedGlobal?200:403),`${role}: other-team roster boundary`);
     const unprivileged=await api('invite-staff',token,{});

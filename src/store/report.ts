@@ -32,6 +32,7 @@ export interface PlayerReview {
 }
 
 export interface Report {
+  report_type?: 'match' | 'individual';
   id?: string;
   owner_id?: string;
   owner_name?: string;

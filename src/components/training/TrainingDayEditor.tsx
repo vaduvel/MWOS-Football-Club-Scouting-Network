@@ -170,7 +170,7 @@ export default function TrainingDayEditor({
             Training plan
           </p>
           <h2 className="mt-3 text-balance text-2xl font-black text-[var(--color-dark)]">
-            Add today&apos;s session
+            Session for {day.weekday} · {day.date}
           </h2>
           <p className="mt-2 max-w-2xl text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">
             Start from a WhatsApp screenshot, a PDF, a paper photo, or write the session manually in the form below.
@@ -250,6 +250,7 @@ export default function TrainingDayEditor({
               <FieldLabel>Team</FieldLabel>
               {teams.length > 0 && teamId && onSelectTeam ? (
                 <select
+                  aria-label="Team"
                   value={teamId}
                   onChange={(event) => onSelectTeam(event.target.value)}
                   disabled={teams.length < 2}
@@ -272,6 +273,7 @@ export default function TrainingDayEditor({
               <FieldLabel>Week</FieldLabel>
               <input
                 type="date"
+                aria-label="Week"
                 value={weekStart || ''}
                 onChange={(event) => onSelectWeek?.(event.target.value)}
                 disabled={!onSelectWeek}
@@ -285,6 +287,7 @@ export default function TrainingDayEditor({
             <div className="min-w-0">
               <FieldLabel>Day</FieldLabel>
               <select
+                aria-label="Day"
                 value={day.dayIndex}
                 onChange={(event) => onSelectDay?.(Number(event.target.value))}
                 disabled={!onSelectDay}
@@ -306,6 +309,7 @@ export default function TrainingDayEditor({
             <div className="min-w-0">
               <FieldLabel>Day type</FieldLabel>
               <select
+                aria-label="Day type"
                 value={day.dayType}
                 onChange={(event) => handleDayTypeChange(event.target.value as TrainingPlanDay['dayType'])}
                 disabled={!canEdit}
@@ -335,6 +339,7 @@ export default function TrainingDayEditor({
             <div>
               <FieldLabel>{trainingLikeDay ? 'Session title' : 'Rest day label'}</FieldLabel>
               <input
+                aria-label="Session title"
                 value={day.sessionTitle}
                 onChange={(event) => update('sessionTitle', event.target.value)}
                 disabled={!canEdit}
@@ -349,6 +354,7 @@ export default function TrainingDayEditor({
                   <FieldLabel>Start time</FieldLabel>
                   <input
                     type="time"
+                    aria-label="Start time"
                     value={day.startTime}
                     onChange={(event) => update('startTime', event.target.value)}
                     disabled={!canEdit}
@@ -358,6 +364,7 @@ export default function TrainingDayEditor({
                 <div>
                   <FieldLabel>Venue</FieldLabel>
                   <input
+                    aria-label="Venue"
                     value={day.location}
                     onChange={(event) => update('location', event.target.value)}
                     disabled={!canEdit}
@@ -376,6 +383,7 @@ export default function TrainingDayEditor({
               <div>
                 <FieldLabel>Main objective</FieldLabel>
                 <textarea
+                  aria-label="Main objective"
                   value={day.objectives}
                   onChange={(event) => update('objectives', event.target.value)}
                   disabled={!canEdit}
@@ -390,6 +398,7 @@ export default function TrainingDayEditor({
               <div>
                 <FieldLabel>Session plan</FieldLabel>
                 <textarea
+                  aria-label="Session plan"
                   value={day.exercises}
                   onChange={(event) => update('exercises', event.target.value)}
                   disabled={!canEdit}
@@ -403,6 +412,7 @@ export default function TrainingDayEditor({
             <div>
               <FieldLabel>Notes for staff</FieldLabel>
               <textarea
+                aria-label="Notes for staff"
                 value={day.notes}
                 onChange={(event) => update('notes', event.target.value)}
                 disabled={!canEdit}
@@ -442,6 +452,7 @@ export default function TrainingDayEditor({
                       <FieldLabel>End time</FieldLabel>
                       <input
                         type="time"
+                        aria-label="End time"
                         value={day.endTime}
                         onChange={(event) => update('endTime', event.target.value)}
                         disabled={!canEdit}
@@ -451,6 +462,7 @@ export default function TrainingDayEditor({
                     <div>
                       <FieldLabel>Session format</FieldLabel>
                       <select
+                        aria-label="Session format"
                         value={day.sessionType}
                         onChange={(event) => update('sessionType', event.target.value as TrainingPlanDay['sessionType'])}
                         disabled={!canEdit}
@@ -469,6 +481,7 @@ export default function TrainingDayEditor({
                   <div>
                     <FieldLabel>Focus tags</FieldLabel>
                     <input
+                      aria-label="Focus tags"
                       value={day.focusTags.join(', ')}
                       onChange={handleFocusTags}
                       disabled={!canEdit}
@@ -485,6 +498,7 @@ export default function TrainingDayEditor({
                         min={1}
                         max={3}
                         step={1}
+                        aria-label="Intensity"
                         value={day.intensity}
                         onChange={(event) => update('intensity', Number(event.target.value) as 1 | 2 | 3)}
                         disabled={!canEdit}
@@ -498,6 +512,7 @@ export default function TrainingDayEditor({
                         min={1}
                         max={3}
                         step={1}
+                        aria-label="Volume"
                         value={day.volume}
                         onChange={(event) => update('volume', Number(event.target.value) as 1 | 2 | 3)}
                         disabled={!canEdit}

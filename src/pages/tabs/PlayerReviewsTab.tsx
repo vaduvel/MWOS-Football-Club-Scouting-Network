@@ -3,7 +3,7 @@ import { useReportStore, PlayerReview } from '../../store/report';
 import { Plus, Trash2, ChevronDown, ChevronUp, UserCheck } from 'lucide-react';
 import { createId } from '../../lib/ids';
 
-export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
+export default function PlayerReviewsTab({ canEdit, individual = false }: { canEdit: boolean; individual?: boolean }) {
   const { currentReport, addReview, updateReview: updateReviewInStore, removeReview: removeReviewInStore } = useReportStore();
   const updateReview = (id: PlayerReview['id'], fields: Partial<PlayerReview>) => {
     if (canEdit) updateReviewInStore(id, fields);
@@ -57,6 +57,7 @@ export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
             key={val}
             disabled={!canEdit}
             aria-label={`${label}: ${val} out of 5`}
+            aria-pressed={review[field] === val}
             onClick={() => updateReview(review.id, { [field]: val })}
             className={`flex ${isCompact ? 'h-9 w-9' : 'h-10 w-10'} items-center justify-center rounded text-xs font-black transition-colors ${
               (review[field] as number) >= val
@@ -79,7 +80,7 @@ export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
           <h2 className="text-lg font-black uppercase tracking-tighter text-[var(--color-dark)] md:text-2xl">Player Reviews</h2>
           <p className="mt-1 text-xs font-semibold text-[var(--color-mid)] md:text-sm">Score players, verdicts and next-step recommendations.</p>
         </div>
-        <button disabled={!canEdit} onClick={handleAddReview} className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-90 md:w-auto md:rounded-xl md:px-6">
+        <button hidden={individual} disabled={!canEdit} onClick={handleAddReview} className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-opacity-90 md:w-auto md:rounded-xl md:px-6">
           <Plus size={20} />
           <span>Add Review</span>
         </button>
@@ -87,7 +88,7 @@ export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
 
       <div className="space-y-4">
         {currentReport.reviews.map((review, index) => {
-          const isExpanded = expandedId === review.id;
+          const isExpanded = individual || expandedId === review.id;
           const player = currentReport.players.find(p => p.id.toString() === review.player_id.toString());
 
           return (
@@ -102,7 +103,7 @@ export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
                   </div>
                   <div className="min-w-0">
                     <h3 className="truncate text-base font-black text-[var(--color-dark)] md:text-lg">
-                      {player ? `${player.name} (${player.shirt_number})` : 'Select Player'}
+                      {player ? `${player.name || 'Player evaluation'}${player.shirt_number !== '' && player.shirt_number != null ? ` (${player.shirt_number})` : ''}` : 'Select Player'}
                     </h3>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <span className="rounded-full bg-[var(--color-primary)]/8 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]">
@@ -116,7 +117,7 @@ export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
                   {isExpanded ? <ChevronUp size={20} className="ml-auto shrink-0 text-[var(--color-mid)]" /> : <ChevronDown size={20} className="ml-auto shrink-0 text-[var(--color-mid)]" />}
                 </button>
                 <div className="flex items-center gap-1">
-                  {canEdit && <button
+                  {canEdit && !individual && <button
                     onClick={(e) => { e.stopPropagation(); removeReview(review.id); }}
                     aria-label={`Delete review for ${player?.name || 'unnamed player'}`}
                     className="rounded-lg p-2 text-[var(--color-mid)] transition-colors hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)]"
@@ -131,9 +132,10 @@ export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
                 <div className="space-y-4 border-t border-[var(--color-mid)]/20 bg-[var(--color-light)]/30 p-4 md:space-y-8 md:p-6">
 
                   {/* Player Selection */}
-                  <div>
+                  <div hidden={individual}>
                     <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Select Player</label>
                     <select disabled={!canEdit}
+                      aria-label="Select Player"
                       value={review.player_id}
                       onChange={e => updateReview(review.id, { player_id: e.target.value })}
                       className="mwos-select-field w-full rounded-xl border border-[var(--color-mid)]/30 bg-white p-3 font-bold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
@@ -158,6 +160,7 @@ export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
                       <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Overview</label>
                       <textarea readOnly={!canEdit}
                         value={review.overview}
+                        aria-label="Overview"
                         onChange={e => updateReview(review.id, { overview: e.target.value })}
                         rows={isCompact ? 4 : 3}
                         className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white"
@@ -168,6 +171,7 @@ export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
                       <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Strengths</label>
                       <textarea readOnly={!canEdit}
                         value={review.strengths}
+                        aria-label="Strengths"
                         onChange={e => updateReview(review.id, { strengths: e.target.value })}
                         rows={isCompact ? 3 : 4}
                         className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white"
@@ -178,6 +182,7 @@ export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
                       <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Areas to Improve</label>
                       <textarea readOnly={!canEdit}
                         value={review.areas_to_improve}
+                        aria-label="Areas to Improve"
                         onChange={e => updateReview(review.id, { areas_to_improve: e.target.value })}
                         rows={isCompact ? 3 : 4}
                         className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-semibold resize-none md:resize-y bg-white"
@@ -217,6 +222,7 @@ export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
                         <input readOnly={!canEdit}
                           type="text"
                           value={review.recommendation_verdict}
+                          aria-label="Short Verdict"
                           onChange={e => updateReview(review.id, { recommendation_verdict: e.target.value })}
                           className="w-full p-3 rounded-xl border border-[var(--color-mid)]/30 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all font-bold bg-white"
                           placeholder="e.g. Sign immediately, Monitor progress"
@@ -226,6 +232,7 @@ export default function PlayerReviewsTab({ canEdit }: { canEdit: boolean }) {
                         <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-mid)]">Potential Level</label>
                         <select disabled={!canEdit}
                           value={review.potential_level}
+                          aria-label="Potential Level"
                           onChange={e => updateReview(review.id, { potential_level: e.target.value })}
                           className="mwos-select-field w-full rounded-xl border border-[var(--color-mid)]/30 bg-white p-3 font-bold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                         >

@@ -8,8 +8,11 @@ import {
   type ClubPlayerRosterMatchCandidate,
 } from '../../lib/clubPlayersData';
 import { suggestClubPlayerMatches } from '../../lib/playerIdentityDomain';
+import { useAuthStore } from '../../store/auth';
+import { canAccessInternalRoster } from '../../lib/roleAccessDomain';
 
 export default function TeamSheetsTab({ canEdit }: { canEdit: boolean }) {
+  const canViewRoster = canAccessInternalRoster(useAuthStore(state => state.user));
   const { currentReport, addPlayer, updatePlayer: updatePlayerInStore, removePlayer: removePlayerInStore } = useReportStore();
   const updatePlayer = (id: Player['id'], fields: Partial<Player>) => {
     if (canEdit) updatePlayerInStore(id, fields);
@@ -25,6 +28,11 @@ export default function TeamSheetsTab({ canEdit }: { canEdit: boolean }) {
   const players = currentReport?.players.filter(p => p.team_side === activeSide) || [];
 
   useEffect(() => {
+    if (!canViewRoster) {
+      setClubCandidates([]);
+      setClubCandidatesLoading(false);
+      return;
+    }
     let isMounted = true;
 
     void (async () => {
@@ -49,7 +57,7 @@ export default function TeamSheetsTab({ canEdit }: { canEdit: boolean }) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [canViewRoster]);
 
   const handleAddPlayer = () => {
     if (!canEdit) return;
@@ -128,6 +136,7 @@ export default function TeamSheetsTab({ canEdit }: { canEdit: boolean }) {
   };
 
   const renderRosterMatchPanel = (player: Player) => {
+    if (!canViewRoster) return null;
     const linkedCandidate = getLinkedCandidate(player);
     const suggestions = linkedCandidate ? [] : getSuggestions(player);
     const hasName = player.name.trim().length >= 2;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Database, Edit3, Footprints, Ruler, Save, ShieldAlert, UserPlus, Users, X } from 'lucide-react';
 
 import type { ClubRosterOverview, ClubRosterPlayer } from '../../lib/clubPlayersData';
@@ -37,6 +37,16 @@ export default function ClubRosterSection({
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ClubPlayerDraft>(() => createEmptyClubPlayerDraft());
   const [formError, setFormError] = useState('');
+  const [errorAttempt, setErrorAttempt] = useState(0);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [search, teamId]);
+  useEffect(() => {
+    if (formError) {
+      errorRef.current?.focus();
+      errorRef.current?.scrollIntoView({ block: 'center' });
+    }
+  }, [formError, errorAttempt]);
   const activeTeamId = overview?.selectedTeamId || teamId;
   const filteredPlayers = (overview?.players || []).filter((player) => {
     const needle = search.trim().toLowerCase();
@@ -54,6 +64,8 @@ export default function ClubRosterSection({
       .includes(needle);
   });
   const snapshot = buildClubRosterSnapshot(filteredPlayers);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(filteredPlayers.length / 6) - 1));
+  const missingName = Boolean(formError) && ![draft.firstName, draft.lastName, draft.displayName].some(value => value.trim());
   const isSaving = savingPlayerId === (editingPlayerId || 'new');
 
   const updateDraft = <Key extends keyof ClubPlayerDraft>(key: Key, value: ClubPlayerDraft[Key]) => {
@@ -90,6 +102,7 @@ export default function ClubRosterSection({
 
     const validation = buildClubPlayerSavePayload(activeTeamId, draft);
     if (validation.errors.length) {
+      setErrorAttempt(value => value + 1);
       setFormError(validation.errors.join(' '));
       return;
     }
@@ -101,6 +114,7 @@ export default function ClubRosterSection({
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : 'Failed to save this player.';
       setFormError(message);
+      setErrorAttempt(value => value + 1);
     }
   };
 
@@ -128,6 +142,7 @@ export default function ClubRosterSection({
           <div className="min-w-0">
             <label className="mwos-form-label text-[var(--color-mid)]">Team</label>
             <select
+              aria-label="Roster team"
               value={teamId}
               onChange={(event) => onTeamChange(event.target.value)}
               className="mwos-select-field mwos-mobile-input"
@@ -184,16 +199,10 @@ export default function ClubRosterSection({
             </button>
           </div>
 
-          {formError ? (
-            <div className="mt-4 rounded-2xl border border-[var(--color-accent)]/18 bg-[var(--color-accent)]/8 px-4 py-3 text-sm font-bold leading-6 text-[var(--color-accent-deep)]">
-              {formError}
-            </div>
-          ) : null}
-
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <RosterTextField label="First name" value={draft.firstName} onChange={(value) => updateDraft('firstName', value)} />
-            <RosterTextField label="Last name" value={draft.lastName} onChange={(value) => updateDraft('lastName', value)} />
-            <RosterTextField label="Display name" value={draft.displayName} onChange={(value) => updateDraft('displayName', value)} placeholder="Optional override" />
+            <RosterTextField label="First name" invalid={missingName} value={draft.firstName} onChange={(value) => updateDraft('firstName', value)} />
+            <RosterTextField label="Last name" invalid={missingName} value={draft.lastName} onChange={(value) => updateDraft('lastName', value)} />
+            <RosterTextField label="Display name" invalid={missingName} value={draft.displayName} onChange={(value) => updateDraft('displayName', value)} placeholder="Optional override" />
             <label className="block min-w-0">
               <span className="mwos-form-label text-[var(--color-mid)]">Date of birth</span>
               <input type="date" value={draft.dateOfBirth}
@@ -209,6 +218,7 @@ export default function ClubRosterSection({
             <div>
               <label className="mwos-form-label text-[var(--color-mid)]">Dominant foot</label>
               <select
+                aria-label="Dominant foot"
                 value={draft.dominantFoot}
                 onChange={(event) => updateDraft('dominantFoot', event.target.value as ClubPlayerFoot)}
                 className="mwos-select-field mwos-mobile-input"
@@ -234,6 +244,7 @@ export default function ClubRosterSection({
             <div className="md:col-span-2 xl:col-span-4">
               <label className="mwos-form-label text-[var(--color-mid)]">Notes</label>
               <textarea
+                aria-label="Notes"
                 value={draft.notes}
                 onChange={(event) => updateDraft('notes', event.target.value)}
                 rows={3}
@@ -243,10 +254,14 @@ export default function ClubRosterSection({
             </div>
           </div>
 
+          <div ref={errorRef} id="roster-save-error" tabIndex={-1} role="alert" className={formError ? 'mt-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-800' : ''}>
+            {formError}
+          </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
             <button
               type="button"
               onClick={submitForm}
+              aria-describedby={formError ? 'roster-save-error' : undefined}
               disabled={isSaving}
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(49,39,131,0.18)] transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
             >
@@ -265,7 +280,9 @@ export default function ClubRosterSection({
         </div>
       ) : null}
 
-      <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <details className="mt-5">
+        <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold text-[var(--color-primary)]">Roster summary · {filteredPlayers.length} players</summary>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <article className="mwos-subcard mwos-subcard-training p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -374,6 +391,7 @@ export default function ClubRosterSection({
         </article>
       </div>
 
+      </details>
       {loading ? (
         <div className="mwos-mobile-note mt-5">Loading club roster…</div>
       ) : null}
@@ -388,7 +406,7 @@ export default function ClubRosterSection({
 
       {!loading && filteredPlayers.length ? (
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredPlayers.map((player) => (
+          {filteredPlayers.slice(currentPage * 6, (currentPage + 1) * 6).map((player) => (
             <article
               key={player.id}
               className="rounded-[24px] border border-[var(--color-mid)]/14 bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(248,250,252,0.96))] p-5 shadow-[0_12px_28px_rgba(15,23,42,0.04)]"
@@ -489,6 +507,13 @@ export default function ClubRosterSection({
           ))}
         </div>
       ) : null}
+      {filteredPlayers.length > 6 && (
+        <nav aria-label="Roster pages" className="mt-4 flex items-center justify-between gap-3">
+          <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)} className="mwos-btn-secondary min-h-11 disabled:opacity-50">Previous</button>
+          <span role="status" className="text-sm tabular-nums">Page {currentPage + 1} of {Math.ceil(filteredPlayers.length / 6)}</span>
+          <button type="button" disabled={(currentPage + 1) * 6 >= filteredPlayers.length} onClick={() => setPage(currentPage + 1)} className="mwos-btn-secondary min-h-11 disabled:opacity-50">Next</button>
+        </nav>
+      )}
     </section>
   );
 }
@@ -508,17 +533,23 @@ function RosterTextField({
   onChange,
   placeholder,
   inputMode = 'text',
+  invalid = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   inputMode?: 'text' | 'numeric' | 'decimal';
+  invalid?: boolean;
 }) {
+  const fieldId = useId();
   return (
     <div>
-      <label className="mwos-form-label text-[var(--color-mid)]">{label}</label>
+      <label htmlFor={fieldId} className="mwos-form-label text-[var(--color-mid)]">{label}</label>
       <input
+        id={fieldId}
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? 'roster-save-error' : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         inputMode={inputMode}

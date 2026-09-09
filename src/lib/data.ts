@@ -64,6 +64,7 @@ import { createId } from './ids';
 import { assertSupabaseConfigured, supabase } from './supabase';
 import { getServerFunctionsBaseUrl } from './utils';
 import { fetchClubRosterSeedApi } from './clubRosterApi';
+import { canAccessInternalRoster } from './roleAccessDomain';
 import {
   formatInvitationStatusLabel,
   normalizeInviteEmail,
@@ -161,6 +162,8 @@ interface StaffAccessEventRow {
 }
 
 interface ReportRow {
+  players?: PlayerRow[];
+  report_type?: 'match' | 'individual';
   id: string;
   user_id: string;
   competition: string | null;
@@ -758,8 +761,9 @@ function mapReview(row: PlayerReviewRow): PlayerReview {
   };
 }
 
-function mapReport(row: ReportRow, players: PlayerRow[] = [], reviews: PlayerReviewRow[] = []): Report {
+function mapReport(row: ReportRow, players: PlayerRow[] = row.players || [], reviews: PlayerReviewRow[] = []): Report {
   return {
+    report_type: row.report_type || 'match',
     id: row.id,
     owner_id: row.user_id,
     competition: toStringValue(row.competition),
@@ -897,7 +901,7 @@ export async function fetchReports() {
   const { data, error } = await supabase
     .from('reports')
     .select(
-      'id, user_id, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at',
+      'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at, players(*)',
     )
     .order('created_at', { ascending: false });
 
@@ -952,7 +956,7 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
     supabase
       .from('reports')
       .select(
-        'id, user_id, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at',
+        'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at',
       )
       .order('created_at', { ascending: false }),
     supabase
@@ -1180,7 +1184,7 @@ export async function fetchReport(reportId: string) {
     supabase
       .from('reports')
       .select(
-        'id, user_id, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at',
+        'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at',
       )
       .eq('id', reportId)
       .single(),
@@ -1248,6 +1252,7 @@ export async function saveReport(report: Report) {
 
   const reportId = report.id || createId();
   const reportPayload = {
+    report_type: report.report_type || 'match',
     id: reportId,
     user_id: report.owner_id || authUser.id,
     competition: toNullableText(report.competition),
@@ -1296,7 +1301,7 @@ export async function saveReport(report: Report) {
     return {
       id: playerId,
       report_id: savedReportId,
-      club_player_id: player.club_player_id || null,
+      club_player_id: canAccessInternalRoster(authUser) ? player.club_player_id || null : null,
       team_side: player.team_side,
       shirt_number: toNullableFiniteNumber(player.shirt_number),
       name: toNullableText(player.name),
@@ -1384,7 +1389,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     supabase
       .from('reports')
       .select(
-        'id, user_id, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at',
+        'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at',
       )
       .order('created_at', { ascending: false }),
     supabase
@@ -1405,7 +1410,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
       .eq('user_id', authUser.id)
       .order('created_at', { ascending: false }),
     supabase.from('teams').select('id, name').eq('is_active', true),
-    fetchClubRosterSeedApi(),
+    canAccessInternalRoster(authUser) ? fetchClubRosterSeedApi() : Promise.resolve({teams: [], players: []}),
   ]);
 
   if (reportsResponse.error) {

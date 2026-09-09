@@ -28,7 +28,7 @@ export async function verifyAccessBoundaries(db) {
     coach: [true,false,true,false,true,false],
     team_manager: [true,false,true,false,true,false],
     driver: [false,false,false,false,false,false],
-    scout: [false,false,false,false,true,true],
+    scout: [false,false,false,false,false,false],
   };
   for (const role of roles) {
     await asUser(ids[role]);
@@ -43,6 +43,13 @@ export async function verifyAccessBoundaries(db) {
     values ($1,'QA boundary',current_date,$2,$2) returning id`, [a,ids.admin])).rows[0].id;
   const player = (await db.query(`insert into club_players(team_id,first_name,last_name,display_name,date_of_birth)
     values ($1,'QA','Age','QA Age','2000-01-01') returning id`,[a])).rows[0].id;
+  await asUser(ids.scout);
+  assert.equal((await db.query('select id from club_players')).rows.length,0,'Scout cannot read internal players');
+  const individual = (await db.query("insert into reports(user_id,report_type) values ($1,'individual') returning id",[ids.scout])).rows[0].id;
+  await assert.rejects(db.query("insert into players(report_id,team_side,name,club_player_id) values ($1,'home','Forbidden link',$2)",[individual,player]), /Internal roster access/);
+  await db.query("insert into players(report_id,team_side,name) values ($1,'home','External QA')",[individual]);
+  assert.equal((await db.query('select report_type from reports where id=$1',[individual])).rows[0].report_type,'individual');
+  await db.exec('reset role');
   const plan = (await db.query(`insert into transport_plans(team_id,title,event_date,destination,driver_user_id,created_by,updated_by)
     values ($1,'QA transport',current_date,'QA venue',$2,$3,$3) returning id`, [a,ids.driver,ids.admin])).rows[0].id;
   for (const role of ['admin','technical_director','coach','team_manager','driver']) {

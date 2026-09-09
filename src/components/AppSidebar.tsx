@@ -194,16 +194,6 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
     const itemKeys = new Set(items.map((item) => item.key));
 
     const resolvedKeys = primaryKeys.filter((key) => itemKeys.has(key as SidebarSection));
-    const currentKey = itemKeys.has(current) ? current : null;
-
-    if (currentKey && !resolvedKeys.includes(currentKey)) {
-      if (resolvedKeys.length >= 4) {
-        resolvedKeys[resolvedKeys.length - 1] = currentKey;
-      } else {
-        resolvedKeys.push(currentKey);
-      }
-    }
-
     const uniqueKeys = [...new Set(resolvedKeys)];
     return {
       mobileItems: uniqueKeys

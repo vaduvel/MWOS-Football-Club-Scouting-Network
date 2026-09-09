@@ -146,11 +146,12 @@ export function buildScoutingWorkspaceActions(input: {
 
   if (input.canCreateReports) {
     actions.push({
-      label: 'New Report',
-      helper: 'Start a fresh scouting report.',
-      path: '/scouting/report/new',
+      label: 'Add Player',
+      helper: 'Create an individual player evaluation.',
+      path: '/scouting/individual/new',
       tone: 'solid',
     });
+    actions.push({label: 'Match Report', helper: 'Optional: report on a full match.', path: '/scouting/report/new', tone: 'soft'});
   }
 
   actions.push({

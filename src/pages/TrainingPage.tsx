@@ -45,12 +45,7 @@ import {
 import { buildTrainingWhatsAppMessage } from '../lib/trainingShareDomain';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/auth';
-
-function normalizeDayIndex(value: string | null) {
-  const parsed = Number(value ?? '0');
-  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 6) return 0;
-  return parsed;
-}
+import { resolveTrainingDay } from '../lib/trainingDaySelection';
 
 function getCoachPrimaryActionClass(kind: TrainingCoachFlowActionKind) {
   if (kind === 'review_missing_info') {
@@ -175,7 +170,7 @@ export default function TrainingPage() {
   const [shareText, setShareText] = useState('');
 
   const weekStart = searchParams.get('week') || getTrainingWeekStart();
-  const selectedDayIndex = normalizeDayIndex(searchParams.get('day'));
+  const selectedDayIndex = resolveTrainingDay(searchParams.get('day'), weekStart);
   const teamId = searchParams.get('team') || '';
 
   useEffect(() => {
@@ -317,7 +312,7 @@ export default function TrainingPage() {
 
   const handleWeekChange = (value: string) => {
     const normalized = getTrainingWeekStart(new Date(`${value}T09:00:00`));
-    updateSearch({ weekStart: normalized, dayIndex: 0 });
+    updateSearch({ weekStart: normalized, dayIndex: resolveTrainingDay(null, normalized) });
   };
 
   const handleJumpToTrainingIntake = () => {
@@ -742,7 +737,7 @@ export default function TrainingPage() {
                     weekStart={workspace.weekStart}
                     weekLabel={getTrainingWeekRangeLabel(workspace.weekStart)}
                     onSelectTeam={(nextTeamId) => {
-                      updateSearch({ teamId: nextTeamId, dayIndex: 0 });
+                      updateSearch({ teamId: nextTeamId, dayIndex: selectedDayIndex });
                     }}
                     onSelectWeek={handleWeekChange}
                     onSelectDay={(index) => {

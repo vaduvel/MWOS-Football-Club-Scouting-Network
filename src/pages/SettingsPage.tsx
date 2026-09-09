@@ -63,6 +63,8 @@ export default function SettingsPage() {
   } = useSettingsStore();
   const { user, logout } = useAuthStore();
   const isAdmin = userHasRole(user, 'admin');
+  const [settingsSection, setSettingsSection] = useState<'staff' | 'preferences'>('staff');
+  const showStaff = isAdmin && settingsSection === 'staff';
 
   const [localProvider, setLocalProvider] = useState(football_api_provider);
   const [localApiKey, setLocalApiKey] = useState(football_api_key);
@@ -730,8 +732,12 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-[0.85fr,1.15fr]">
-            <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/20 bg-white shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
+          {isAdmin && <nav aria-label="Settings sections" className="flex flex-wrap gap-2">
+            <button type="button" aria-pressed={showStaff} onClick={() => setSettingsSection('staff')} className={showStaff ? 'mwos-btn-primary min-h-11' : 'mwos-btn-secondary min-h-11'}>Staff & invitations</button>
+            <button type="button" aria-pressed={!showStaff} onClick={() => setSettingsSection('preferences')} className={!showStaff ? 'mwos-btn-primary min-h-11' : 'mwos-btn-secondary min-h-11'}>Preferences & integrations</button>
+          </nav>}
+          <div className="space-y-4">
+            <section hidden={showStaff} className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/20 bg-white shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
               <div className="border-b border-[var(--color-mid)]/20 bg-[var(--color-light)]/50 p-4 md:p-5">
                 <h2 className="flex items-center text-base font-black uppercase tracking-[0.12em] text-[var(--color-dark)]">
                   <Database size={18} className="mr-2 text-[var(--color-primary)]" />
@@ -760,6 +766,7 @@ export default function SettingsPage() {
                     Football Data Provider
                   </label>
                   <select
+                    aria-label="Football Data Provider"
                     value={localProvider}
                     onChange={(e) => setLocalProvider(e.target.value)}
                     className="mwos-select-field w-full rounded-2xl border border-[var(--color-mid)]/30 bg-white p-3 font-bold outline-none transition-all focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
@@ -776,6 +783,7 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="password"
+                      aria-label="API Key"
                       value={localApiKey}
                       onChange={(e) => setLocalApiKey(e.target.value)}
                       placeholder="Enter your API-Football key"
@@ -878,7 +886,7 @@ export default function SettingsPage() {
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/20 bg-white shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
+            <section hidden={!showStaff} className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/20 bg-white shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
               <div className="border-b border-[var(--color-mid)]/20 bg-[var(--color-light)]/50 p-4 md:p-5">
                 <h2 className="flex items-center text-base font-black uppercase tracking-[0.12em] text-[var(--color-dark)]">
                   <ShieldCheck size={18} className="mr-2 text-[var(--color-primary)]" />
@@ -887,6 +895,7 @@ export default function SettingsPage() {
                 <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">
                   Assign staff roles and teams from one admin surface.
                 </p>
+                <a href="#invite-staff" className="mwos-btn-primary mt-3 min-h-11">Invite staff</a>
               </div>
 
               <div className="p-4 md:p-5">
@@ -997,6 +1006,7 @@ export default function SettingsPage() {
                             <Search size={16} className="text-[var(--color-mid)]" />
                             <input
                               type="text"
+                              aria-label="Search staff"
                               value={staffSearchQuery}
                               onChange={(event) => setStaffSearchQuery(event.target.value)}
                               placeholder="Search by staff name, email, role, or team"
@@ -1010,6 +1020,7 @@ export default function SettingsPage() {
                             Role filter
                           </label>
                           <select
+                            aria-label="Role filter"
                             value={staffRoleFilter}
                             onChange={(event) => setStaffRoleFilter(event.target.value)}
                             className="mwos-select-field w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none shadow-sm"
@@ -1028,6 +1039,7 @@ export default function SettingsPage() {
                             Team filter
                           </label>
                           <select
+                            aria-label="Team filter"
                             value={staffTeamFilter}
                             onChange={(event) => setStaffTeamFilter(event.target.value)}
                             className="mwos-select-field w-full rounded-2xl border border-[var(--color-mid)]/18 bg-white px-4 py-3 text-sm font-semibold text-[var(--color-dark)] outline-none shadow-sm"
@@ -1042,7 +1054,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                      <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-5">
                         {[
                           {
                             label: 'Active staff',
@@ -1087,7 +1099,7 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="grid gap-4 xl:grid-cols-[0.95fr,1.05fr]">
-                      <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
+                      <div id="invite-staff" className="scroll-mt-4 rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
                         <div className="flex items-center gap-2">
                           <UserPlus size={16} className="text-[var(--color-primary)]" />
                           <p className="mwos-section-eyebrow text-[var(--color-dark)]">
@@ -1105,6 +1117,7 @@ export default function SettingsPage() {
                             </label>
                             <input
                               type="text"
+                              aria-label="Full Name"
                               value={inviteName}
                               onChange={(event) => setInviteName(event.target.value)}
                               placeholder="Example: Lloyd Mutasa"
@@ -1118,6 +1131,7 @@ export default function SettingsPage() {
                             </label>
                             <input
                               type="email"
+                              aria-label="Email"
                               value={inviteEmail}
                               onChange={(event) => setInviteEmail(event.target.value)}
                               placeholder="staff@mwosfc.com"
@@ -1133,6 +1147,8 @@ export default function SettingsPage() {
                                 return (
                                   <button
                                     key={role.slug}
+                                    type="button"
+                                    aria-pressed={active}
                                     onClick={() => toggleInviteRole(role.slug)}
                                     className={`rounded-2xl border px-4 py-3 text-left transition-all ${
                                       active
@@ -1165,6 +1181,8 @@ export default function SettingsPage() {
                                 return (
                                   <button
                                     key={team.id}
+                                    type="button"
+                                    aria-pressed={active}
                                     onClick={() => toggleInviteTeam(team.id)}
                                     className={`rounded-2xl border px-4 py-3 text-left transition-all ${
                                       active
@@ -1464,6 +1482,8 @@ export default function SettingsPage() {
                                   return (
                                     <button
                                       key={role.slug}
+                                      type="button"
+                                      aria-pressed={active}
                                       onClick={() => toggleRole(role.slug)}
                                       className={`rounded-2xl border px-4 py-3 text-left transition-all ${
                                         active
@@ -1491,6 +1511,8 @@ export default function SettingsPage() {
                                   return (
                                     <button
                                       key={team.id}
+                                      type="button"
+                                      aria-pressed={active}
                                       onClick={() => toggleTeam(team.id)}
                                       className={`rounded-2xl border px-4 py-3 text-left transition-all ${
                                         active

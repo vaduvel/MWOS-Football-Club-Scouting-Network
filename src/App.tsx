@@ -12,6 +12,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const PlayersPage = lazy(() => import('./pages/PlayersPage'));
 const PlayerProfilePage = lazy(() => import('./pages/PlayerProfilePage'));
 const ReportEditor = lazy(() => import('./pages/ReportEditor'));
+const IndividualReportPage = lazy(() => import('./pages/IndividualReportPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const TrainingPage = lazy(() => import('./pages/TrainingPage'));
 const MatchDayPage = lazy(() => import('./pages/MatchDayPage'));
@@ -186,6 +187,10 @@ function AppContent() {
   const { pathname, search } = useLocation();
   const isLoginRoute = pathname === '/login';
   const forceLoginOnboarding = new URLSearchParams(search).get('onboarding') === '1';
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -442,6 +447,8 @@ function AppContent() {
             <Route path="/players/:playerKey" element={<RoleRoute canAccess={canAccessPlayerHub}><PlayerProfilePage /></RoleRoute>} />
             <Route path="/lead" element={<Navigate to="/oversight" replace />} />
             <Route path="/oversight" element={<RoleRoute canAccess={canAccessOversightModule}><OversightPage /></RoleRoute>} />
+            <Route path="/scouting/individual/new" element={<RoleRoute canAccess={canCreateScoutingReports}><IndividualReportPage /></RoleRoute>} />
+            <Route path="/scouting/individual/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><IndividualReportPage /></RoleRoute>} />
             <Route path="/scouting/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
             <Route path="/scouting/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
             <Route path="/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
