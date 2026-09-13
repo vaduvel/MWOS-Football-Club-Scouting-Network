@@ -19,3 +19,17 @@ export function validateIndividualReport(report: Report): string | null {
   if (report.players[0].club_player_id) return 'Individual scouting reports must use an external player.';
   return null;
 }
+
+export function recoverIndividualDraft(raw: string | null, current: Report, isNew: boolean): Report | null {
+  if (!raw) return null;
+  try {
+    const draft = JSON.parse(raw) as Report;
+    if (draft.report_type !== 'individual' || (!isNew && draft.id !== current.id)) return null;
+    if (!Array.isArray(draft.players) || draft.players.length !== 1 || !Array.isArray(draft.reviews) || draft.reviews.length !== 1) return null;
+    if (typeof draft.players[0]?.name !== 'string' || draft.players[0].club_player_id) return null;
+    if (String(draft.players[0].id) !== String(draft.reviews[0]?.player_id)) return null;
+    for (const key of ['home_team', 'date', 'venue', 'scout_name'] as const) if (typeof draft[key] !== 'string') return null;
+    for (const key of ['overview', 'strengths', 'areas_to_improve', 'recommendation_verdict', 'potential_level'] as const) if (typeof draft.reviews[0][key] !== 'string') return null;
+    return draft;
+  } catch { return null; }
+}
