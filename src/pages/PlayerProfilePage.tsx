@@ -17,6 +17,7 @@ import {
 import { buildMatchDayLinkPath, fetchPlayerMatchDayStatus, type PlayerMatchDayStatus } from '../lib/matchDayData';
 import { buildAnthropometricComparisonRows, buildClubRosterSnapshot, type AnthropometricComparisonRow } from '../lib/playerHubDomain';
 import { useAuthStore } from '../store/auth';
+import { canAccessInternalRoster } from '../lib/roleAccessDomain';
 
 function formatMetric(value: number | null, suffix: string, digits = 0) {
   if (value === null || Number.isNaN(value)) return `-- ${suffix}`;
@@ -31,6 +32,7 @@ export default function PlayerProfilePage() {
   const canCreateReports = canCreateScoutingReports(user);
   const canManageWatchlist = canCreateReports;
   const canViewMatchDayStatus = canAccessMatchDayModule(user);
+  const canViewRoster = canAccessInternalRoster(user);
 
   const [overview, setOverview] = useState<PlayerHubOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,7 @@ export default function PlayerProfilePage() {
   useEffect(() => {
     let isMounted = true;
 
-    if (!selectedPlayer?.linkedClubPlayerId) {
+    if (!canViewRoster || !selectedPlayer?.linkedClubPlayerId) {
       setClubProfile(null);
       return () => {
         isMounted = false;
@@ -103,7 +105,7 @@ export default function PlayerProfilePage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedPlayer?.linkedClubPlayerId]);
+  }, [selectedPlayer?.linkedClubPlayerId, canViewRoster]);
 
   useEffect(() => {
     let isMounted = true;
@@ -293,7 +295,7 @@ export default function PlayerProfilePage() {
                     {selectedPlayer?.name || 'Player Profile'}
                   </h1>
                   <p className="mt-3 text-sm font-semibold leading-6 text-white/78">
-                    One player, one surface: scouting trend, latest verdict, roster context and the next decision.
+                    Scouting trend, latest verdict and the next follow-up for this player.
                   </p>
                 </div>
 
@@ -357,8 +359,8 @@ export default function PlayerProfilePage() {
                 onOpenReport={(reportId) => navigate(`/report/${reportId}`)}
               />
 
-              <section className="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
-                <div className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
+              <section className={`grid gap-6 ${canViewRoster ? 'xl:grid-cols-[1fr_0.95fr]' : ''}`}>
+                {canViewRoster && <div className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
                   <div className="flex items-center gap-3 border-b border-[var(--color-mid)]/12 pb-4">
                     <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
                       <Ruler size={20} />
@@ -459,7 +461,7 @@ export default function PlayerProfilePage() {
                       This scouting profile is still external-only. Link it from Team Sheets to unlock the internal club record here.
                     </div>
                   )}
-                </div>
+                </div>}
 
                 <div className="space-y-6">
                   {canViewMatchDayStatus ? (
@@ -555,7 +557,7 @@ export default function PlayerProfilePage() {
                         title={selectedPlayer.isWatchlisted ? 'Already shortlisted' : 'Consider shortlist'}
                         body={
                           selectedPlayer.isWatchlisted
-                            ? 'This player is already saved for follow-up. Use the linked report and roster view to move into trial or match-day decisions.'
+                            ? 'This player is already saved for follow-up. Review the supporting scouting report and record your next observations.'
                             : 'The profile is not yet in the shortlist. Save it once you are confident this player deserves trial or follow-up attention.'
                         }
                       />

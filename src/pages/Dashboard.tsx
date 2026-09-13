@@ -597,7 +597,7 @@ export default function Dashboard() {
         title="Delete scouting report?"
         description={
           reportDeleteTarget
-            ? `This will permanently delete ${reportDeleteTarget.home_team || 'Home'} vs ${reportDeleteTarget.away_team || 'Away'} and its saved scouting data.`
+            ? `This will permanently delete ${reportDeleteTarget.report_type === 'individual' ? `the individual report for ${reportDeleteTarget.players[0]?.name || 'Unnamed player'}` : `${reportDeleteTarget.home_team || 'Home'} vs ${reportDeleteTarget.away_team || 'Away'}`} and its saved scouting data.`
             : 'This will permanently delete the selected scouting report and its saved data.'
         }
         confirmLabel="Delete report"

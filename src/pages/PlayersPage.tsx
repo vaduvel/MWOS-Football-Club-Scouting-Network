@@ -604,7 +604,7 @@ export default function PlayersPage() {
                       Player Hub
                     </h1>
                     <p className="mt-2 max-w-[17rem] text-xs font-semibold leading-5 text-white/76">
-                      Manage your roster, review squad analytics or open scouting reports.
+                      {canViewRoster ? 'Manage your roster, review squad analytics or open scouting reports.' : 'Add external players, review evaluations and manage your scouting shortlist.'}
                     </p>
                   </div>
                   <button
