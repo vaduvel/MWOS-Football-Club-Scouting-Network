@@ -5,6 +5,7 @@ import {
   fetchStaffAccessEvents,
   fetchStaffInvitations,
   getCurrentAppUser,
+  canAccessTrainingModule,
   type AppRole,
   type AppTeam,
   type StaffAccessEventRecord,
@@ -126,11 +127,13 @@ type TransportPlanRow = {
 type ReportRow = {
   id: string;
   user_id: string;
+  report_type: 'match' | 'individual' | null;
   competition: string | null;
   date: string | null;
   home_team: string | null;
   away_team: string | null;
   created_at: string;
+  players?: { name: string | null }[] | null;
 };
 
 export interface OversightMetricSummary {
@@ -318,7 +321,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
       .order('departure_time', { ascending: true, nullsFirst: false }),
     supabase
       .from('reports')
-      .select('id, user_id, competition, date, home_team, away_team, created_at')
+      .select('id, user_id, report_type, competition, date, home_team, away_team, created_at, players(name)')
       .order('created_at', { ascending: false })
       .limit(12),
     canSeeStaffCoverage
@@ -452,7 +455,9 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
     const owner = profilesById.get(report.user_id);
     return {
       id: report.id,
-      fixture: `${(report.home_team || 'Home').trim() || 'Home'} vs ${(report.away_team || 'Away').trim() || 'Away'}`,
+      fixture: report.report_type === 'individual'
+        ? report.players?.[0]?.name?.trim() || 'Individual player report'
+        : `${(report.home_team || 'Home').trim() || 'Home'} vs ${(report.away_team || 'Away').trim() || 'Away'}`,
       competition: (report.competition || '').trim() || 'Scouting report',
       date: (report.date || '').trim() || report.created_at.slice(0, 10),
       ownerName: owner?.name || getDisplayName(owner?.email),
@@ -483,6 +488,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
   const staffAccessEvents = (accessEvents as StaffAccessEventRecord[]) || [];
   const attentionItems = buildOversightAttentionItems({
     teams: teamSnapshots,
+    canOpenTraining: canAccessTrainingModule(authUser),
     pendingInvitations: canSeeInvitationFeed
       ? pendingInviteRecords.map((invite) => ({
           id: invite.id,

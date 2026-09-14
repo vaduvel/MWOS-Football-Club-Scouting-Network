@@ -731,7 +731,11 @@ export default function MatchDayPage() {
                         <div className="mt-5 space-y-4">
                           <div className="rounded-[24px] border border-[var(--color-mid)]/12 bg-[var(--color-light)]/48 p-4">
                             <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">
-                              {workspace.trainingContext.planId ? workspace.trainingContext.status : 'No saved plan yet'}
+                              {workspace.trainingContext.planId
+                                ? workspace.trainingContext.status
+                                : canOpenTraining
+                                  ? 'No saved plan yet'
+                                  : 'Training context unavailable for this role'}
                             </p>
                             <p className="mt-2 text-lg font-black text-[var(--color-dark)]">
                               {workspace.trainingContext.headline || 'Open the training week for MD context'}

@@ -13,7 +13,7 @@ import {
   Send,
   ShieldCheck,
 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useBlocker, useSearchParams } from 'react-router-dom';
 import AppSidebar from '../components/AppSidebar';
 import TrainingCommentsPanel from '../components/training/TrainingCommentsPanel';
 import TrainingDayEditor from '../components/training/TrainingDayEditor';
@@ -46,6 +46,7 @@ import { buildTrainingWhatsAppMessage } from '../lib/trainingShareDomain';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/auth';
 import { resolveTrainingDay } from '../lib/trainingDaySelection';
+import { clearTrainingDraft, readTrainingDraft, writeTrainingDraft } from '../lib/trainingDraftStore';
 
 function getCoachPrimaryActionClass(kind: TrainingCoachFlowActionKind) {
   if (kind === 'review_missing_info') {
@@ -168,10 +169,13 @@ export default function TrainingPage() {
   const [draftSource, setDraftSource] = useState<TrainingPlanSourceDraftInput | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareText, setShareText] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [draftNotice, setDraftNotice] = useState('');
 
   const weekStart = searchParams.get('week') || getTrainingWeekStart();
   const selectedDayIndex = resolveTrainingDay(searchParams.get('day'), weekStart);
   const teamId = searchParams.get('team') || '';
+  const navigationBlocker = useBlocker(Boolean(workspace?.canManage && hasUnsavedChanges));
 
   useEffect(() => {
     let isMounted = true;
@@ -226,7 +230,24 @@ export default function TrainingPage() {
         const planWorkspace = await fetchTrainingWorkspace(teamId, weekStart);
 
         if (!isMounted) return;
-        setWorkspace(planWorkspace);
+
+        const localDraft = user?.id ? readTrainingDraft(user.id, teamId, weekStart) : null;
+        if (localDraft) {
+          setWorkspace({
+            ...planWorkspace,
+            ...localDraft.workspace,
+            team: planWorkspace.team,
+            canManage: planWorkspace.canManage,
+            canComment: planWorkspace.canComment,
+            matchContext: planWorkspace.matchContext,
+          });
+          setHasUnsavedChanges(true);
+          setDraftNotice(`Recovered unsaved changes from ${new Date(localDraft.savedAt).toLocaleTimeString()}.`);
+        } else {
+          setWorkspace(planWorkspace);
+          setHasUnsavedChanges(false);
+          setDraftNotice('');
+        }
       } catch (loadError: any) {
         if (!isMounted) return;
         console.error('Failed to load training workspace.', loadError);
@@ -241,13 +262,56 @@ export default function TrainingPage() {
     return () => {
       isMounted = false;
     };
-  }, [teamId, weekStart]);
+  }, [teamId, user?.id, weekStart]);
 
   useEffect(() => {
     if (!success) return;
     const timeoutId = window.setTimeout(() => setSuccess(''), 2500);
     return () => window.clearTimeout(timeoutId);
   }, [success]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges || !workspace || !user?.id || !teamId) return;
+
+    const timeoutId = window.setTimeout(() => {
+      writeTrainingDraft(user.id, teamId, weekStart, workspace);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [hasUnsavedChanges, teamId, user?.id, weekStart, workspace]);
+
+  useEffect(() => {
+    if (!workspace?.canManage || !hasUnsavedChanges) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (workspace && user?.id && teamId) {
+        writeTrainingDraft(user.id, teamId, weekStart, workspace);
+      }
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges, teamId, user?.id, weekStart, workspace]);
+
+  useEffect(() => {
+    if (navigationBlocker.state !== 'blocked') return;
+
+    const shouldLeave = window.confirm(
+      'You have unsaved training changes. Choose Cancel to stay and save them, or OK to leave and recover the draft later in this browser.',
+    );
+
+    if (shouldLeave) {
+      if (workspace && user?.id && teamId) {
+        writeTrainingDraft(user.id, teamId, weekStart, workspace);
+      }
+      navigationBlocker.proceed();
+      return;
+    }
+
+    navigationBlocker.reset();
+  }, [navigationBlocker, teamId, user?.id, weekStart, workspace]);
 
   const selectedDay = workspace?.days[selectedDayIndex] || null;
   const coachFlow = useMemo(
@@ -327,6 +391,7 @@ export default function TrainingPage() {
 
   const handleDayChange = (nextDay: TrainingPlanDay) => {
     if (!workspace) return;
+    setHasUnsavedChanges(true);
     setWorkspace({
       ...workspace,
       days: workspace.days.map((day) => (day.dayIndex === nextDay.dayIndex ? nextDay : day)),
@@ -365,6 +430,11 @@ export default function TrainingPage() {
 
       setWorkspace(result.workspace);
       setDraftSource(null);
+      setHasUnsavedChanges(false);
+      setDraftNotice('');
+      if (user?.id) {
+        clearTrainingDraft(user.id, teamId, weekStart);
+      }
       setSuccess(
         action === 'publish'
           ? 'Training plan published.'
@@ -435,6 +505,7 @@ export default function TrainingPage() {
       objective: workspace.objective.trim() || importedObjective,
       days: mergedDays,
     });
+    setHasUnsavedChanges(true);
     setDraftSource(source);
     setShareOpen(false);
     setImportSheetOpen(false);
@@ -448,6 +519,9 @@ export default function TrainingPage() {
   const handleCreateManual = () => {
     const nextDayIndex = workspace ? resolveImportedFocusDay(workspace.days) : 0;
 
+    if (draftSource) {
+      setHasUnsavedChanges(true);
+    }
     setDraftSource(null);
     setImportSheetOpen(false);
     setSelectedImportFile(null);
@@ -525,6 +599,7 @@ export default function TrainingPage() {
         ...workspace,
         days: clearImportMetadata(workspace.days),
       });
+      setHasUnsavedChanges(true);
       setSuccess('Imported draft cleared. The manual editor is ready again.');
       return;
     }
@@ -536,12 +611,20 @@ export default function TrainingPage() {
 
     setImporting(true);
     try {
+      const wasDirty = hasUnsavedChanges;
       await clearTrainingPlanSource(workspace.planId, workspace.source);
       setWorkspace({
         ...workspace,
         source: null,
         days: clearImportMetadata(workspace.days),
       });
+      setHasUnsavedChanges(wasDirty);
+      if (!wasDirty) {
+        setDraftNotice('');
+      }
+      if (!wasDirty && user?.id) {
+        clearTrainingDraft(user.id, teamId, weekStart);
+      }
       setSuccess('Imported source cleared. The saved plan is now back to manual editing.');
     } catch (clearError: any) {
       console.error('Failed to clear training import.', clearError);
@@ -597,6 +680,17 @@ export default function TrainingPage() {
     handleOpenWhatsAppShare();
   };
 
+  const confirmLeave = () => {
+    if (!hasUnsavedChanges) return true;
+    const shouldLeave = window.confirm(
+      'You have unsaved training changes. Choose Cancel to stay and save them, or OK to leave and recover the draft later in this browser.',
+    );
+    if (shouldLeave && workspace && user?.id && teamId) {
+      writeTrainingDraft(user.id, teamId, weekStart, workspace);
+    }
+    return shouldLeave;
+  };
+
   const primaryActionKind = coachFlow?.primaryAction.kind || 'add_sessions';
   const PrimaryActionIcon = getCoachPrimaryActionIcon(primaryActionKind);
   const shareIsPrimary = primaryActionKind === 'share_plan';
@@ -606,7 +700,13 @@ export default function TrainingPage() {
 
   return (
     <div className="min-h-dvh bg-[var(--color-light)] md:flex">
-      <AppSidebar current="training" user={user} onLogout={() => void logout()} />
+      <AppSidebar
+        current="training"
+        user={user}
+        onLogout={() => {
+          if (confirmLeave()) void logout();
+        }}
+      />
 
       <main className="flex-1 overflow-auto px-3 pb-28 pt-[calc(env(safe-area-inset-top)+1rem)] md:p-6">
         <div className="mx-auto max-w-7xl space-y-5 md:space-y-6">
@@ -646,6 +746,12 @@ export default function TrainingPage() {
           {success ? (
             <section className="mwos-card-tone-training rounded-[24px] border p-4 text-sm font-semibold text-[var(--color-primary-deep)]">
               {success}
+            </section>
+          ) : null}
+
+          {draftNotice ? (
+            <section role="status" className="mwos-card-tone-alert rounded-[24px] border p-4 text-sm font-semibold text-[var(--color-accent-deep)]">
+              {draftNotice} Save the plan before sharing or publishing.
             </section>
           ) : null}
 
@@ -847,11 +953,12 @@ export default function TrainingPage() {
                       </label>
                       <input
                         value={workspace.headline}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          setHasUnsavedChanges(true);
                           setWorkspace((current) =>
                             current ? { ...current, headline: event.target.value } : current,
-                          )
-                        }
+                          );
+                        }}
                         disabled={!workspace.canManage}
                         placeholder="Pre-season speed / match prep / recovery balance"
                         className="w-full rounded-2xl border border-[var(--color-mid)]/22 bg-white px-3 py-3 text-sm font-semibold outline-none focus:border-[var(--color-primary)]"
@@ -863,11 +970,12 @@ export default function TrainingPage() {
                       </label>
                       <textarea
                         value={workspace.objective}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          setHasUnsavedChanges(true);
                           setWorkspace((current) =>
                             current ? { ...current, objective: event.target.value } : current,
-                          )
-                        }
+                          );
+                        }}
                         disabled={!workspace.canManage}
                         rows={3}
                         placeholder="What is the main aim of this week for the team?"

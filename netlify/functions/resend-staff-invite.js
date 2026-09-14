@@ -9,6 +9,8 @@ import {
   sendResentInviteEmail,
 } from './_staff-invitations.js';
 
+const INVITATION_EXPIRY_DAYS = 7;
+
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return json(405, { error: 'Method not allowed.' });
@@ -54,9 +56,10 @@ export async function handler(event) {
     });
 
     const nowIso = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const { error: updateError } = await serviceSupabase
       .from('staff_invitations')
-      .update({ last_sent_at: nowIso })
+      .update({ last_sent_at: nowIso, expires_at: expiresAt, status: 'pending' })
       .eq('id', invitation.id);
 
     if (updateError) throw updateError;

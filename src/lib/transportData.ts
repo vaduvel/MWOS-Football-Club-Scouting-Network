@@ -523,7 +523,11 @@ export async function fetchTransportPlanSummaries(filters: {
       arrivalTargetTime: toStringValue(row.arrival_target_time),
       destination: row.destination,
       driverUserId: toStringValue(row.driver_user_id),
-      driverName: row.driver_user_id ? driverProfile?.name || getDisplayName(driverProfile?.email) : 'Unassigned',
+      driverName: row.driver_user_id
+        ? driverProfile
+          ? driverProfile.name || getDisplayName(driverProfile.email)
+          : 'Assigned driver'
+        : 'Unassigned',
       status: row.status,
       publishedAt: row.published_at,
       updatedAt: row.updated_at,
@@ -602,7 +606,11 @@ export async function fetchTransportWorkspace(teamId?: string | null, planId?: s
     ...rowToDraft(plan),
     id: plan.id,
     team: selectedTeam,
-    driverName: plan.driver_user_id ? driverProfile?.name || getDisplayName(driverProfile?.email) : 'Unassigned',
+    driverName: plan.driver_user_id
+      ? driverProfile
+        ? driverProfile.name || getDisplayName(driverProfile.email)
+        : 'Assigned driver'
+      : 'Unassigned',
     comments: ((commentsResponse.data || []) as TransportPlanCommentRow[]).map((comment) => ({
       id: comment.id,
       planId: comment.plan_id,

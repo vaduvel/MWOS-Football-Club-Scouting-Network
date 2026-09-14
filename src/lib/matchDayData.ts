@@ -569,7 +569,11 @@ async function fetchLinkedTransportSummary(
     departureTime: toStringValue(row.departure_time),
     destination: row.destination,
     driverUserId: toStringValue(row.driver_user_id),
-    driverName: driverProfile?.name || getDisplayName(driverProfile?.email) || 'Unassigned',
+    driverName: driverProfile
+      ? driverProfile.name || getDisplayName(driverProfile.email)
+      : row.driver_user_id
+        ? 'Assigned driver'
+        : 'Unassigned',
     status: row.status,
     linkPath: buildTransportLinkPath(row.team_id, row.id),
   };

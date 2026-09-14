@@ -685,7 +685,12 @@ export default function ReportEditor() {
                 aria-describedby={readOnlyPreviewTab ? 'report-review-mode-note' : undefined}
                 className="min-w-0"
               >
-                {activeTab === 'match' && <MatchReportTab canEdit={canEditReport} />}
+                {activeTab === 'match' && (
+                  <MatchReportTab
+                    canEdit={canEditReport}
+                    canUploadVideo={Boolean(persistedReportId)}
+                  />
+                )}
                 {activeTab === 'teams' && <TeamSheetsTab canEdit={canEditReport} />}
                 {activeTab === 'formations' && <FormationsTab canEdit={canEditReport} />}
                 {activeTab === 'reviews' && <PlayerReviewsTab canEdit={canEditReport} />}

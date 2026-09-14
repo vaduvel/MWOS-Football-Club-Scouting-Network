@@ -72,7 +72,10 @@ function buildAdminAiContext(overview: AdminDashboardOverview): AdminAiContext {
     })),
     recentReports: overview.recentReports.map((report) => ({
       competition: report.competition,
-      fixture: `${report.home_team} vs ${report.away_team}`,
+      fixture:
+        report.report_type === 'individual'
+          ? report.player_name
+          : `${report.home_team} vs ${report.away_team}`,
       owner: report.owner_name || report.owner_email,
       date: report.date || report.created_at,
     })),

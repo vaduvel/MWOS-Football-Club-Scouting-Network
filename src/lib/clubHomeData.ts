@@ -38,11 +38,13 @@ import {
 
 type ReportLiteRow = {
   id: string;
+  report_type: 'match' | 'individual' | null;
   competition: string | null;
   date: string | null;
   home_team: string | null;
   away_team: string | null;
   created_at: string;
+  players?: { name: string | null }[] | null;
 };
 
 export interface ClubHomeRecentReport {
@@ -84,6 +86,9 @@ export interface ClubHomeWorkspace {
 }
 
 function getFixtureLabel(report: ReportLiteRow) {
+  if (report.report_type === 'individual') {
+    return report.players?.[0]?.name?.trim() || 'Individual player report';
+  }
   const home = (report.home_team || '').trim() || 'Home';
   const away = (report.away_team || '').trim() || 'Away';
   return `${home} vs ${away}`;
@@ -106,7 +111,7 @@ async function fetchRecentReports(limit = 4) {
   const [recentResponse, recentCountResponse] = await Promise.all([
     supabase
       .from('reports')
-      .select('id, competition, date, home_team, away_team, created_at')
+      .select('id, report_type, competition, date, home_team, away_team, created_at, players(name)')
       .order('created_at', { ascending: false })
       .limit(limit),
     supabase
