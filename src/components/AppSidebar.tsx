@@ -34,6 +34,7 @@ type AppSidebarProps = {
   current: SidebarSection;
   user: AppUser | null;
   onLogout: () => void;
+  onNavigate?: (path: string) => void;
 };
 
 type SidebarItem = {
@@ -179,8 +180,15 @@ function buildMobilePrimaryKeys(user: AppUser | null, roleSlug: string) {
   return keys;
 }
 
-export default function AppSidebar({ current, user, onLogout }: AppSidebarProps) {
+export default function AppSidebar({ current, user, onLogout, onNavigate }: AppSidebarProps) {
   const navigate = useNavigate();
+  const handleNavigate = (path: string) => {
+    if (onNavigate) {
+      onNavigate(path);
+      return;
+    }
+    navigate(path);
+  };
   const items = buildSidebarItems(user);
   const baseNavClass =
     'w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all';
@@ -273,7 +281,7 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
               return (
                 <button
                   key={item.key}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => handleNavigate(item.path)}
                   className={`${baseNavClass} ${
                     active
                       ? 'bg-white/16 text-white shadow-[0_12px_30px_rgba(15,23,42,0.18)]'
@@ -351,7 +359,7 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
                     type="button"
                     onClick={() => {
                       setMobileMoreOpen(false);
-                      navigate(item.path);
+                      handleNavigate(item.path);
                     }}
                     className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                       active
@@ -396,7 +404,7 @@ export default function AppSidebar({ current, user, onLogout }: AppSidebarProps)
               <button
                 key={item.key}
                 type="button"
-                onClick={() => navigate(item.path)}
+                onClick={() => handleNavigate(item.path)}
                 aria-label={item.label}
                 title={item.label}
                 className={`${mobileNavClass} ${
