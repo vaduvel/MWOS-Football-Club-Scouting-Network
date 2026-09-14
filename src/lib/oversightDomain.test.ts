@@ -116,4 +116,24 @@ describe('buildOversightAttentionItems', () => {
     expect(items[0]?.severity).toBe('high');
     expect(items.some((item) => item.title === 'Pending staff invitation')).toBe(true);
   });
+
+  it('keeps training alerts inside oversight for read-only roles without training access', () => {
+    const [item] = buildOversightAttentionItems({
+      canOpenTraining: false,
+      teams: [
+        buildOversightTeamSnapshot({
+          teamId: 'u13',
+          teamSlug: 'u13',
+          teamName: 'U13',
+          coachCount: 1,
+          training: null,
+          transport: null,
+        }),
+      ],
+      pendingInvitations: [],
+    });
+
+    expect(item?.title).toBe('Training plan missing');
+    expect(item?.linkPath).toBe('/oversight');
+  });
 });

@@ -15,7 +15,7 @@ import { parseNumberInput } from '../../lib/numericValueDomain';
 
 type SectionKey = 'ocr' | 'details' | 'teams' | 'notes' | 'video';
 
-export default function MatchReportTab({ canEdit }: { canEdit: boolean }) {
+export default function MatchReportTab({ canEdit, canUploadVideo }: { canEdit: boolean; canUploadVideo: boolean }) {
   const { currentReport, mergeReportFields, updateReportField } = useReportStore();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [ocrResult, setOcrResult] = useState<OcrReportResult | null>(null);
@@ -116,7 +116,7 @@ export default function MatchReportTab({ canEdit }: { canEdit: boolean }) {
 
   const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!canEdit || !file || !currentReport?.id) return;
+    if (!canEdit || !canUploadVideo || !file || !currentReport?.id) return;
 
     setVideoUploading(true);
     setVideoError('');
@@ -459,7 +459,7 @@ export default function MatchReportTab({ canEdit }: { canEdit: boolean }) {
               </div>
             )}
 
-            {!currentReport.id ? (
+            {!canUploadVideo ? (
               <div className="rounded-xl border border-dashed border-[var(--color-mid)]/30 bg-[var(--color-light)] px-4 py-6 text-center text-sm font-semibold text-[var(--color-mid)]">
                 <Video size={28} className="mx-auto mb-2 opacity-50" />
                 Save the report first, then attach a video.

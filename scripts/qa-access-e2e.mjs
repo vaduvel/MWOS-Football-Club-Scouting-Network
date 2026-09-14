@@ -36,9 +36,13 @@ const api=async (path, token, payload) => {
 const ok=(condition,label) => { assert(condition,label); checks++; console.log(`PASS ${label}`); };
 let manager;
 try {
-  for(const role of ['admin','executive_director','technical_director','board_observer','coach','team_manager','driver','scout']) {
+  const allRoles = ['admin','executive_director','technical_director','board_observer','coach','team_manager','driver','scout'];
+  const requestedRoles = process.env.QA_ROLES ? process.env.QA_ROLES.split(',') : allRoles;
+  assert(requestedRoles.every(role => allRoles.includes(role)) && requestedRoles.includes('team_manager'), 'QA_ROLES must contain team_manager and known roles only');
+  for(const role of requestedRoles) {
     const email=`danielvaduva994+qa-${run}-${role}@gmail.com`;
     const invited=await api('invite-staff',adminToken,{email,fullName:`QA ${run} ${role}`,roleSlugs:[role],teamIds:[a],deliveryMode:'manual_link'});
+    if (invited.status !== 200) console.log(JSON.stringify({role,status:invited.status,error:invited.body.error || 'Unexpected invitation response'}));
     ok(invited.status===200 && invited.body.mode==='new_user',`${role}: invitation created via HTTP`);
     const invitation=must(await service.from('staff_invitations').select('id,invitation_token,resolved_user_id').eq('id',invited.body.invitationId).single());
     created.push({userId:invitation.resolved_user_id,email,invitationId:invitation.id});

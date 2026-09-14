@@ -293,10 +293,12 @@ export interface AdminDashboardUser {
 
 export interface AdminDashboardReport {
   id: string;
+  report_type: 'match' | 'individual';
   competition: string;
   date: string;
   home_team: string;
   away_team: string;
+  player_name: string;
   owner_name: string;
   owner_email: string;
   created_at: string;
@@ -995,6 +997,13 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
   const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
   const reportsById = new Map(reports.map((report) => [report.id, report]));
   const playersById = new Map(players.map((player) => [player.id, player]));
+  const firstPlayerNameByReportId = new Map<string, string>();
+  players.forEach((player) => {
+    const playerName = player.name?.trim();
+    if (playerName && !firstPlayerNameByReportId.has(player.report_id)) {
+      firstPlayerNameByReportId.set(player.report_id, playerName);
+    }
+  });
   const reportCountsByUser = new Map<string, number>();
   const lastReportByUser = new Map<string, string>();
 
@@ -1043,10 +1052,15 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
 
     return {
       id: report.id,
+      report_type: report.report_type || 'match',
       competition: toStringValue(report.competition) || 'Friendly',
       date: toStringValue(report.date),
       home_team: toStringValue(report.home_team) || 'Home',
       away_team: toStringValue(report.away_team) || 'Away',
+      player_name:
+        report.report_type === 'individual'
+          ? firstPlayerNameByReportId.get(report.id) || 'Individual player report'
+          : '',
       owner_name: owner?.name || getDisplayName(owner?.email),
       owner_email: owner?.email || '',
       created_at: report.created_at,
@@ -1060,7 +1074,9 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
       const owner = profilesById.get(report.user_id);
       return {
         id: report.id,
-        title: `${toStringValue(report.home_team) || 'Home'} vs ${toStringValue(report.away_team) || 'Away'}`,
+        title: report.report_type === 'individual'
+          ? firstPlayerNameByReportId.get(report.id) || 'Individual player report'
+          : `${toStringValue(report.home_team) || 'Home'} vs ${toStringValue(report.away_team) || 'Away'}`,
         owner_name: owner?.name || getDisplayName(owner?.email),
         report_date: toStringValue(report.date),
         excerpt: buildShortExcerpt(report.focus, report.general_notes),
@@ -1185,7 +1201,7 @@ export async function fetchReport(reportId: string) {
     supabase
       .from('reports')
       .select(
-        'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at',
+        'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, video_url, created_at, updated_at',
       )
       .eq('id', reportId)
       .single(),

@@ -141,8 +141,11 @@ export function buildOversightAttentionItems(args: {
     email: string;
     createdAt: string;
   }>;
+  canOpenTraining?: boolean;
 }): OversightAttentionItem[] {
   const items: OversightAttentionItem[] = [];
+  const trainingPath = (teamId: string) =>
+    args.canOpenTraining === false ? '/oversight' : `/training?team=${teamId}`;
 
   args.teams.forEach((team) => {
     team.issues.forEach((issue, index) => {
@@ -151,7 +154,9 @@ export function buildOversightAttentionItems(args: {
         severity: issue.severity,
         title: issue.title,
         detail: issue.detail,
-        linkPath: issue.linkPath,
+        linkPath: issue.title.toLowerCase().includes('training')
+          ? trainingPath(team.teamId)
+          : issue.linkPath,
         teamName: team.teamName,
       });
     });

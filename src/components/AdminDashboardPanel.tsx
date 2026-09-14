@@ -461,7 +461,7 @@ export default function AdminDashboardPanel({
                       {report.competition}
                     </p>
                     <p className="mt-1 truncate text-base font-bold text-[var(--color-dark)]">
-                      {report.home_team} vs {report.away_team}
+                      {report.report_type === 'individual' ? report.player_name : `${report.home_team} vs ${report.away_team}`}
                     </p>
                     <p className="mt-1 truncate text-xs font-semibold text-[var(--color-mid)]">
                       {report.owner_name} {report.owner_email ? `• ${report.owner_email}` : ''}
