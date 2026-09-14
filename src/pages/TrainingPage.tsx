@@ -13,7 +13,7 @@ import {
   Send,
   ShieldCheck,
 } from 'lucide-react';
-import { useBlocker, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppSidebar from '../components/AppSidebar';
 import TrainingCommentsPanel from '../components/training/TrainingCommentsPanel';
 import TrainingDayEditor from '../components/training/TrainingDayEditor';
@@ -152,6 +152,7 @@ function hasTrainingShareContent(day: TrainingPlanDay) {
 
 export default function TrainingPage() {
   const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [teams, setTeams] = useState<Array<{ id: string; slug: string; name: string; is_active: boolean }>>([]);
   const [workspace, setWorkspace] = useState<TrainingWorkspace | null>(null);
@@ -175,7 +176,6 @@ export default function TrainingPage() {
   const weekStart = searchParams.get('week') || getTrainingWeekStart();
   const selectedDayIndex = resolveTrainingDay(searchParams.get('day'), weekStart);
   const teamId = searchParams.get('team') || '';
-  const navigationBlocker = useBlocker(Boolean(workspace?.canManage && hasUnsavedChanges));
 
   useEffect(() => {
     let isMounted = true;
@@ -295,24 +295,6 @@ export default function TrainingPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges, teamId, user?.id, weekStart, workspace]);
 
-  useEffect(() => {
-    if (navigationBlocker.state !== 'blocked') return;
-
-    const shouldLeave = window.confirm(
-      'You have unsaved training changes. Choose Cancel to stay and save them, or OK to leave and recover the draft later in this browser.',
-    );
-
-    if (shouldLeave) {
-      if (workspace && user?.id && teamId) {
-        writeTrainingDraft(user.id, teamId, weekStart, workspace);
-      }
-      navigationBlocker.proceed();
-      return;
-    }
-
-    navigationBlocker.reset();
-  }, [navigationBlocker, teamId, user?.id, weekStart, workspace]);
-
   const selectedDay = workspace?.days[selectedDayIndex] || null;
   const coachFlow = useMemo(
     () =>
@@ -375,6 +357,7 @@ export default function TrainingPage() {
   };
 
   const handleWeekChange = (value: string) => {
+    if (!confirmLeave()) return;
     const normalized = getTrainingWeekStart(new Date(`${value}T09:00:00`));
     updateSearch({ weekStart: normalized, dayIndex: resolveTrainingDay(null, normalized) });
   };
@@ -703,6 +686,9 @@ export default function TrainingPage() {
       <AppSidebar
         current="training"
         user={user}
+        onNavigate={(path) => {
+          if (confirmLeave()) navigate(path);
+        }}
         onLogout={() => {
           if (confirmLeave()) void logout();
         }}
@@ -843,6 +829,7 @@ export default function TrainingPage() {
                     weekStart={workspace.weekStart}
                     weekLabel={getTrainingWeekRangeLabel(workspace.weekStart)}
                     onSelectTeam={(nextTeamId) => {
+                      if (!confirmLeave()) return;
                       updateSearch({ teamId: nextTeamId, dayIndex: selectedDayIndex });
                     }}
                     onSelectWeek={handleWeekChange}
