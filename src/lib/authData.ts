@@ -1,6 +1,6 @@
 import type { Session, User } from '@supabase/supabase-js';
 import { assertSupabaseConfigured, supabase } from './supabase';
-import { isAuthSessionMissingUserError } from './authSessionDomain';
+import { isAuthSessionMissingUserError, isExpectedAuthSessionExpiryError } from './authSessionDomain';
 import { MODULE_ACCESS_ROLE_SLUGS } from './roleAccessDomain';
 
 export { isAuthSessionMissingUserError } from './authSessionDomain';
@@ -308,7 +308,9 @@ async function hydrateAuthenticatedUser(user: User) {
     const { reconcilePendingStaffInvitations } = await import('./data');
     await reconcilePendingStaffInvitations();
   } catch (error) {
-    console.warn('Could not reconcile pending staff invitations during authentication.', error);
+    if (!isExpectedAuthSessionExpiryError(error)) {
+      console.warn('Could not reconcile pending staff invitations during authentication.', error);
+    }
   }
 
   return upsertProfile(user);

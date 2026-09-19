@@ -87,6 +87,10 @@ export interface PlayerDevelopmentSummaryInput {
   latestVerdict: string;
 }
 
+export function hasPlayerReviewEvidence(reviews: readonly unknown[]) {
+  return reviews.length > 0;
+}
+
 export type GlobalScoutingPipelineStageKey =
   | 'fresh_intel'
   | 'technical_review'

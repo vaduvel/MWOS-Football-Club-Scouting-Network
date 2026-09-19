@@ -12,7 +12,15 @@ import {
   buildTeamRosterAnalytics,
   buildTrendChartPath,
   buildTrendChartStops,
+  hasPlayerReviewEvidence,
 } from './playerHubDomain';
+
+describe('hasPlayerReviewEvidence', () => {
+  it('keeps squad-only mentions out of evaluated player intelligence', () => {
+    expect(hasPlayerReviewEvidence([])).toBe(false);
+    expect(hasPlayerReviewEvidence([{ overview: 'Observed in possession' }])).toBe(true);
+  });
+});
 
 describe('buildTrendChartPath', () => {
   it('returns empty path when there are no valid scores', () => {

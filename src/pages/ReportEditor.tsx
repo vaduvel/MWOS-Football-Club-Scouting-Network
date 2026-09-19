@@ -122,9 +122,13 @@ async function clearLocalDraft(reportId?: string) {
 
 function ReportTabLoadingState() {
   return (
-    <div className="rounded-[24px] border border-[var(--color-mid)]/18 bg-white px-5 py-10 text-center shadow-sm">
-      <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-[var(--color-primary)]/18 border-t-[var(--color-primary)]" />
-      <p className="mt-4 text-sm font-semibold text-[var(--color-mid)]">Loading this scouting step…</p>
+    <div role="status" aria-label="Loading this scouting step" className="rounded-[24px] border border-[var(--color-mid)]/18 bg-white p-5 shadow-sm">
+      <div className="h-5 w-40 animate-pulse rounded-lg bg-[var(--color-mid)]/12 motion-reduce:animate-none" />
+      <div className="mt-5 space-y-3">
+        <div className="h-12 animate-pulse rounded-2xl bg-[var(--color-mid)]/8 motion-reduce:animate-none" />
+        <div className="h-12 animate-pulse rounded-2xl bg-[var(--color-mid)]/8 motion-reduce:animate-none" />
+        <div className="h-24 animate-pulse rounded-2xl bg-[var(--color-mid)]/8 motion-reduce:animate-none" />
+      </div>
     </div>
   );
 }
@@ -132,7 +136,7 @@ function ReportTabLoadingState() {
 export default function ReportEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { token, user } = useAuthStore();
   const { currentReport, setCurrentReport } = useReportStore();
   const [activeTab, setActiveTab] = useState('match');
@@ -404,6 +408,9 @@ export default function ReportEditor() {
 
   const goToTab = (tabId: string) => {
     setActiveTab(tabId);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('tab', tabId);
+    setSearchParams(nextParams, { replace: true });
     setMobileTabPickerOpen(false);
   };
 
@@ -458,7 +465,7 @@ export default function ReportEditor() {
       <header className="mwos-ribbon-surface sticky top-0 z-50 shadow-sm">
         <div className="px-3 py-2.5 text-white md:hidden">
           <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/scouting')} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10">
+            <button type="button" onClick={() => navigate('/scouting')} aria-label="Back to scouting" title="Back to scouting" className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10">
               <ArrowLeft size={20} className="text-white" />
             </button>
 
@@ -523,7 +530,7 @@ export default function ReportEditor() {
 
         <div className="hidden items-center justify-between gap-4 px-6 py-4 text-white md:flex">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/scouting')} className="rounded-full p-2 transition-colors hover:bg-white/10">
+            <button type="button" onClick={() => navigate('/scouting')} aria-label="Back to scouting" title="Back to scouting" className="rounded-full p-2 transition-colors hover:bg-white/10">
               <ArrowLeft size={22} className="text-white" />
             </button>
             <img

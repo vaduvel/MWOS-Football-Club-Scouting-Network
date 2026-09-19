@@ -191,4 +191,19 @@ describe('buildClubHomeMetricCards', () => {
     ]);
     expect(cards[3]?.value).toBe('4');
   });
+
+  it('keeps Scout metrics focused on reports and club announcements', () => {
+    const cards = buildClubHomeMetricCards('scout', {
+      assignedTeams: 0,
+      unreadNotifications: 2,
+      trainingPlansCurrentWeek: 0,
+      publishedTrainingPlansCurrentWeek: 0,
+      upcomingTransportPlans: 4,
+      recentReports: 6,
+      pendingInvitations: 0,
+    });
+
+    expect(cards.map((card) => card.label)).toEqual(['Recent Reports', 'Unread Announcements']);
+    expect(cards.map((card) => card.value)).toEqual(['6', '2']);
+  });
 });

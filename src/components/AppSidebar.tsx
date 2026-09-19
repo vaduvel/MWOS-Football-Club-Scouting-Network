@@ -87,6 +87,9 @@ function formatRoleHeadline(user: AppUser | null) {
 
 function formatTeamSummary(user: AppUser | null) {
   if (!user || user.teams.length === 0) {
+    if (userHasAnyRole(user, ['scout']) && !userHasAnyRole(user, ['coach', 'team_manager', 'driver'])) {
+      return 'No team assignment required';
+    }
     return userHasAnyRole(user, ['admin', 'executive_director', 'technical_director', 'board_observer'])
       ? 'Club-wide access'
       : 'Awaiting team assignment';

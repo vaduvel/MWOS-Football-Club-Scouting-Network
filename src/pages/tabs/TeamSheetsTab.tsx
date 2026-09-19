@@ -10,6 +10,7 @@ import {
 import { suggestClubPlayerMatches } from '../../lib/playerIdentityDomain';
 import { useAuthStore } from '../../store/auth';
 import { canAccessInternalRoster } from '../../lib/roleAccessDomain';
+import { cn } from '../../lib/utils';
 
 export default function TeamSheetsTab({ canEdit }: { canEdit: boolean }) {
   const canViewRoster = canAccessInternalRoster(useAuthStore(state => state.user));
@@ -282,11 +283,11 @@ export default function TeamSheetsTab({ canEdit }: { canEdit: boolean }) {
               Squad List
             </h2>
           </div>
-          <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:flex-wrap">
-            <button disabled={!canEdit} onClick={() => canEdit && setIsImportModalOpen(true)} className="flex items-center justify-center space-x-2 rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-light)] px-3 py-2.5 text-sm font-bold text-[var(--color-primary)] transition-all hover:bg-[var(--color-mid)]/20">
+          <div className={cn('grid w-full gap-2 md:flex md:w-auto md:flex-wrap', canViewRoster ? 'grid-cols-2' : 'grid-cols-1')}>
+            {canViewRoster ? <button disabled={!canEdit} onClick={() => canEdit && setIsImportModalOpen(true)} className="flex items-center justify-center space-x-2 rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-light)] px-3 py-2.5 text-sm font-bold text-[var(--color-primary)] transition-all hover:bg-[var(--color-mid)]/20">
               <Download size={16} />
-              <span>Import</span>
-            </button>
+              <span>Import squad</span>
+            </button> : null}
             <button disabled={!canEdit} onClick={handleAddPlayer} className="flex items-center justify-center space-x-2 rounded-2xl bg-[var(--color-dark)] px-3 py-2.5 text-sm font-bold text-white transition-all hover:bg-opacity-90">
               <Plus size={16} />
               <span>Add Player</span>
@@ -385,7 +386,7 @@ export default function TeamSheetsTab({ canEdit }: { canEdit: boolean }) {
 
           {players.length === 0 && (
             <div className="rounded-[22px] border border-dashed border-[var(--color-mid)]/25 bg-[var(--color-light)]/55 p-6 text-center text-sm font-semibold text-[var(--color-mid)]">
-              {canEdit ? 'No players added yet. Tap “Add Player” or “Import” to build the squad.' : 'No players added to this team.'}
+              {canEdit ? `No players added yet. Tap “Add Player” to build the ${canViewRoster ? 'squad, or import a squad.' : 'external squad manually.'}` : 'No players added to this team.'}
             </div>
           )}
         </div>
@@ -466,7 +467,7 @@ export default function TeamSheetsTab({ canEdit }: { canEdit: boolean }) {
             {players.length === 0 && (
               <tr>
                 <td colSpan={6} className="p-8 text-center text-[var(--color-mid)] font-semibold">
-                  {canEdit ? 'No players added yet. Click "Add Player" or "Import" to start building the squad.' : 'No players added to this team.'}
+                  {canEdit ? `No players added yet. Click "Add Player" to build the ${canViewRoster ? 'squad, or import a squad.' : 'external squad manually.'}` : 'No players added to this team.'}
                 </td>
               </tr>
             )}
@@ -475,7 +476,7 @@ export default function TeamSheetsTab({ canEdit }: { canEdit: boolean }) {
         </div>
       </div>
 
-      {canEdit && <ImportTeamModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} teamSide={activeSide} />}
+      {canEdit && canViewRoster && <ImportTeamModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} teamSide={activeSide} />}
     </div>
   );
 }

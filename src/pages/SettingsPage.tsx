@@ -1,9 +1,12 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Bell, CheckCircle, Database, Key, Mail, RotateCcw, Save, Search, Settings, ShieldCheck, UserPlus, Users, XCircle } from 'lucide-react';
 import AppSidebar from '../components/AppSidebar';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 import {
   cancelStaffInvitation,
+  canAccessTrainingModule,
+  canAccessTransportModule,
   createStaffInvitation,
   expireStaleStaffInvitations,
   fetchClubAccessOverview,
@@ -63,6 +66,10 @@ export default function SettingsPage() {
   } = useSettingsStore();
   const { user, logout } = useAuthStore();
   const isAdmin = userHasRole(user, 'admin');
+  const isScoutOnly = Boolean(user?.roles?.length === 1 && userHasRole(user, 'scout'));
+  const canConfigureTrainingEmail = canAccessTrainingModule(user);
+  const canConfigureTransportEmail = canAccessTransportModule(user);
+  const hasConfigurablePreferences = isAdmin || canConfigureTrainingEmail || canConfigureTransportEmail;
   const [settingsSection, setSettingsSection] = useState<'staff' | 'preferences'>('staff');
   const showStaff = isAdmin && settingsSection === 'staff';
 
@@ -102,6 +109,40 @@ export default function SettingsPage() {
   const [clearAccessDialogOpen, setClearAccessDialogOpen] = useState(false);
   const [cancelInviteTargetId, setCancelInviteTargetId] = useState<string | null>(null);
   const deferredStaffSearchQuery = useDeferredValue(staffSearchQuery);
+  const emailPreferenceItems = [
+    ...(canConfigureTrainingEmail ? [
+      {
+        label: 'Training plan published',
+        description: 'Receive email when a weekly training plan is first published.',
+        value: notifyPlanPublished,
+        onChange: setNotifyPlanPublished,
+      },
+      {
+        label: 'Technical Director comments',
+        description: 'Receive email when the Technical Director comments on a training plan.',
+        value: notifyTdComment,
+        onChange: setNotifyTdComment,
+      },
+      {
+        label: '30 minute training reminders',
+        description: 'Receive email shortly before a training session starts.',
+        value: notifyReminder,
+        onChange: setNotifyReminder,
+      },
+      {
+        label: 'Major schedule changes',
+        description: 'Receive email when a published session time, date or location changes.',
+        value: notifyScheduleChange,
+        onChange: setNotifyScheduleChange,
+      },
+    ] : []),
+    ...(canConfigureTransportEmail ? [{
+      label: 'Transport updates',
+      description: 'Receive email when a transport plan is created or materially updated.',
+      value: notifyTransportUpdate,
+      onChange: setNotifyTransportUpdate,
+    }] : []),
+  ];
 
   useEffect(() => {
     let isMounted = true;
@@ -725,7 +766,7 @@ export default function SettingsPage() {
                     Settings
                   </h1>
                   <p className="mwos-hero-copy mt-1.5 text-white/75 md:mt-2">
-                    Manage integrations and, for admins, assign club roles and teams.
+                    {isAdmin ? 'Manage integrations, staff roles and team access.' : hasConfigurablePreferences ? 'Manage the notification preferences available to your role.' : 'See what your role can access and where to complete your work.'}
                   </p>
                 </div>
               </div>
@@ -737,14 +778,33 @@ export default function SettingsPage() {
             <button type="button" aria-pressed={!showStaff} onClick={() => setSettingsSection('preferences')} className={!showStaff ? 'mwos-btn-primary min-h-11' : 'mwos-btn-secondary min-h-11'}>Preferences & integrations</button>
           </nav>}
           <div className="space-y-4">
-            <section hidden={showStaff} className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/20 bg-white shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
+            {!hasConfigurablePreferences ? (
+              <section className="overflow-hidden rounded-[28px] border border-[var(--color-primary)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)] md:p-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-black uppercase text-[var(--color-mid)]">Your workspace</p>
+                    <h2 className="mt-2 text-balance text-xl font-black text-[var(--color-dark)]">{isScoutOnly ? 'Scout access is ready' : 'No personal settings are required'}</h2>
+                    <p className="mt-2 max-w-3xl text-pretty text-sm font-semibold leading-7 text-[var(--color-mid)]">
+                      {isScoutOnly
+                        ? 'Create individual player reports, add external squads manually, review your saved players and manage your shortlist. Internal club roster, training and transport settings stay hidden because they are outside the Scout role.'
+                        : 'This role has no personal integration or email preferences. The workspace keeps operational controls hidden and preserves the read-only access assigned by the club.'}
+                    </p>
+                    <Link to={isScoutOnly ? '/scouting' : '/'} className="mwos-btn mwos-btn-primary mt-4 min-h-11">{isScoutOnly ? 'Open scouting workspace' : 'Return to Club Home'}</Link>
+                  </div>
+                </div>
+              </section>
+            ) : null}
+            <section hidden={showStaff || !hasConfigurablePreferences} className="overflow-hidden rounded-[28px] border border-[var(--color-mid)]/20 bg-white shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
               <div className="border-b border-[var(--color-mid)]/20 bg-[var(--color-light)]/50 p-4 md:p-5">
                 <h2 className="flex items-center text-base font-black uppercase tracking-[0.12em] text-[var(--color-dark)]">
                   <Database size={18} className="mr-2 text-[var(--color-primary)]" />
-                  Data Provider Integration
+                  Preferences & Integrations
                 </h2>
                 <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">
-                  Choose how squad data is imported for reports.
+                  Only settings connected to your assigned role are shown here.
                 </p>
               </div>
 
@@ -761,7 +821,7 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                <div>
+                {isAdmin ? <><div>
                   <label className="mwos-form-label text-[var(--color-mid)]">
                     Football Data Provider
                   </label>
@@ -797,9 +857,9 @@ export default function SettingsPage() {
                       .
                     </p>
                   </div>
-                )}
+                )}</> : null}
 
-                <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
+                {emailPreferenceItems.length ? <div className="rounded-[24px] border border-[var(--color-mid)]/16 bg-[var(--color-light)]/45 p-4">
                   <div className="flex items-center gap-2">
                     <Bell size={16} className="text-[var(--color-primary)]" />
                     <p className="mwos-section-eyebrow text-[var(--color-dark)]">
@@ -807,42 +867,11 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <p className="mwos-form-helper mt-2 text-[var(--color-mid)]">
-                    In-app notifications are always kept in the workspace. These toggles decide which important training and transport events should also arrive by email.
+                    In-app notifications are always kept in the workspace. These toggles decide which events available to your role should also arrive by email.
                   </p>
 
                   <div className="mt-4 space-y-3">
-                    {[
-                      {
-                        label: 'Training plan published',
-                        description: 'Receive email when a weekly training plan is first published.',
-                        value: notifyPlanPublished,
-                        onChange: setNotifyPlanPublished,
-                      },
-                      {
-                        label: 'Technical Director comments',
-                        description: 'Receive email when the Technical Director comments on a training plan.',
-                        value: notifyTdComment,
-                        onChange: setNotifyTdComment,
-                      },
-                      {
-                        label: '30 minute training reminders',
-                        description: 'Receive email shortly before a training session starts.',
-                        value: notifyReminder,
-                        onChange: setNotifyReminder,
-                      },
-                      {
-                        label: 'Major schedule changes',
-                        description: 'Receive email when a published session time, date or location changes.',
-                        value: notifyScheduleChange,
-                        onChange: setNotifyScheduleChange,
-                      },
-                      {
-                        label: 'Transport updates',
-                        description: 'Receive email when a transport plan is created or materially updated.',
-                        value: notifyTransportUpdate,
-                        onChange: setNotifyTransportUpdate,
-                      },
-                    ].map((item) => (
+                    {emailPreferenceItems.map((item) => (
                       <label
                         key={item.label}
                         className="flex items-start justify-between gap-3 rounded-2xl border border-white/70 bg-white px-4 py-3"
@@ -862,7 +891,7 @@ export default function SettingsPage() {
                       </label>
                     ))}
                   </div>
-                </div>
+                </div> : null}
 
                 <div className="flex flex-col gap-3 border-t border-[var(--color-mid)]/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>

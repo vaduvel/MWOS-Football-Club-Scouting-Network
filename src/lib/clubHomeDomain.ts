@@ -311,19 +311,9 @@ export function buildClubHomeMetricCards(
           detail: 'Scouting reports created in the last 7 days.',
         },
         {
-          label: 'Unread Alerts',
+          label: 'Unread Announcements',
           value: String(input.unreadNotifications),
-          detail: 'Operational notifications affecting your scouting work.',
-        },
-        {
-          label: 'Assigned Teams',
-          value: String(input.assignedTeams),
-          detail: 'Teams connected to your current staff access.',
-        },
-        {
-          label: 'Upcoming Transport',
-          value: String(input.upcomingTransportPlans),
-          detail: 'Travel plans that may affect match-day scouting.',
+          detail: 'Club announcements that still need reading.',
         },
       ];
     case 'pending':

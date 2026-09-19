@@ -398,7 +398,7 @@ export default function Dashboard() {
             onSecondaryCta={() => navigate(canCreateReports ? '/players' : '/oversight')}
           />
 
-          <ScoutingWorkspaceMetrics metrics={workspaceMetrics} />
+          <ScoutingWorkspaceMetrics metrics={workspaceMetrics} loading={loading} />
 
           {isAdmin && adminLoadError && (
             <div className="mwos-card-tone-danger rounded-[24px] border px-4 py-3 text-sm font-semibold text-[var(--color-accent-deep)]">

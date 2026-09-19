@@ -8,6 +8,8 @@ import PlayerReviewsTab from './tabs/PlayerReviewsTab';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 import { buildIndividualReportPdf } from '../lib/individualReportPdf';
 
+const PLAYER_NAME_REQUIRED_ERROR = 'Enter the player name before saving.';
+
 export default function IndividualReportPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -119,7 +121,7 @@ export default function IndividualReportPage() {
       {dirty && <p role="status">Unsaved changes — save to sync this report.</p>}
       <fieldset disabled={!canEdit || saving} className="space-y-4" onChange={() => setSaved(false)} onClickCapture={() => setSaved(false)}>
         <section className="grid gap-4 rounded-2xl bg-white p-4 sm:grid-cols-2">
-          <label className="block"><span className="mwos-form-label">Player name *</span><input required aria-invalid={!!error && !player.name.trim()} aria-describedby={error ? 'individual-save-error' : undefined} className="mwos-mobile-input" value={player.name} onChange={e => updatePlayer(player.id,{name:e.target.value})} /></label>
+          <label className="block"><span className="mwos-form-label">Player name *</span><input required aria-invalid={error === PLAYER_NAME_REQUIRED_ERROR} aria-describedby={error === PLAYER_NAME_REQUIRED_ERROR ? 'individual-save-error' : undefined} className="mwos-mobile-input" value={player.name} onChange={e => { updatePlayer(player.id,{name:e.target.value}); if (e.target.value.trim()) setError(current => current === PLAYER_NAME_REQUIRED_ERROR ? '' : current); }} /></label>
           <label className="block"><span className="mwos-form-label">Player's club (optional)</span><input className="mwos-mobile-input" value={report.home_team} onChange={e => updateReportField('home_team',e.target.value)} /></label>
           <label className="block"><span className="mwos-form-label">Observation date</span><input type="date" className="mwos-mobile-input" value={report.date} onChange={e => updateReportField('date',e.target.value)} /></label>
           <label className="block"><span className="mwos-form-label">Observation location (optional)</span><input className="mwos-mobile-input" value={report.venue} onChange={e => updateReportField('venue',e.target.value)} /></label>

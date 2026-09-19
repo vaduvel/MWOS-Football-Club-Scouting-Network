@@ -41,3 +41,8 @@ export function isAuthSessionMissingUserError(error: unknown) {
     /(?:profiles?|auth\.users|table ["']?users["']?|not present in table ["']?users["']?)/i.test(errorText)
   );
 }
+
+export function isExpectedAuthSessionExpiryError(error: unknown) {
+  const errorText = collectErrorText(error);
+  return /invalid or expired session|jwt expired|refresh token (?:not found|is invalid)|invalid refresh token/i.test(errorText);
+}

@@ -85,6 +85,7 @@ import {
 import { buildScoutingPlayerIdentityKey } from './playerIdentityDomain';
 import {
   buildGlobalScoutingPipeline,
+  hasPlayerReviewEvidence,
   buildPlayerDevelopmentSummary,
   buildRosterOnlyPlayerHubEntry,
   type GlobalScoutingPipelineSummary,
@@ -1516,6 +1517,11 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
       clubLabel,
     });
     const playerReviews = reviewsByPlayerId.get(player.id) || [];
+    // A squad-sheet mention is not scouting evidence. Keep those players in the
+    // match report, but do not promote them into Player Hub until a review exists.
+    if (!hasPlayerReviewEvidence(playerReviews)) {
+      return;
+    }
     const reviewScores = playerReviews
       .map((review) => calculateReviewAverage(review))
       .filter((value) => value > 0);
@@ -1662,7 +1668,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         latestScore: sortedTrendPoints[sortedTrendPoints.length - 1]?.score || 0,
         averageRating: roundOneDecimal(averageNumbers(entry.ratingValues)),
         bestPotential: entry.bestPotential,
-        latestVerdict: entry.latestVerdict || 'Monitor closely',
+        latestVerdict: entry.latestVerdict || 'No verdict recorded',
         overview: entry.overview,
         strengths: buildShortExcerpt(entry.strengths, entry.overview),
         improvementAreas: buildShortExcerpt(entry.improvementAreas),
