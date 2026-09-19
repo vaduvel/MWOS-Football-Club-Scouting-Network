@@ -186,13 +186,16 @@ export async function fetchClubHomeWorkspace(): Promise<ClubHomeWorkspace> {
   const trainingPlansCurrentWeek = leadership ? leadership.currentWeekTrainingPlans.length : trainingPlans.length;
   const upcomingTransportPlans = leadership ? leadership.upcomingTransport.length : upcomingTransport.length;
   const recentReportsCount = leadership ? leadership.metrics.reportsLast7Days : reportsResult.recentCount;
+  const unreadUpdatesCount = view === 'scout'
+    ? alertsWorkspace.announcements.filter((item) => !item.readAt).length
+    : alertsWorkspace.stats.unread;
 
   return {
     view,
     hero: buildClubHomeHero(view, assignedTeamsCount),
     metrics: buildClubHomeMetricCards(view, {
       assignedTeams: assignedTeamsCount,
-      unreadNotifications: alertsWorkspace.stats.unread,
+      unreadNotifications: unreadUpdatesCount,
       trainingPlansCurrentWeek,
       publishedTrainingPlansCurrentWeek,
       upcomingTransportPlans,
@@ -201,7 +204,7 @@ export async function fetchClubHomeWorkspace(): Promise<ClubHomeWorkspace> {
     }),
     assignedTeamsCount,
     notifications: alertsWorkspace.notifications,
-    unreadNotificationCount: alertsWorkspace.stats.unread,
+    unreadNotificationCount: unreadUpdatesCount,
     trainingPlans: leadership?.currentWeekTrainingPlans.slice(0, 4) || trainingPlans.slice(0, 4),
     upcomingTransport: leadership
       ? leadership.upcomingTransport.map((item) => ({

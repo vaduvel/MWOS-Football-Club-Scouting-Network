@@ -39,6 +39,7 @@ import type { ClubHomeViewMode } from '../lib/clubHomeDomain';
 import { buildStaffingHealthCards } from '../lib/staffAccessActivityDomain';
 import type { TrainingNotificationItem, TrainingPlanSummary } from '../lib/trainingData';
 import { useAuthStore } from '../store/auth';
+import { cn } from '../lib/utils';
 
 type ModuleCard = {
   key: string;
@@ -215,7 +216,7 @@ function MetricStrip({ items }: { items: ClubHomeWorkspace['metrics'] }) {
   ];
 
   return (
-    <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+    <section className={cn('grid grid-cols-2 gap-3 sm:gap-4', items.length <= 2 ? 'xl:grid-cols-2' : 'xl:grid-cols-4')}>
       {items.map((item, index) => (
         <article
           key={item.label}
@@ -799,9 +800,10 @@ export default function ClubHomePage() {
   }, []);
 
   const teamsLabel = useMemo(() => {
+    if (workspace?.view === 'scout') return 'Scout access · external player reporting';
     if (!user?.teams?.length) return 'No team assignments yet';
     return user.teams.map((team) => team.name).join(' · ');
-  }, [user]);
+  }, [user, workspace?.view]);
 
   const isAdminView = workspace?.view === 'admin';
   const isExecutiveDirectorView = workspace?.view === 'executive_director';
@@ -970,7 +972,29 @@ export default function ClubHomePage() {
                 <>
                   <section className="grid gap-4 xl:grid-cols-2">
                     <ReportsFeed items={workspace.recentReports} />
-                    <NotificationsFeed items={workspace.notifications} unreadCount={workspace.unreadNotificationCount} />
+                    <SectionShell
+                      title="Scout workflow"
+                      description="Keep the daily flow simple: capture one player, save the evaluation, then follow up from Player Hub."
+                      icon={Star}
+                      tone="reports"
+                    >
+                      <ol className="space-y-3">
+                        {[
+                          'Add the external player and complete the individual evaluation.',
+                          'Save the report so it becomes verified Player Hub intelligence.',
+                          'Use the shortlist only when a real follow-up decision is needed.',
+                        ].map((step, index) => (
+                          <li key={step} className="mwos-subcard mwos-subcard-report flex items-start gap-3">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-black text-white">{index + 1}</span>
+                            <span className="pt-1 text-pretty text-sm font-semibold leading-6 text-[var(--color-mid)]">{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Link to="/scouting/individual/new" className="mwos-btn mwos-btn-primary">Add player</Link>
+                        <Link to="/notifications" className="mwos-btn mwos-btn-secondary">Open announcements</Link>
+                      </div>
+                    </SectionShell>
                   </section>
 
                   <ModuleGrid view={workspace.view} user={user} />

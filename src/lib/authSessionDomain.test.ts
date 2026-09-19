@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAuthSessionMissingUserError } from './authSessionDomain';
+import { isAuthSessionMissingUserError, isExpectedAuthSessionExpiryError } from './authSessionDomain';
 
 describe('authSessionDomain', () => {
   it('recognizes a deleted Supabase auth user from an Auth error', () => {
@@ -26,5 +26,16 @@ describe('authSessionDomain', () => {
       }),
     ).toBe(false);
     expect(isAuthSessionMissingUserError(new Error('Network request failed'))).toBe(false);
+  });
+});
+
+describe('isExpectedAuthSessionExpiryError', () => {
+  it('recognizes transient expired-session errors during invitation reconciliation', () => {
+    expect(isExpectedAuthSessionExpiryError(new Error('Invalid or expired session.'))).toBe(true);
+    expect(isExpectedAuthSessionExpiryError({ message: 'Invalid Refresh Token: Refresh Token Not Found' })).toBe(true);
+  });
+
+  it('keeps unrelated invitation failures visible', () => {
+    expect(isExpectedAuthSessionExpiryError(new Error('Invitation could not be accepted.'))).toBe(false);
   });
 });

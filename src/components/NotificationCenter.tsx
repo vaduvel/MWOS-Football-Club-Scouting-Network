@@ -77,6 +77,7 @@ export default function NotificationCenter() {
   const [error, setError] = useState('');
   const [items, setItems] = useState<TrainingNotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const canOpenNotificationTarget = canAccessTrainingModule(user) || canAccessTransportModule(user);
 
   const refresh = async () => {
     setLoading(true);
@@ -94,6 +95,8 @@ export default function NotificationCenter() {
   };
 
   useEffect(() => {
+    if (!canOpenNotificationTarget) return;
+
     void refresh();
 
     const intervalId = window.setInterval(() => {
@@ -101,16 +104,14 @@ export default function NotificationCenter() {
     }, 45000);
 
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [canOpenNotificationTarget]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !canOpenNotificationTarget) return;
     void refresh();
-  }, [open]);
+  }, [canOpenNotificationTarget, open]);
 
   const unreadItems = useMemo(() => items.filter((item) => !item.readAt).length, [items]);
-  const canOpenNotificationTarget = canAccessTrainingModule(user) || canAccessTransportModule(user);
-
   const handleOpenItem = async (item: TrainingNotificationItem) => {
     try {
       if (!item.readAt) {
@@ -148,6 +149,10 @@ export default function NotificationCenter() {
       setBusy(false);
     }
   };
+
+  if (!canOpenNotificationTarget) {
+    return null;
+  }
 
   return (
     <>

@@ -97,6 +97,14 @@ function getTrendMeta(entry: PlayerHubEntry) {
   };
 }
 
+function PlayerHubMetricValue({ loading, value }: { loading: boolean; value: number }) {
+  return (
+    <span aria-busy={loading}>
+      {loading ? <span className="inline-block h-8 w-12 animate-pulse rounded-lg bg-[var(--color-mid)]/12 motion-reduce:animate-none" aria-label="Loading metric" /> : value}
+    </span>
+  );
+}
+
 function ComparisonMetricRow({
   label,
   leftValue,
@@ -874,22 +882,22 @@ export default function PlayersPage() {
             <div className="flex gap-3 overflow-x-auto pb-1">
               <div className="min-w-[148px] rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.06)]">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Tracked</p>
-                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.totalTrackedPlayers || 0}</p>
+                <p className="mt-2 min-h-9 text-3xl font-black text-[var(--color-dark)]"><PlayerHubMetricValue loading={loading} value={overview?.totalTrackedPlayers || 0} /></p>
                 <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Players</p>
               </div>
               <div className="min-w-[148px] rounded-[22px] border border-[var(--color-primary-deep)]/16 bg-[linear-gradient(180deg,rgba(34,27,102,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(34,27,102,0.05)]">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Shortlist</p>
-                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.watchlistCount || 0}</p>
+                <p className="mt-2 min-h-9 text-3xl font-black text-[var(--color-dark)]"><PlayerHubMetricValue loading={loading} value={overview?.watchlistCount || 0} /></p>
                 <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Ready now</p>
               </div>
               <div className="min-w-[148px] rounded-[22px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(190,23,23,0.05)]">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Review</p>
-                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.pendingReviewCount || 0}</p>
+                <p className="mt-2 min-h-9 text-3xl font-black text-[var(--color-dark)]"><PlayerHubMetricValue loading={loading} value={overview?.pendingReviewCount || 0} /></p>
                 <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Need check</p>
               </div>
               <div className="min-w-[148px] rounded-[22px] border border-[var(--color-primary-border)] bg-[linear-gradient(180deg,rgba(49,39,131,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.05)]">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">This Week</p>
-                <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.reportsThisWeek || 0}</p>
+                <p className="mt-2 min-h-9 text-3xl font-black text-[var(--color-dark)]"><PlayerHubMetricValue loading={loading} value={overview?.reportsThisWeek || 0} /></p>
                 <p className="mt-1 text-xs font-semibold text-[var(--color-mid)]">Reports</p>
               </div>
             </div>
@@ -898,22 +906,22 @@ export default function PlayersPage() {
           <section className="hidden grid-cols-2 gap-3 xl:grid-cols-4 md:grid">
             <div className="rounded-[22px] border border-[var(--color-primary)]/14 bg-[linear-gradient(180deg,rgba(49,39,131,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.06)]">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Tracked Players</p>
-              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.totalTrackedPlayers || 0}</p>
+              <p className="mt-2 min-h-9 text-3xl font-black text-[var(--color-dark)]"><PlayerHubMetricValue loading={loading} value={overview?.totalTrackedPlayers || 0} /></p>
               <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Player profiles tracked.</p>
             </div>
             <div className="rounded-[22px] border border-[var(--color-primary-deep)]/16 bg-[linear-gradient(180deg,rgba(34,27,102,0.06),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(34,27,102,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Shortlisted</p>
-              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.watchlistCount || 0}</p>
+              <p className="mt-2 min-h-9 text-3xl font-black text-[var(--color-dark)]"><PlayerHubMetricValue loading={loading} value={overview?.watchlistCount || 0} /></p>
               <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Ready for follow-up.</p>
             </div>
             <div className="rounded-[22px] border border-[var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(190,23,23,0.05),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(190,23,23,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Pending Review</p>
-              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.pendingReviewCount || 0}</p>
+              <p className="mt-2 min-h-9 text-3xl font-black text-[var(--color-dark)]"><PlayerHubMetricValue loading={loading} value={overview?.pendingReviewCount || 0} /></p>
               <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Need another look.</p>
             </div>
             <div className="rounded-[22px] border border-[var(--color-primary-border)] bg-[linear-gradient(180deg,rgba(49,39,131,0.08),rgba(255,255,255,1))] p-4 shadow-[0_12px_28px_rgba(49,39,131,0.05)]">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Reports This Week</p>
-              <p className="mt-2 text-3xl font-black text-[var(--color-dark)]">{overview?.reportsThisWeek || 0}</p>
+              <p className="mt-2 min-h-9 text-3xl font-black text-[var(--color-dark)]"><PlayerHubMetricValue loading={loading} value={overview?.reportsThisWeek || 0} /></p>
               <p className="mt-1 text-xs font-semibold leading-5 text-[var(--color-mid)] md:text-sm">Recent scouting activity.</p>
             </div>
           </section>
@@ -1211,6 +1219,8 @@ export default function PlayersPage() {
                         <button
                           onClick={() => void handleWatchlistToggle(entry)}
                           disabled={updatingWatchlistKey === entry.playerKey}
+                          aria-label={`${entry.isWatchlisted ? 'Remove' : 'Add'} ${entry.name} ${entry.isWatchlisted ? 'from' : 'to'} shortlist`}
+                          title={`${entry.isWatchlisted ? 'Remove from' : 'Add to'} shortlist`}
                           className={`rounded-full border p-2 transition-colors ${
                             entry.isWatchlisted
                               ? 'border-[var(--color-primary-deep)]/40 bg-[var(--color-primary-deep)]/12 text-[var(--color-primary-deep)]'
@@ -1550,6 +1560,8 @@ export default function PlayersPage() {
                         {canManageWatchlist ? (
                           <button
                             onClick={() => void handleWatchlistToggle(entry)}
+                            aria-label={`Remove ${entry.name} from shortlist`}
+                            title="Remove from shortlist"
                             className="rounded-full bg-white/80 p-2 text-[var(--color-primary-deep)] transition-opacity hover:opacity-80"
                           >
                             <Star size={15} fill="currentColor" />
