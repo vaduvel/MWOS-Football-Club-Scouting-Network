@@ -29,6 +29,7 @@ import { createId } from '../lib/ids';
 import { emitDraftSync } from '../lib/pwaEvents';
 import { deleteReportDraft, readReportDraft, writeReportDraft } from '../lib/reportDraftStore';
 import { buildReportProgress } from '../lib/reportProgressDomain';
+import { createReportSaveCoordinator } from '../lib/reportSaveCoordinator';
 
 const TABS = [
   { id: 'match', label: 'Match Report', mobileLabel: 'Report', icon: FileText },
@@ -86,15 +87,9 @@ function hasMeaningfulDraftContent(report: ReturnType<typeof useReportStore.getS
   return hasText || hasScores || hasPlayers || hasReviews;
 }
 
-const LOCAL_DRAFT_PREFIX = 'mwos-report-draft';
-
-function getDraftStorageKey(reportId?: string) {
-  return `${LOCAL_DRAFT_PREFIX}:${reportId || 'new'}`;
-}
-
-async function loadLocalDraft(reportId?: string): Promise<{ report: Report; savedAt: string } | null> {
+async function loadLocalDraft(userId: string, reportId?: string): Promise<{ report: Report; savedAt: string } | null> {
   try {
-    const savedDraft = await readReportDraft(getDraftStorageKey(reportId));
+    const savedDraft = await readReportDraft(userId, reportId);
     if (!savedDraft) return null;
 
     return { report: savedDraft.report, savedAt: savedDraft.savedAt };
@@ -104,17 +99,19 @@ async function loadLocalDraft(reportId?: string): Promise<{ report: Report; save
   }
 }
 
-async function saveLocalDraft(report: Report, reportId?: string) {
+async function saveLocalDraft(userId: string, report: Report, reportId?: string) {
   try {
-    await writeReportDraft(getDraftStorageKey(reportId), report);
+    await writeReportDraft(userId, report, reportId);
+    return true;
   } catch (error) {
     console.error('Failed to save local report draft.', error);
+    return false;
   }
 }
 
-async function clearLocalDraft(reportId?: string) {
+async function clearLocalDraft(userId: string, reportId: string | undefined, snapshot: Report) {
   try {
-    await deleteReportDraft(getDraftStorageKey(reportId));
+    await deleteReportDraft(userId, reportId, snapshot);
   } catch (error) {
     console.error('Failed to clear local report draft.', error);
   }
@@ -142,7 +139,7 @@ export default function ReportEditor() {
   const [activeTab, setActiveTab] = useState('match');
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState<Report | null>(null);
   const [persistedReportId, setPersistedReportId] = useState<string | undefined>(id && id !== 'new' ? id : undefined);
   const [draftNotice, setDraftNotice] = useState('');
   const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
@@ -150,7 +147,21 @@ export default function ReportEditor() {
   const [loadingReport, setLoadingReport] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const skipDirtyTrackingRef = useRef(false);
+  const editorScope = `${user?.id || ''}:${id || 'new'}`;
+  const [readyScope, setReadyScope] = useState('');
+  const saveSessionRef = useRef<{
+    active: boolean;
+    ready: boolean;
+    reportId?: string;
+    baseline?: Report | null;
+    saver?: ReturnType<typeof createReportSaveCoordinator>;
+  } | null>(null);
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const hasSession = Boolean(token);
+  const userId = user?.id;
+  const scoutName = user?.name || '';
+  const hasUnsavedChanges = readyScope === editorScope && !loadingReport && Boolean(currentReport && currentReport !== savedSnapshot);
   const isAdmin = userHasRole(user, 'admin');
   const isExecutiveDirector = userHasRole(user, 'executive_director');
   const isTechnicalDirector = userHasRole(user, 'technical_director');
@@ -211,72 +222,77 @@ export default function ReportEditor() {
 
   // Load initial data
   useEffect(() => {
-    skipDirtyTrackingRef.current = true;
+    const session = { active: true, ready: false } as NonNullable<typeof saveSessionRef.current>;
+    saveSessionRef.current = session;
     setPersistedReportId(id && id !== 'new' ? id : undefined);
+    setReadyScope('');
+    setSavedSnapshot(null);
+    setSaving(false);
     setDraftNotice('');
     setLoadingReport(true);
     setLoadError('');
 
-    if (!token) {
+    if (!hasSession || !userId) {
       setLoadingReport(false);
-      return;
+      return () => { session.active = false; };
     }
 
-    let isMounted = true;
+    const installReport = (report: Report, saved: Report | null, notice = '') => {
+      if (!session.active) return;
+      setCurrentReport(report);
+      setSavedSnapshot(saved);
+      setDraftNotice(notice);
+      setReadyScope(editorScope);
+      session.reportId = report.id;
+      session.baseline = saved;
+      session.ready = true;
+      setLoadingReport(false);
+    };
 
     void (async () => {
       if (id && id !== 'new') {
-        const localDraft = canEditReport ? await loadLocalDraft(id) : null;
+        const localDraft = canEditReport ? await loadLocalDraft(userId, id) : null;
+        if (!session.active) return;
 
-        if (!isMounted) return;
-
-        if (localDraft) {
-          setCurrentReport(localDraft.report);
-          setPersistedReportId(id);
-          setHasUnsavedChanges(true);
-          setDraftNotice(`Recovered local draft from ${new Date(localDraft.savedAt).toLocaleTimeString()}.`);
-          emitDraftSync({
-            state: 'local',
-            message: 'Recovered a saved draft from this phone.',
-          });
-          setLoadingReport(false);
+        // Offline recovery is restricted to this account's validated v2 cache.
+        if (!navigator.onLine && localDraft) {
+          installReport(localDraft.report, null, 'Recovered your offline draft. Reconnect to sync.');
           return;
         }
 
         try {
+          // Recheck current server access before applying any online local draft.
           const data = await fetchReport(id);
-          if (!isMounted) return;
-          setCurrentReport(data);
-          setPersistedReportId(id);
-          setHasUnsavedChanges(false);
-          setLoadingReport(false);
+          if (!session.active) return;
+          const recovered = localDraft && data.report_type !== 'individual' ? localDraft : null;
+          installReport(recovered?.report || data, data,
+            recovered ? `Recovered local draft from ${new Date(recovered.savedAt).toLocaleTimeString()}.` : '');
         } catch (error) {
           console.error('Failed to load report.', error);
-          if (!isMounted) return;
+          if (!session.active) return;
           setLoadError(error instanceof Error ? error.message : 'This scouting report could not be loaded.');
+          setReadyScope(editorScope);
           setLoadingReport(false);
         }
         return;
       }
 
-      const localDraft = canEditReport ? await loadLocalDraft() : null;
+      const localDraft = canEditReport ? await loadLocalDraft(userId) : null;
 
-      if (!isMounted) return;
+      if (!session.active) return;
 
       if (localDraft) {
-        setCurrentReport(localDraft.report);
-        setHasUnsavedChanges(true);
-        setDraftNotice(`Recovered local draft from ${new Date(localDraft.savedAt).toLocaleTimeString()}.`);
+        installReport(localDraft.report, null, `Recovered local draft from ${new Date(localDraft.savedAt).toLocaleTimeString()}.`);
         emitDraftSync({
           state: 'local',
           message: 'Recovered a draft started on this phone.',
         });
-        setLoadingReport(false);
         return;
       }
 
-      setCurrentReport({
+      const initialReport: Report = {
         id: createId(),
+        owner_id: userId,
         competition: '',
         date: new Date().toISOString().split('T')[0],
         venue: '',
@@ -287,7 +303,7 @@ export default function ReportEditor() {
         home_score: '',
         away_team: '',
         away_score: '',
-        scout_name: user?.name || '',
+        scout_name: scoutName,
         focus: '',
         general_notes: '',
         home_manager: '',
@@ -296,34 +312,55 @@ export default function ReportEditor() {
         formation_away: '4-3-3',
         players: [],
         reviews: [],
-      });
-      setHasUnsavedChanges(false);
-      setLoadingReport(false);
+      };
+      installReport(initialReport, initialReport);
     })();
 
     return () => {
-      isMounted = false;
+      const latest = useReportStore.getState().currentReport;
+      if (canEditReport && session.ready && latest?.id === session.reportId && latest !== session.baseline) {
+        // Navigation/account changes can happen before the 400ms backup timer.
+        void saveLocalDraft(userId, latest, id && id !== 'new' ? id : undefined);
+      }
+      session.active = false;
     };
-  }, [canEditReport, id, loadAttempt, token, setCurrentReport, user]);
-
-  // Track changes
-  useEffect(() => {
-    if (currentReport) {
-      if (!canEditReport) {
-        return;
-      }
-      if (skipDirtyTrackingRef.current) {
-        skipDirtyTrackingRef.current = false;
-        return;
-      }
-      setHasUnsavedChanges(true);
-    }
-  }, [canEditReport, currentReport]);
+  }, [canEditReport, id, loadAttempt, hasSession, setCurrentReport, userId, scoutName, editorScope]);
 
   const handleSave = useCallback(async () => {
-    if (!canEditReport) return;
+    const session = saveSessionRef.current;
+    if (!canEditReport || !userId || !session?.active || !session.ready || saving || isOffline) return;
     if (!currentReport || currentReport.report_type === 'individual' || !hasUnsavedChanges) return;
     if (!persistedReportId && !hasMeaningfulDraftContent(currentReport)) return;
+
+    const reportId = currentReport.id;
+    const isActive = () => session.active && useAuthStore.getState().user?.id === userId &&
+      useReportStore.getState().currentReport?.id === reportId;
+    if (!session.saver) {
+      session.saver = createReportSaveCoordinator({
+        isActive,
+        getLatest: () => useReportStore.getState().currentReport!,
+        backup: async (snapshot) => {
+          const backedUp = await saveLocalDraft(userId, snapshot, id && id !== 'new' ? id : undefined);
+          if (!backedUp && isActive()) setDraftNotice('Browser backup unavailable. Keep this page open until saved.');
+        },
+        persist: saveReport,
+        clearBackup: async (savedId, snapshot) => {
+          await clearLocalDraft(userId, id && id !== 'new' ? id : undefined, snapshot);
+          if (isNewReport) await clearLocalDraft(userId, savedId, snapshot);
+        },
+        onSaved: (savedId, snapshot) => {
+          session.baseline = snapshot;
+          setSavedSnapshot(snapshot);
+          setLastSaved(new Date());
+          setPersistedReportId(savedId);
+          setDraftNotice('');
+          emitDraftSync({ state: 'synced', message: 'Changes synced to the scouting workspace.' });
+          if (isNewReport) {
+            navigate(`/scouting/report/${savedId}?tab=${activeTabRef.current}`, { replace: true });
+          }
+        },
+      });
+    }
 
     setSaving(true);
     emitDraftSync({
@@ -332,38 +369,22 @@ export default function ReportEditor() {
     });
 
     try {
-      const savedId = await saveReport(currentReport);
-      setLastSaved(new Date());
-      setHasUnsavedChanges(false);
-      setPersistedReportId(savedId);
-      await Promise.all([
-        clearLocalDraft(id && id !== 'new' ? id : undefined),
-        clearLocalDraft(savedId),
-        clearLocalDraft(),
-      ]);
-      setDraftNotice('');
-      emitDraftSync({
-        state: 'synced',
-        message: 'Changes synced to the scouting workspace.',
-      });
-
-      if (isNewReport) {
-        navigate(`/report/${savedId}`, { replace: true });
-      }
+      await session.saver.save();
     } catch (err) {
       console.error('Failed to save:', err);
+      if (!isActive()) return;
       emitDraftSync({
         state: isOffline ? 'offline' : 'error',
-        message: isOffline ? 'Offline mode active. The draft stays on this phone.' : 'Could not sync now. The draft stays on this phone.',
+        message: 'Could not sync now. Keep this page open and retry when connected.',
       });
     } finally {
-      setSaving(false);
+      if (isActive()) setSaving(false);
     }
-  }, [canEditReport, currentReport, hasUnsavedChanges, id, isNewReport, isOffline, navigate, persistedReportId]);
+  }, [canEditReport, currentReport, hasUnsavedChanges, id, isNewReport, isOffline, navigate, persistedReportId, saving, userId]);
 
   // Autosave effect
   useEffect(() => {
-    if (!canEditReport) return;
+    if (!canEditReport || saving) return;
     if (!hasUnsavedChanges) return;
     if (currentReport?.report_type === 'individual') return;
     if (!persistedReportId && !canCreateInitialDraft) return;
@@ -374,16 +395,22 @@ export default function ReportEditor() {
     }, 2000); // 2 seconds debounce
 
     return () => clearTimeout(timeoutId);
-  }, [canEditReport, currentReport, hasUnsavedChanges, handleSave, persistedReportId, canCreateInitialDraft, isOffline]);
+  }, [canEditReport, currentReport, hasUnsavedChanges, handleSave, persistedReportId, canCreateInitialDraft, isOffline, saving]);
 
   useEffect(() => {
-    if (!canEditReport) return;
+    if (!canEditReport || !userId || loadingReport || readyScope !== editorScope) return;
     if (!currentReport) return;
     if (!hasMeaningfulDraftContent(currentReport)) return;
     if (!hasUnsavedChanges && !isOffline) return;
 
     const timeoutId = window.setTimeout(() => {
-      void saveLocalDraft(currentReport, persistedReportId).then(() => {
+      const session = saveSessionRef.current;
+      void saveLocalDraft(userId, currentReport, persistedReportId).then((backedUp) => {
+        if (!session?.active) return;
+        if (!backedUp) {
+          setDraftNotice('Browser backup unavailable. Keep this page open until saved.');
+          return;
+        }
         emitDraftSync({
           state: isOffline ? 'offline' : 'local',
           message: isOffline ? 'Draft saved on this phone while offline.' : 'Backup draft saved on this phone.',
@@ -392,19 +419,19 @@ export default function ReportEditor() {
     }, 400);
 
     return () => window.clearTimeout(timeoutId);
-  }, [canEditReport, currentReport, hasUnsavedChanges, persistedReportId, isOffline]);
+  }, [canEditReport, currentReport, hasUnsavedChanges, persistedReportId, isOffline, userId, loadingReport, readyScope, editorScope]);
 
   useEffect(() => {
     if (!canEditReport) return;
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!hasUnsavedChanges) return;
+      if (!hasUnsavedChanges && !saving) return;
       event.preventDefault();
       event.returnValue = '';
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [canEditReport, hasUnsavedChanges]);
+  }, [canEditReport, hasUnsavedChanges, saving]);
 
   const goToTab = (tabId: string) => {
     setActiveTab(tabId);
@@ -414,7 +441,7 @@ export default function ReportEditor() {
     setMobileTabPickerOpen(false);
   };
 
-  if (loadingReport) {
+  if (loadingReport || readyScope !== editorScope) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-[var(--color-light)] p-6">
         <ReportTabLoadingState />

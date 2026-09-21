@@ -1,14 +1,24 @@
 import type { Report } from '../store/report';
+import { getReportDraftKey, parseReportDraft, shouldDeleteReportDraft, type DraftRecord } from './reportDraftDomain';
+
+export type { DraftRecord } from './reportDraftDomain';
 
 const DB_NAME = 'mwos-scouting-offline';
 const DB_VERSION = 1;
 const DRAFT_STORE = 'report-drafts';
 
-export type DraftRecord = {
-  key: string;
-  report: Report;
-  savedAt: string;
-};
+const pendingOperations = new Map<string, Promise<unknown>>();
+
+function inDraftOrder<T>(key: string, action: () => Promise<T>): Promise<T> {
+  const previous = pendingOperations.get(key) ?? Promise.resolve();
+  const operation = previous.catch(() => undefined).then(action);
+  pendingOperations.set(key, operation);
+  const release = () => {
+    if (pendingOperations.get(key) === operation) pendingOperations.delete(key);
+  };
+  void operation.then(release, release);
+  return operation;
+}
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -28,7 +38,7 @@ function openDatabase(): Promise<IDBDatabase> {
 
 async function runTransaction<T>(
   mode: IDBTransactionMode,
-  action: (store: IDBObjectStore, resolve: (value: T) => void, reject: (reason?: unknown) => void) => void,
+  action: (store: IDBObjectStore, setResult: (value: T) => void, fail: (reason?: unknown) => void) => void,
 ): Promise<T> {
   if (typeof window === 'undefined' || !('indexedDB' in window)) {
     throw new Error('IndexedDB is not available in this browser.');
@@ -37,44 +47,78 @@ async function runTransaction<T>(
   const database = await openDatabase();
 
   return new Promise<T>((resolve, reject) => {
-    const transaction = database.transaction(DRAFT_STORE, mode);
-    const store = transaction.objectStore(DRAFT_STORE);
-
-    transaction.oncomplete = () => database.close();
-    transaction.onerror = () => {
+    let transaction: IDBTransaction;
+    let result: T;
+    let settled = false;
+    const fail = (reason?: unknown) => {
+      if (settled) return;
+      settled = true;
+      try { transaction?.abort(); } catch { /* The transaction may already be finished. */ }
       database.close();
-      reject(transaction.error ?? new Error('Draft transaction failed.'));
+      reject(reason ?? new Error('Draft transaction failed.'));
     };
 
-    action(store, resolve, reject);
+    try {
+      transaction = database.transaction(DRAFT_STORE, mode);
+      transaction.oncomplete = () => {
+        if (settled) return;
+        settled = true;
+        database.close();
+        resolve(result);
+      };
+      transaction.onerror = () => fail(transaction.error);
+      transaction.onabort = () => fail(transaction.error ?? new Error('Draft transaction was aborted.'));
+      action(transaction.objectStore(DRAFT_STORE), (value) => { result = value; }, fail);
+    } catch (error) {
+      fail(error);
+    }
   });
 }
 
-export async function readReportDraft(key: string): Promise<DraftRecord | null> {
-  return runTransaction<DraftRecord | null>('readonly', (store, resolve, reject) => {
+export async function readReportDraft(userId: string, reportId?: string): Promise<DraftRecord | null> {
+  const key = getReportDraftKey(userId, reportId);
+  return inDraftOrder(key, () => runTransaction<DraftRecord | null>('readonly', (store, setResult, fail) => {
     const request = store.get(key);
-    request.onsuccess = () => resolve((request.result as DraftRecord | undefined) ?? null);
-    request.onerror = () => reject(request.error ?? new Error('Failed to read draft.'));
-  });
+    request.onsuccess = () => setResult(parseReportDraft(request.result, userId, reportId));
+    request.onerror = () => fail(request.error ?? new Error('Failed to read draft.'));
+  }));
 }
 
-export async function writeReportDraft(key: string, report: Report): Promise<void> {
-  return runTransaction<void>('readwrite', (store, resolve, reject) => {
-    const request = store.put({
-      key,
-      report,
-      savedAt: new Date().toISOString(),
-    } satisfies DraftRecord);
+export async function writeReportDraft(userId: string, report: Report, reportId?: string): Promise<void> {
+  const key = getReportDraftKey(userId, reportId);
+  const record: DraftRecord = {
+    version: 2,
+    userId,
+    key,
+    report: JSON.parse(JSON.stringify(report)) as Report,
+    savedAt: new Date().toISOString(),
+  };
+  if (!parseReportDraft(record, userId, reportId)) {
+    throw new Error('The report draft does not match its user or report scope.');
+  }
+  return inDraftOrder(key, () => runTransaction<void>('readwrite', (store, setResult, fail) => {
+    const request = store.put(record);
 
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error ?? new Error('Failed to save draft.'));
-  });
+    request.onsuccess = () => setResult(undefined);
+    request.onerror = () => fail(request.error ?? new Error('Failed to save draft.'));
+  }));
 }
 
-export async function deleteReportDraft(key: string): Promise<void> {
-  return runTransaction<void>('readwrite', (store, resolve, reject) => {
-    const request = store.delete(key);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error ?? new Error('Failed to delete draft.'));
-  });
+export async function deleteReportDraft(userId: string, reportId?: string, expectedReport?: Report): Promise<void> {
+  const key = getReportDraftKey(userId, reportId);
+  const expectedSnapshot = expectedReport === undefined ? undefined : JSON.stringify(expectedReport);
+  return inDraftOrder(key, () => runTransaction<void>('readwrite', (store, setResult, fail) => {
+    const request = store.get(key);
+    request.onsuccess = () => {
+      if (!shouldDeleteReportDraft(request.result, userId, reportId, expectedSnapshot)) {
+        setResult(undefined);
+        return;
+      }
+      // Read, comparison and deletion share one transaction, including across browser tabs.
+      const deletion = store.delete(key);
+      deletion.onsuccess = () => setResult(undefined);
+      deletion.onerror = () => fail(deletion.error ?? new Error('Failed to delete draft.'));
+    };
+    request.onerror = () => fail(request.error ?? new Error('Failed to read draft before deletion.'));
+  }));
 }
