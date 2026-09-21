@@ -7,7 +7,8 @@ export type InviteDeliveryResult = {
   reason?: string;
 };
 
-const TEAM_SCOPED_ROLES = new Set(['coach', 'team_manager', 'driver', 'scout']);
+// Scouts evaluate external players; an internal team assignment is optional.
+const TEAM_SCOPED_ROLES = new Set(['coach', 'team_manager', 'driver']);
 
 export function formatInviteDeliveryModeLabel(mode: InviteDeliveryMode) {
   switch (mode) {

@@ -109,4 +109,20 @@ export async function verifyAccessBoundaries(db) {
   assert.equal((await db.query('select can_manage_match_day_fixture($1) allowed',[a])).rows[0].allowed,true);
   await db.exec('reset role');
   console.log('PASS 8-role SQL matrix, cross-team writes, squad isolation, driver scope, revocation, DOB constraint, invitation completion/replay/cancellation/expiry');
+
+  const scoutRecipient = '20000000-0000-4000-a000-000000000002';
+  await db.query('insert into auth.users(id,email) values ($1,$2)', [scoutRecipient, 'new-scout@example.test']);
+  const scoutInvite = (await db.query(`insert into staff_invitations(email,email_normalized,full_name,status,invitation_token,inviter_user_id)
+    values ('new-scout@example.test','new-scout@example.test','QA teamless Scout','pending','qa-teamless-scout',$1) returning id`, [ids.admin])).rows[0].id;
+  await db.query("insert into staff_invitation_roles(invitation_id,role_id) select $1,id from roles where slug='scout'", [scoutInvite]);
+  const scoutAccess = (await db.query('select * from complete_staff_invitations($1,$2,$3)', [scoutRecipient, 'new-scout@example.test', 'qa-teamless-scout'])).rows[0];
+  assert.equal(scoutAccess.completed_count, 1);
+  assert.deepEqual(scoutAccess.role_slugs, ['scout']);
+  assert.equal((await db.query('select * from user_team_assignments where user_id=$1', [scoutRecipient])).rows.length, 0);
+  await asUser(scoutRecipient);
+  assert.equal((await db.query('select id from club_players')).rows.length, 0, 'new teamless Scout cannot read internal roster');
+  assert.equal((await db.query('select can_view_match_day_team($1) allowed', [a])).rows[0].allowed, false);
+  await db.query("insert into reports(user_id,report_type) values ($1,'individual')", [scoutRecipient]);
+  await db.exec('reset role');
+  console.log('PASS Scout invitation activation without teams, individual authoring, and internal roster isolation');
 }

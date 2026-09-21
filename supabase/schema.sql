@@ -843,11 +843,11 @@ $$;
 create or replace function public.role_requires_team(target_slug text)
 returns boolean
 language sql
-security definer
+security invoker
 set search_path = public
 stable
 as $$
-  select lower(coalesce(target_slug, '')) in ('coach', 'driver', 'scout');
+  select lower(trim(coalesce(target_slug, ''))) in ('coach', 'team_manager', 'driver');
 $$;
 
 create or replace function public.is_admin()
@@ -2114,8 +2114,8 @@ alter table public.club_players add constraint club_players_birth_date_not_futur
   check (date_of_birth is null or (isfinite(date_of_birth) and date_of_birth <= current_date));
 
 create or replace function public.role_requires_team(target_slug text)
-returns boolean language sql stable security definer set search_path=public
-as $$ select lower(coalesce(target_slug,'')) in ('coach','team_manager','driver','scout'); $$;
+returns boolean language sql stable security invoker set search_path=public
+as $$ select lower(trim(coalesce(target_slug,''))) in ('coach','team_manager','driver'); $$;
 
 create or replace function public.can_view_club_roster(target_team_id uuid)
 returns boolean language sql stable security definer set search_path=public
