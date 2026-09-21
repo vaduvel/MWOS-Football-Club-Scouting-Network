@@ -1200,7 +1200,7 @@ export default function SettingsPage() {
                               <p className="mwos-form-label mb-0 text-[var(--color-mid)]">Teams for this access</p>
                               {inviteNeedsTeam && (
                                 <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
-                                  Required for coach / team manager / driver / scout
+                                  Required for coach / team manager / driver
                                 </span>
                               )}
                             </div>
@@ -1229,7 +1229,12 @@ export default function SettingsPage() {
                             </div>
                             {inviteNeedsTeam && inviteTeamIds.length === 0 && (
                               <p className="mt-2 text-xs font-semibold text-[var(--color-mid)]">
-                                Select at least one team when inviting coaches, team managers, drivers or scouts.
+                                Select at least one team when inviting coaches, team managers or drivers.
+                              </p>
+                            )}
+                            {!inviteNeedsTeam && inviteRoleSlugs.includes('scout') && (
+                              <p className="mt-2 text-xs font-semibold text-[var(--color-mid)]">
+                                Scouts do not need a team assignment. Scout access never includes the internal club roster.
                               </p>
                             )}
                           </div>

@@ -32,6 +32,10 @@ try {
     console.log(`PASS ${file}`);
   }
   await db.exec(baseline); // Existing complete projects must be unchanged.
+  for (const [role, required] of [['scout', false], [' Scout ', false], ['admin', false], ['coach', true], ['team_manager', true], ['driver', true]]) {
+    assert.equal((await db.query('select public.role_requires_team($1) as required', [role])).rows[0].required, required, `${role}: team requirement`);
+  }
+  console.log('PASS Scout onboarding does not require teams; operational roles still do');
   const { rows } = await db.query(`select tablename from pg_tables where schemaname='public'`);
   for (const table of ['club_announcements', 'club_announcement_reads', 'club_players', 'match_days', 'match_day_players', 'reports']) {
     assert(rows.some(row => row.tablename === table), `${table} exists`);

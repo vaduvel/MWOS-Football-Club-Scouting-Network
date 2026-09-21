@@ -19,10 +19,11 @@ describe('normalizeInviteEmail', () => {
 });
 
 describe('roleRequiresTeam', () => {
-  it('requires teams for coach, driver, and scout roles', () => {
+  it('requires teams for operational roles but not external scouts', () => {
     expect(roleRequiresTeam('coach')).toBe(true);
+    expect(roleRequiresTeam('team_manager')).toBe(true);
     expect(roleRequiresTeam('driver')).toBe(true);
-    expect(roleRequiresTeam('scout')).toBe(true);
+    expect(roleRequiresTeam(' Scout ')).toBe(false);
     expect(roleRequiresTeam('admin')).toBe(false);
   });
 });
@@ -42,6 +43,13 @@ describe('normalizeInviteSelection', () => {
 });
 
 describe('validateInviteInput', () => {
+  it('allows a scout invitation without an internal team', () => {
+    expect(validateInviteInput({ fullName: 'QA Scout', email: 'scout@example.test', roleSlugs: ['scout'], teamIds: [] }).teamIds).toEqual([]);
+  });
+
+  it.each(['coach', 'team_manager', 'driver'])('still requires a team for scout plus %s', (role) => {
+    expect(() => validateInviteInput({ fullName: 'QA Scout', email: 'scout@example.test', roleSlugs: ['scout', role], teamIds: [] })).toThrow(/team/i);
+  });
   it('requires at least one role', () => {
     expect(() =>
       validateInviteInput({
