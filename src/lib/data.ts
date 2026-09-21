@@ -1526,8 +1526,9 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
       .map((review) => calculateReviewAverage(review))
       .filter((value) => value > 0);
     const ratingValue = typeof player.rating === 'number' ? Number(player.rating) : 0;
-    const scoreCandidates = ratingValue > 0 ? [...reviewScores, ratingValue] : reviewScores;
-    const occurrenceScore = roundOneDecimal(averageNumbers(scoreCandidates));
+    // Scouting attributes use /5; the independent match rating uses /10.
+    // Only review evidence belongs in the comparable score and trend series.
+    const occurrenceScore = roundOneDecimal(averageNumbers(reviewScores));
     const latestDate = toStringValue(report.date) || report.created_at;
     const fixture = buildFixtureLabel(report);
     const bestReview = playerReviews.reduce<PlayerReviewRow | null>((current, review) => {
