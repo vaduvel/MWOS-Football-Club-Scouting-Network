@@ -9,6 +9,8 @@ import ConfirmActionModal from '../components/ConfirmActionModal';
 import { buildIndividualReportPdf } from '../lib/individualReportPdf';
 import TipsEvaluationSection from '../components/scouting/TipsEvaluationSection';
 import { INDIVIDUAL_OCR_FIELDS, INDIVIDUAL_OCR_SCORE_KEYS, parseIndividualOcrText, type IndividualOcrFieldKey, type IndividualOcrFields } from '../lib/individualOcrDomain';
+import { applyTipsOcrFields, parseTipsOcrText, TIPS_OCR_FIELDS, TIPS_OCR_DETAILS, type TipsOcrFields, type TipsOcrKey } from '../lib/tipsOcrDomain';
+import { createEmptyTipsEvaluation } from '../lib/tipsEvaluationDomain';
 
 const PLAYER_NAME_REQUIRED_ERROR = 'Enter the player name before saving.';
 
@@ -27,6 +29,9 @@ export default function IndividualReportPage() {
   const [scanText, setScanText] = useState('');
   const [scanFields, setScanFields] = useState<IndividualOcrFields>({});
   const [selectedScanFields, setSelectedScanFields] = useState<IndividualOcrFieldKey[]>([]);
+  const [tipsScanFields, setTipsScanFields] = useState<TipsOcrFields>({});
+  const [selectedTipsScanFields, setSelectedTipsScanFields] = useState<TipsOcrKey[]>([]);
+  const [tipsScanRecognized, setTipsScanRecognized] = useState(false);
   const [scanWarnings, setScanWarnings] = useState<string[]>([]);
   const [scanApplied, setScanApplied] = useState(false);
   const [scanError, setScanError] = useState('');
@@ -115,11 +120,25 @@ export default function IndividualReportPage() {
   };
   const updateScanText = (text: string) => {
     const parsed = parseIndividualOcrText(text);
+    const tipsParsed = parseTipsOcrText(text);
     setScanText(text);
     setScanFields(parsed.fields);
     setSelectedScanFields(Object.keys(parsed.fields) as IndividualOcrFieldKey[]);
-    setScanWarnings(parsed.warnings);
+    setTipsScanFields(tipsParsed.fields);
+    setSelectedTipsScanFields(Object.keys(tipsParsed.fields) as TipsOcrKey[]);
+    setTipsScanRecognized(tipsParsed.recognized);
+    setScanWarnings([...parsed.warnings, ...tipsParsed.warnings]);
     setScanApplied(false);
+  };
+  const applyTipsScanFields = () => {
+    if (!report || !canEdit) return;
+    try {
+      const next = applyTipsOcrFields(report.tips_evaluation || createEmptyTipsEvaluation(), tipsScanFields, selectedTipsScanFields);
+      updateReportField('tips_evaluation', next);
+      setScanError('');
+      setScanApplied(true);
+      setSaved(false);
+    } catch (err) { setScanError(err instanceof Error ? err.message : 'Review TIPS scores before applying.'); }
   };
   const applyScanFields = () => {
     if (!report || !canEdit) return;
@@ -189,12 +208,23 @@ export default function IndividualReportPage() {
             <div className="rounded-xl border border-[var(--color-mid)]/20 p-3">
               <h3 className="font-bold">Review detected fields</h3>
               <p className="mb-3 text-sm">Selected values will replace their corresponding fields in this form. Nothing is saved until you press Save individual report.</p>
-              {Object.keys(scanFields).length === 0 ? <p role="status" className="text-sm">No labeled fields were recognized. You can still enter the data manually or append the transcription below.</p> : <div className="space-y-3">
+              {Object.keys(scanFields).length === 0 ? <p role="status" className="text-sm">No fields from the existing 1-5 report were recognized. Check any TIPS proposals below, enter details manually, or append the transcription.</p> : <div className="space-y-3">
                 {INDIVIDUAL_OCR_FIELDS.filter(([key]) => scanFields[key] !== undefined).map(([key, label]) => <div key={key} className="grid gap-2 rounded-xl bg-[var(--color-light)] p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end">
                   <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={selectedScanFields.includes(key)} onChange={event => setSelectedScanFields(current => event.target.checked ? [...current, key] : current.filter(item => item !== key))} />Apply {label}</label>
                   <input aria-label={`OCR ${label}`} className="mwos-mobile-input" type={key === 'date' ? 'date' : INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 'number' : 'text'} min={INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 1 : undefined} max={INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 5 : undefined} value={scanFields[key] || ''} onChange={event => setScanFields(current => ({ ...current, [key]: event.target.value }))} />
                 </div>)}
                 <button type="button" className="mwos-btn-secondary min-h-11" disabled={!selectedScanFields.length} onClick={applyScanFields}>Apply selected fields to form</button>
+              </div>}
+              {tipsScanRecognized && <div className="mt-4 space-y-3 border-t border-[var(--color-mid)]/20 pt-4">
+                <h4 className="font-bold">TIPS proposals · separate 1-10 evaluation</h4>
+                <p className="text-sm">These are possible values from labeled text, not confirmed readings. Check each one against the photo; the overall decision must be chosen by the Scout.</p>
+                {Object.keys(tipsScanFields).length === 0 ? <p role="status" className="text-sm">No TIPS values were confidently matched. Enter them manually below.</p> : <>
+                  {TIPS_OCR_FIELDS.filter(([key]) => tipsScanFields[key] !== undefined).map(([key, label]) => <div key={key} className="grid gap-2 rounded-xl bg-[var(--color-light)] p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end">
+                    <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={selectedTipsScanFields.includes(key)} onChange={event => setSelectedTipsScanFields(current => event.target.checked ? [...current, key] : current.filter(item => item !== key))} />Apply {label}</label>
+                    <input aria-label={`OCR TIPS ${label}`} className="mwos-mobile-input" type={TIPS_OCR_DETAILS.some(([detailKey]) => detailKey === key) ? 'text' : 'number'} min={TIPS_OCR_DETAILS.some(([detailKey]) => detailKey === key) ? undefined : 1} max={TIPS_OCR_DETAILS.some(([detailKey]) => detailKey === key) ? undefined : 10} value={tipsScanFields[key] || ''} onChange={event => setTipsScanFields(current => ({ ...current, [key]: event.target.value }))} />
+                  </div>)}
+                  <button type="button" className="mwos-btn-secondary min-h-11" disabled={!selectedTipsScanFields.length} onClick={applyTipsScanFields}>Apply selected TIPS fields to form</button>
+                </>}
               </div>}
             </div>
             {scanApplied && <p role="status" className="rounded-xl bg-green-50 p-3 text-sm">Fields copied into the form. Check them, then save the report.</p>}
@@ -210,7 +240,7 @@ export default function IndividualReportPage() {
       {!canEdit && <p>Read-only report.</p>}
       <section className="space-y-3 rounded-2xl bg-white p-4">
         <h2 className="text-lg font-bold">Export individual report</h2>
-        <p className="text-sm">Includes the current player details, notes, verdict and all eight evaluation scores.</p>
+        <p className="text-sm">Includes player details, notes, verdict and the eight existing evaluation scores. If completed, the separate TIPS evaluation is added on extra pages.</p>
         <button type="button" disabled={exporting || saving || scanning} className="mwos-btn-secondary min-h-12 w-full" onClick={async () => {
           setExporting(true); setError('');
           try {
