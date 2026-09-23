@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useReportStore, Player } from '../../store/report';
+import { buildFormationPresetUpdate, buildPlayerPlacementUpdate } from '../../lib/formationHistoryDomain';
 import { Lock, Unlock, Undo2, Redo2 } from 'lucide-react';
 
 const FORMATIONS: Record<string, { id: string, x: number, y: number }[]> = {
@@ -109,7 +110,7 @@ const SLOT_LABELS: Record<string, string> = {
 };
 
 export default function FormationsTab({ canEdit }: { canEdit: boolean }) {
-  const { currentReport, updatePlayer, updateReportField, undo, redo, historyIndex, history } = useReportStore();
+  const { currentReport, mergeReportFields, undo, redo, historyIndex, history } = useReportStore();
   const [activeSide, setActiveSide] = useState<'home' | 'away'>('home');
   const [isLocked, setIsLocked] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
@@ -170,14 +171,12 @@ export default function FormationsTab({ canEdit }: { canEdit: boolean }) {
     if (!selectedPlayer) return;
 
     const occupant = getSlotOccupant(slot);
-    if (occupant && occupant.id !== playerId) {
-      updatePlayer(occupant.id, {
-        position_x: selectedPlayer.position_x,
-        position_y: selectedPlayer.position_y,
-      });
-    }
-
-    updatePlayer(playerId, { position_x: slot.x, position_y: slot.y });
+    mergeReportFields(buildPlayerPlacementUpdate(
+      currentReport,
+      playerId,
+      slot,
+      occupant?.id !== playerId ? occupant?.id : undefined,
+    ));
     setSelectedSlotId(null);
   };
 
@@ -247,17 +246,11 @@ export default function FormationsTab({ canEdit }: { canEdit: boolean }) {
 
       const isFreeMove = e.shiftKey || e.ctrlKey || e.metaKey;
 
+      let swapWithId: Player['id'] | undefined;
       if (!isFreeMove && hoveredSlot) {
         // Check if slot is occupied by another player
         const occupant = players.find(p => p.id !== draggingId && Math.abs(p.position_x - hoveredSlot.x) < 2 && Math.abs(p.position_y - hoveredSlot.y) < 2);
-        
-        if (occupant) {
-          // Swap
-          const draggedPlayer = players.find(p => p.id === draggingId);
-          if (draggedPlayer) {
-            updatePlayer(occupant.id, { position_x: draggedPlayer.position_x, position_y: draggedPlayer.position_y });
-          }
-        }
+        swapWithId = occupant?.id;
         
         finalX = hoveredSlot.x;
         finalY = hoveredSlot.y;
@@ -270,7 +263,12 @@ export default function FormationsTab({ canEdit }: { canEdit: boolean }) {
         }
       }
 
-      updatePlayer(draggingId, { position_x: finalX, position_y: finalY });
+      mergeReportFields(buildPlayerPlacementUpdate(
+        currentReport,
+        draggingId,
+        { x: finalX, y: finalY },
+        swapWithId,
+      ));
       
       setDraggingId(null);
       setTempPos(null);
@@ -280,18 +278,8 @@ export default function FormationsTab({ canEdit }: { canEdit: boolean }) {
 
   const applyFormation = (preset: string) => {
     if (!canEdit) return;
-    updateReportField(activeSide === 'home' ? 'formation_home' : 'formation_away', preset);
+    mergeReportFields(buildFormationPresetUpdate(currentReport, activeSide, preset, FORMATIONS[preset] || []));
     setSelectedSlotId(null);
-    
-    if (preset !== 'Custom') {
-      const slots = FORMATIONS[preset];
-      // Apply to first 11 players
-      players.slice(0, 11).forEach((p, i) => {
-        if (slots[i]) {
-          updatePlayer(p.id, { position_x: slots[i].x, position_y: slots[i].y });
-        }
-      });
-    }
   };
 
   return (

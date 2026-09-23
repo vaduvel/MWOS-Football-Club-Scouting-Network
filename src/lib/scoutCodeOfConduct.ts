@@ -7,34 +7,34 @@ export type ScoutCodePrinciple = {
 
 export const scoutCodePrinciples: ScoutCodePrinciple[] = [
   {
-    title: 'Integrity and professionalism',
+    title: 'Role and authority',
     detail:
-      'Represent MWOS fairly, avoid conflicts of interest, disclose personal interests, and never make promises you are not authorised to make.',
+      'Identify and recommend players for MWOS. Trials, contracts, negotiations and inducements require club management approval.',
   },
   {
-    title: 'Safeguarding and approach rules',
+    title: 'Professionalism and safeguarding',
     detail:
-      'Introduce yourself to club officials, wear valid club ID, and follow the correct procedures before any approach to a player, especially a minor.',
+      'Act fairly and respectfully, protect young players, and complete the club recruitment, safeguarding and scouting training requirements.',
   },
   {
-    title: 'Respect, compliance and loyalty',
+    title: 'Confidentiality and loyalty',
     detail:
-      'Respect match officials, coaches and players, protect club information, follow governing-body rules, and report suspicious behaviour immediately.',
+      'Protect reports, player databases and club information. Keep your Scouting Hub account private and disclose conflicts of interest promptly.',
   },
 ];
 
 export const scoutCodeMusts = [
-  'Carry and show your MWOS club identification when scouting.',
-  'Be honest and realistic with players, parents and grassroots officials.',
-  'Follow safeguarding rules and age-related guardian consent requirements.',
-  'Stay aligned with club recruitment protocols and football governing-body rules.',
-  'Report suspicious activity or welfare concerns to the club immediately.',
+  'Complete club induction, provide police clearance and references, and attend the required safeguarding and scouting workshops.',
+  'Wear the MWOS Scout jersey and carry valid club identification when attending in an official capacity.',
+  'Introduce yourself to match officials or organizers and communicate honestly with players and parents.',
+  'Submit scouting reports on time and cooperate with club supervision and training.',
+  'Protect confidential club information and disclose any conflict of interest immediately.',
 ];
 
 export const scoutCodeMustNots = [
-  'Do not promise trials, contracts or inducements without club approval.',
-  'Do not approach a player contracted to another club outside the proper rules.',
-  'Do not pressure children or parents, or abuse your position.',
-  'Do not ask parents for money, gifts or any kind of personal benefit.',
-  'Do not interfere with matches, instruct players from the touchline, or use offensive or discriminatory language.',
+  'Do not negotiate, guarantee trials or contracts, or offer inducements without club management approval.',
+  'Do not request money, gifts, favours or personal benefits from players, parents, clubs or officials.',
+  'Do not share internal reports, player data or your Scouting Hub account with unauthorized people.',
+  'Do not personally profit from club recruitment without written authorization.',
+  'Do not abuse your position or behave in a way that damages MWOS or the game.',
 ];
