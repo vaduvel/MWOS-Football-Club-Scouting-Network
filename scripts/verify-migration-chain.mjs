@@ -40,6 +40,12 @@ try {
   for (const table of ['club_announcements', 'club_announcement_reads', 'club_players', 'match_days', 'match_day_players', 'reports']) {
     assert(rows.some(row => row.tablename === table), `${table} exists`);
   }
+  const tipsColumns = (await db.query(`select table_name, column_name, data_type from information_schema.columns
+    where table_schema = 'public' and ((table_name = 'reports' and column_name = 'tips_evaluation')
+      or (table_name = 'players' and column_name = 'position'))`)).rows;
+  assert(tipsColumns.some(row => row.table_name === 'reports' && row.column_name === 'tips_evaluation' && row.data_type === 'jsonb'));
+  assert(tipsColumns.some(row => row.table_name === 'players' && row.column_name === 'position' && row.data_type === 'text'));
+  console.log('PASS optional TIPS JSON and individual player position schema');
   await db.exec(`insert into auth.users(id,email,raw_user_meta_data) values ('00000000-0000-4000-a000-000000000001','qa@example.test','{"role":"admin"}');`);
   assert.equal((await db.query('select role from profiles')).rows[0].role, 'Pending');
   await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub','00000000-0000-4000-a000-000000000001', false); update profiles set role='admin' where id=auth.uid();`);

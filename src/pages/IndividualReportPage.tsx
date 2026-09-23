@@ -7,6 +7,8 @@ import { createIndividualReport, recoverIndividualDraft, validateIndividualRepor
 import PlayerReviewsTab from './tabs/PlayerReviewsTab';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 import { buildIndividualReportPdf } from '../lib/individualReportPdf';
+import TipsEvaluationSection from '../components/scouting/TipsEvaluationSection';
+import { INDIVIDUAL_OCR_FIELDS, INDIVIDUAL_OCR_SCORE_KEYS, parseIndividualOcrText, type IndividualOcrFieldKey, type IndividualOcrFields } from '../lib/individualOcrDomain';
 
 const PLAYER_NAME_REQUIRED_ERROR = 'Enter the player name before saving.';
 
@@ -23,6 +25,10 @@ export default function IndividualReportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanText, setScanText] = useState('');
+  const [scanFields, setScanFields] = useState<IndividualOcrFields>({});
+  const [selectedScanFields, setSelectedScanFields] = useState<IndividualOcrFieldKey[]>([]);
+  const [scanWarnings, setScanWarnings] = useState<string[]>([]);
+  const [scanApplied, setScanApplied] = useState(false);
   const [scanError, setScanError] = useState('');
   const errorRef = useRef<HTMLDivElement>(null);
   const canEdit = canCreateScoutingReports(user);
@@ -99,9 +105,53 @@ export default function IndividualReportPage() {
   const handleScan = async () => {
     if (!file || !canEdit) return;
     setScanning(true); setScanError('');
-    try { const result = await extractHandwrittenReport(file); setScanText(result.text); }
+    try {
+      const result = await extractHandwrittenReport(file);
+      updateScanText(result.text);
+      if (!result.text.trim()) setScanError('No writing was detected. Try a clearer photo or enter the player details manually.');
+    }
     catch (err) { setScanError(err instanceof Error ? err.message : 'Unable to read this image.'); }
     finally { setScanning(false); }
+  };
+  const updateScanText = (text: string) => {
+    const parsed = parseIndividualOcrText(text);
+    setScanText(text);
+    setScanFields(parsed.fields);
+    setSelectedScanFields(Object.keys(parsed.fields) as IndividualOcrFieldKey[]);
+    setScanWarnings(parsed.warnings);
+    setScanApplied(false);
+  };
+  const applyScanFields = () => {
+    if (!report || !canEdit) return;
+    const selected = new Set(selectedScanFields);
+    const player = report.players[0];
+    const review = report.reviews[0];
+    if (!player || !review) return;
+    const invalidScore = INDIVIDUAL_OCR_SCORE_KEYS.find(key => selectedScanFields.includes(key) && (!Number.isInteger(Number(scanFields[key])) || Number(scanFields[key]) < 1 || Number(scanFields[key]) > 5));
+    if (invalidScore) { setScanError('Review detected scores before applying. Current evaluation scores must be whole numbers from 1 to 5.'); return; }
+    if (selectedScanFields.includes('date') && !/^\d{4}-\d{2}-\d{2}$/.test(scanFields.date || '')) { setScanError('Review the detected date before applying. Use YYYY-MM-DD.'); return; }
+    if (selectedScanFields.includes('potential') && !['Academy', 'Semi-pro', 'Pro', 'Elite'].includes(scanFields.potential || '')) { setScanError('Review the detected potential level before applying.'); return; }
+    setScanError('');
+    const playerChanges: Partial<typeof player> = {};
+    if (selected.has('player_name') && scanFields.player_name?.trim()) playerChanges.name = scanFields.player_name.trim();
+    if (selected.has('position') && scanFields.position?.trim()) playerChanges.position = scanFields.position.trim();
+    if (Object.keys(playerChanges).length) updatePlayer(player.id, playerChanges);
+    if (selected.has('club') && scanFields.club?.trim()) updateReportField('home_team', scanFields.club.trim());
+    if (selected.has('date') && /^\d{4}-\d{2}-\d{2}$/.test(scanFields.date || '')) updateReportField('date', scanFields.date!);
+    if (selected.has('venue') && scanFields.venue?.trim()) updateReportField('venue', scanFields.venue.trim());
+    const reviewChanges: Partial<typeof review> = {};
+    for (const [source, target] of [
+      ['overview', 'overview'], ['strengths', 'strengths'], ['areas_to_improve', 'areas_to_improve'],
+      ['verdict', 'recommendation_verdict'], ['potential', 'potential_level'],
+    ] as const) if (selected.has(source) && scanFields[source]?.trim()) reviewChanges[target] = scanFields[source]!.trim();
+    for (const key of INDIVIDUAL_OCR_SCORE_KEYS) {
+      if (!selected.has(key)) continue;
+      const score = Number(scanFields[key]);
+      if (Number.isInteger(score) && score >= 1 && score <= 5) reviewChanges[key as keyof typeof reviewChanges] = score as never;
+    }
+    if (Object.keys(reviewChanges).length) updateReview(review.id, reviewChanges);
+    setScanApplied(true);
+    setSaved(false);
   };
 
   if (loading) return <main className="p-6" role="status">Loading individual report…</main>;
@@ -123,17 +173,36 @@ export default function IndividualReportPage() {
         <section className="grid gap-4 rounded-2xl bg-white p-4 sm:grid-cols-2">
           <label className="block"><span className="mwos-form-label">Player name *</span><input required aria-invalid={error === PLAYER_NAME_REQUIRED_ERROR} aria-describedby={error === PLAYER_NAME_REQUIRED_ERROR ? 'individual-save-error' : undefined} className="mwos-mobile-input" value={player.name} onChange={e => { updatePlayer(player.id,{name:e.target.value}); if (e.target.value.trim()) setError(current => current === PLAYER_NAME_REQUIRED_ERROR ? '' : current); }} /></label>
           <label className="block"><span className="mwos-form-label">Player's club (optional)</span><input className="mwos-mobile-input" value={report.home_team} onChange={e => updateReportField('home_team',e.target.value)} /></label>
+          <label className="block"><span className="mwos-form-label">Position(s) (optional)</span><input className="mwos-mobile-input" value={player.position || ''} onChange={e => updatePlayer(player.id,{position:e.target.value})} /></label>
           <label className="block"><span className="mwos-form-label">Observation date</span><input type="date" className="mwos-mobile-input" value={report.date} onChange={e => updateReportField('date',e.target.value)} /></label>
           <label className="block"><span className="mwos-form-label">Observation location (optional)</span><input className="mwos-mobile-input" value={report.venue} onChange={e => updateReportField('venue',e.target.value)} /></label>
         </section>
         {canEdit && <details className="rounded-2xl bg-white p-4">
           <summary className="min-h-11 cursor-pointer py-3 font-semibold">Scan a handwritten player sheet (optional)</summary>
-          <label className="block"><span className="mwos-form-label">Report photo</span><input type="file" accept="image/*" disabled={scanning} onChange={e => {setFile(e.target.files?.[0] || null);setScanText('');setScanError('');}} /></label>
+          <p className="mb-3 text-sm">Take a clear photo of a handwritten sheet. Detected fields are suggestions only; check and edit them before applying. The photo is sent to the OCR service, but is not stored with this report.</p>
+          <label className="block"><span className="mwos-form-label">Report photo</span><input type="file" accept="image/*" disabled={scanning} onChange={e => {setFile(e.target.files?.[0] || null);updateScanText('');setScanError('');}} /></label>
           <button type="button" disabled={!file || scanning} onClick={() => void handleScan()} className="mwos-btn-secondary mt-3 min-h-11">{scanning ? 'Reading photo…' : 'Read photo'}</button>
           {scanError && <p role="alert" className="mt-3 text-red-800">{scanError}</p>}
-          {scanText && <div className="mt-4 space-y-3"><label className="block"><span className="mwos-form-label">Check the extracted text before applying</span><textarea className="mwos-mobile-textarea" rows={8} value={scanText} onChange={e => setScanText(e.target.value)} /></label><button type="button" className="mwos-btn-secondary min-h-11" onClick={() => {updateReview(review.id,{overview:[review.overview,scanText].filter(Boolean).join('\n\n')});setScanText('');}}>Add text to player overview</button></div>}
+          {scanText && <div className="mt-4 space-y-4">
+            <label className="block"><span className="mwos-form-label">Extracted text (editable)</span><textarea className="mwos-mobile-textarea" rows={8} value={scanText} onChange={e => updateScanText(e.target.value)} /></label>
+            {scanWarnings.map((warning, index) => <p key={`${index}-${warning}`} className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{warning}</p>)}
+            <div className="rounded-xl border border-[var(--color-mid)]/20 p-3">
+              <h3 className="font-bold">Review detected fields</h3>
+              <p className="mb-3 text-sm">Selected values will replace their corresponding fields in this form. Nothing is saved until you press Save individual report.</p>
+              {Object.keys(scanFields).length === 0 ? <p role="status" className="text-sm">No labeled fields were recognized. You can still enter the data manually or append the transcription below.</p> : <div className="space-y-3">
+                {INDIVIDUAL_OCR_FIELDS.filter(([key]) => scanFields[key] !== undefined).map(([key, label]) => <div key={key} className="grid gap-2 rounded-xl bg-[var(--color-light)] p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end">
+                  <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={selectedScanFields.includes(key)} onChange={event => setSelectedScanFields(current => event.target.checked ? [...current, key] : current.filter(item => item !== key))} />Apply {label}</label>
+                  <input aria-label={`OCR ${label}`} className="mwos-mobile-input" type={key === 'date' ? 'date' : INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 'number' : 'text'} min={INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 1 : undefined} max={INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 5 : undefined} value={scanFields[key] || ''} onChange={event => setScanFields(current => ({ ...current, [key]: event.target.value }))} />
+                </div>)}
+                <button type="button" className="mwos-btn-secondary min-h-11" disabled={!selectedScanFields.length} onClick={applyScanFields}>Apply selected fields to form</button>
+              </div>}
+            </div>
+            {scanApplied && <p role="status" className="rounded-xl bg-green-50 p-3 text-sm">Fields copied into the form. Check them, then save the report.</p>}
+            <button type="button" className="mwos-btn-secondary min-h-11" onClick={() => {updateReview(review.id,{overview:[review.overview,scanText].filter(Boolean).join('\n\n')});setScanApplied(true);}}>Append full transcription to overview</button>
+          </div>}
         </details>}
         <PlayerReviewsTab canEdit={canEdit} individual />
+        <TipsEvaluationSection value={report.tips_evaluation} disabled={!canEdit || saving} onChange={next => updateReportField('tips_evaluation', next)} />
       </fieldset>
       <div id="individual-save-error" ref={errorRef} tabIndex={-1} role="alert" className={error ? 'rounded-2xl bg-red-50 p-4 text-red-800' : ''}>{error}</div>
       {saved && <p role="status" className="rounded-2xl bg-white p-4">Report saved.</p>}

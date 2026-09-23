@@ -59,6 +59,7 @@ export {
   type AppUser,
 } from './authData';
 import type { Player, PlayerReview, Report } from '../store/report';
+import { normalizeTipsEvaluation } from './tipsEvaluationDomain';
 import type { AppSettings } from '../store/settings';
 import { createId } from './ids';
 import { assertSupabaseConfigured, supabase } from './supabase';
@@ -185,6 +186,7 @@ interface ReportRow {
   formation_home: string | null;
   formation_away: string | null;
   video_url: string | null;
+  tips_evaluation?: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -196,6 +198,7 @@ interface PlayerRow {
   team_side: 'home' | 'away';
   shirt_number: number | null;
   name: string | null;
+  position?: string | null;
   subbed: string | null;
   goal: string | null;
   rating: number | null;
@@ -736,6 +739,7 @@ function mapPlayer(row: PlayerRow): Player {
     team_side: row.team_side,
     shirt_number: row.shirt_number ?? '',
     name: toStringValue(row.name),
+    position: toStringValue(row.position),
     subbed: toStringValue(row.subbed),
     goal: toStringValue(row.goal),
     rating: row.rating ?? '',
@@ -787,6 +791,7 @@ function mapReport(row: ReportRow, players: PlayerRow[] = row.players || [], rev
     formation_home: row.formation_home || DEFAULT_FORMATION,
     formation_away: row.formation_away || DEFAULT_FORMATION,
     video_url: row.video_url ?? undefined,
+    tips_evaluation: normalizeTipsEvaluation(row.tips_evaluation),
     players: players.map(mapPlayer),
     reviews: reviews.map(mapReview),
   };
@@ -966,7 +971,7 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
     supabase
       .from('players')
       .select(
-        'id, report_id, club_player_id, team_side, shirt_number, name, subbed, goal, rating, position_x, position_y, sort_order',
+        'id, report_id, club_player_id, team_side, shirt_number, name, position, subbed, goal, rating, position_x, position_y, sort_order',
       ),
     supabase
       .from('player_reviews')
@@ -1202,14 +1207,14 @@ export async function fetchReport(reportId: string) {
     supabase
       .from('reports')
       .select(
-        'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, video_url, created_at, updated_at',
+        'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, video_url, tips_evaluation, created_at, updated_at',
       )
       .eq('id', reportId)
       .single(),
     supabase
       .from('players')
       .select(
-        'id, report_id, club_player_id, team_side, shirt_number, name, subbed, goal, rating, position_x, position_y, sort_order',
+        'id, report_id, club_player_id, team_side, shirt_number, name, position, subbed, goal, rating, position_x, position_y, sort_order',
       )
       .eq('report_id', reportId)
       .order('sort_order', { ascending: true }),
@@ -1291,6 +1296,7 @@ export async function saveReport(report: Report) {
     formation_home: toNullableText(report.formation_home) || DEFAULT_FORMATION,
     formation_away: toNullableText(report.formation_away) || DEFAULT_FORMATION,
     video_url: report.video_url ?? null,
+    tips_evaluation: report.report_type === 'individual' ? normalizeTipsEvaluation(report.tips_evaluation) : null,
   };
 
   const { data: savedReport, error: saveError } = await supabase
@@ -1323,6 +1329,7 @@ export async function saveReport(report: Report) {
       team_side: player.team_side,
       shirt_number: toNullableFiniteNumber(player.shirt_number),
       name: toNullableText(player.name),
+      position: toNullableText(player.position || ''),
       subbed: toNullableText(player.subbed),
       goal: toNullableText(player.goal),
       rating: toNullableFiniteNumber(player.rating),
@@ -1413,7 +1420,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     supabase
       .from('players')
       .select(
-        'id, report_id, club_player_id, team_side, shirt_number, name, subbed, goal, rating, position_x, position_y, sort_order',
+        'id, report_id, club_player_id, team_side, shirt_number, name, position, subbed, goal, rating, position_x, position_y, sort_order',
       )
       .order('created_at', { ascending: false }),
     supabase
