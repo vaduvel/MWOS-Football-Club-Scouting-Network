@@ -45,6 +45,20 @@ const expectedScores = [
 ];
 
 describe('match report PDF', () => {
+  it('omits formation diagrams for unpositioned default team-sheet players', async () => {
+    const report = makeReport();
+    report.players.push({ ...report.players[0], id: 'away-1', team_side: 'away', name: 'Away player' });
+    const pages = await readPdfPages(report);
+    expect(pages).toHaveLength(2);
+    expect(pages.flatMap((page) => page.items.map((item) => item.str))).not.toContain('QA Home - 4-3-3');
+
+    report.players[0].position_y = 90;
+    const partlyPositionedPages = await readPdfPages(report);
+    expect(partlyPositionedPages).toHaveLength(3);
+    expect(partlyPositionedPages.flatMap((page) => page.items.map((item) => item.str))).toContain('QA Home - 4-3-3');
+    expect(partlyPositionedPages.flatMap((page) => page.items.map((item) => item.str))).not.toContain('QA Away - 4-4-2');
+  });
+
   it('exports all eight saved evaluation scores with their own labels and scale', async () => {
     const pages = await readPdfPages(makeReport());
     const reviewPage = pages.find((page) => page.items.some((item) => item.str === 'PLAYER REVIEWS'));

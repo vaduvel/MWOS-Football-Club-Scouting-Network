@@ -1,4 +1,5 @@
 import type { Report } from '../store/report';
+import { getPositionedPlayersForSide } from './reportProgressDomain';
 
 const PAGE_MARGIN = 16;
 
@@ -134,8 +135,7 @@ export async function buildMatchReportPdf(report: Report) {
     pdf.rect(pitchX + pitchWidth * 0.25, pitchY, pitchWidth * 0.5, pitchHeight * 0.15);
     pdf.rect(pitchX + pitchWidth * 0.25, pitchY + pitchHeight * 0.85, pitchWidth * 0.5, pitchHeight * 0.15);
 
-    report.players
-      .filter((player) => player.team_side === teamSide)
+    getPositionedPlayersForSide(report, teamSide)
       .forEach((player) => {
         const playerX = pitchX + (Math.max(0, Math.min(100, player.position_x)) / 100) * pitchWidth;
         const playerY = pitchY + (Math.max(0, Math.min(100, player.position_y)) / 100) * pitchHeight;
@@ -152,10 +152,10 @@ export async function buildMatchReportPdf(report: Report) {
       });
   };
 
-  if (report.players.some((player) => player.team_side === 'home')) {
+  if (getPositionedPlayersForSide(report, 'home').length > 0) {
     drawFormation('home', report.home_team, report.formation_home);
   }
-  if (report.players.some((player) => player.team_side === 'away')) {
+  if (getPositionedPlayersForSide(report, 'away').length > 0) {
     drawFormation('away', report.away_team, report.formation_away);
   }
 

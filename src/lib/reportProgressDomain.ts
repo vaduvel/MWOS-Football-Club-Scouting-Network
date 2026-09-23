@@ -1,4 +1,4 @@
-import type { PlayerReview, Report } from '../store/report';
+import type { Player, PlayerReview, Report } from '../store/report';
 
 export type ReportProgressStatus = 'complete' | 'needs_attention';
 
@@ -23,6 +23,30 @@ function hasNamedPlayerForSide(report: Report, side: 'home' | 'away') {
   return report.players.some((player) => player.team_side === side && hasText(player.name));
 }
 
+// Team-sheet rows start at 50/50. Until a scout moves a player or applies a
+// formation preset, that point is only a placeholder, not a pitch assignment.
+export function isPlayerPositioned(player: Player) {
+  return Number.isFinite(player.position_x) && Number.isFinite(player.position_y) &&
+    player.position_x >= 0 && player.position_x <= 100 &&
+    player.position_y >= 0 && player.position_y <= 100 &&
+    (player.position_x !== 50 || player.position_y !== 50);
+}
+
+export function getPositionedPlayersForSide(report: Report, side: 'home' | 'away') {
+  return report.players.filter((player) => player.team_side === side && hasText(player.name) && isPlayerPositioned(player));
+}
+
+function hasReadyFormationForSide(report: Report, side: 'home' | 'away') {
+  const namedPlayers = report.players.filter((player) => player.team_side === side && hasText(player.name));
+  const formation = side === 'home' ? report.formation_home : report.formation_away;
+  return hasText(formation) && namedPlayers.length > 0 &&
+    getPositionedPlayersForSide(report, side).length >= Math.min(11, namedPlayers.length);
+}
+
+export function countPositionedFormationSides(report: Report) {
+  return (['home', 'away'] as const).filter((side) => getPositionedPlayersForSide(report, side).length > 0).length;
+}
+
 function hasMeaningfulReview(review: PlayerReview) {
   return (
     hasText(String(review.player_id || '')) ||
@@ -43,7 +67,8 @@ export function buildReportProgress(report: Report): ReportProgressSummary {
   const hasHomePlayer = hasNamedPlayerForSide(report, 'home');
   const hasAwayPlayer = hasNamedPlayerForSide(report, 'away');
   const hasTeamSheets = hasHomePlayer && hasAwayPlayer;
-  const hasFormations = hasTeamSheets && hasText(report.formation_home) && hasText(report.formation_away);
+  const hasFormations = hasTeamSheets &&
+    hasReadyFormationForSide(report, 'home') && hasReadyFormationForSide(report, 'away');
   const hasReviews = report.reviews.some(hasMeaningfulReview);
 
   const items: ReportProgressItem[] = [
@@ -68,8 +93,8 @@ export function buildReportProgress(report: Report): ReportProgressSummary {
       label: 'Formations',
       status: hasFormations ? 'complete' : 'needs_attention',
       detail: hasFormations
-        ? 'Formation setup is ready for both teams.'
-        : 'Confirm both team shapes after the squads are in place.',
+        ? 'Players are placed in both team shapes.'
+        : 'Place the starting players (up to 11 per team) on both pitches.',
     },
     {
       key: 'player_reviews',
