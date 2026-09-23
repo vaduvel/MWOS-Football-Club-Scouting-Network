@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Report } from '../store/report';
-import { buildReportProgress } from './reportProgressDomain';
+import { buildReportProgress, countPositionedFormationSides } from './reportProgressDomain';
 
 function makeBaseReport(): Report {
   return {
@@ -69,6 +69,39 @@ describe('buildReportProgress', () => {
 
     expect(progress.items[1]?.status).toBe('complete');
     expect(progress.items[2]?.status).toBe('complete');
+  });
+
+  it('does not mark default 50/50 team-sheet placeholders as ready formations', () => {
+    const report = makeBaseReport();
+    report.players = [
+      { id: 1, team_side: 'home', shirt_number: 7, name: 'Home', subbed: '', goal: '', rating: '', position_x: 50, position_y: 50 },
+      { id: 2, team_side: 'away', shirt_number: 9, name: 'Away', subbed: '', goal: '', rating: '', position_x: 50, position_y: 50 },
+    ];
+
+    expect(buildReportProgress(report).items[1]?.status).toBe('complete');
+    expect(buildReportProgress(report).items[2]?.status).toBe('needs_attention');
+    expect(countPositionedFormationSides(report)).toBe(0);
+
+    report.players[0].position_y = 90;
+    expect(buildReportProgress(report).items[2]?.status).toBe('needs_attention');
+    expect(countPositionedFormationSides(report)).toBe(1);
+
+    report.players[1].position_y = 90;
+    expect(buildReportProgress(report).items[2]?.status).toBe('complete');
+    expect(countPositionedFormationSides(report)).toBe(2);
+  });
+
+  it('requires each named starter to be placed, up to eleven per side', () => {
+    const report = makeBaseReport();
+    report.players = [
+      { id: 1, team_side: 'home', shirt_number: 7, name: 'Home one', subbed: '', goal: '', rating: '', position_x: 20, position_y: 20 },
+      { id: 2, team_side: 'home', shirt_number: 8, name: 'Home two', subbed: '', goal: '', rating: '', position_x: 50, position_y: 50 },
+      { id: 3, team_side: 'away', shirt_number: 9, name: 'Away', subbed: '', goal: '', rating: '', position_x: 80, position_y: 20 },
+    ];
+
+    expect(buildReportProgress(report).items[2]?.status).toBe('needs_attention');
+    report.players[1].position_y = 40;
+    expect(buildReportProgress(report).items[2]?.status).toBe('complete');
   });
 
   it('marks reviews complete when at least one review has meaningful scouting content', () => {

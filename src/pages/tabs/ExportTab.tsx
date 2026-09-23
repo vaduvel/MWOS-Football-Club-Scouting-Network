@@ -3,6 +3,7 @@ import { CheckCircle, Download, FileText } from 'lucide-react';
 
 import { useReportStore } from '../../store/report';
 import { buildMatchReportPdf } from '../../lib/matchReportPdf';
+import { countPositionedFormationSides } from '../../lib/reportProgressDomain';
 
 function safeFilePart(value: string, fallback: string) {
   const normalized = value.trim().replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '');
@@ -17,10 +18,11 @@ export default function ExportTab() {
 
   if (!currentReport) return null;
 
+  const formationCount = countPositionedFormationSides(currentReport);
   const exportStats = [
     { label: 'Players', value: currentReport.players.length },
     { label: 'Reviews', value: currentReport.reviews.length },
-    { label: 'Formations', value: currentReport.players.length > 0 ? 2 : 0 },
+    { label: 'Formations', value: formationCount },
     { label: 'Notes', value: currentReport.general_notes.trim() ? 'Ready' : 'Empty' },
   ];
 
@@ -84,7 +86,7 @@ export default function ExportTab() {
               {[
                 'Match details and notes',
                 'Team sheets and ratings',
-                'Tactical formations',
+                ...(formationCount > 0 ? [`Tactical formations (${formationCount})`] : []),
                 `Player reviews (${currentReport.reviews.length})`,
               ].map((label) => (
                 <li key={label} className="flex items-center text-sm font-semibold text-[var(--color-dark)]">
@@ -92,6 +94,11 @@ export default function ExportTab() {
                 </li>
               ))}
             </ul>
+            {formationCount < 2 && (
+              <p className="mt-4 text-sm font-semibold text-[var(--color-mid)]">
+                Only teams with players placed on the pitch get a formation diagram in the PDF.
+              </p>
+            )}
           </div>
         </div>
       </div>
