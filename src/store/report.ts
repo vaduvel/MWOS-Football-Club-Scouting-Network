@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { TipsEvaluation } from '../lib/tipsEvaluationDomain';
 
 export interface Player {
   id: number | string; // string for temporary client-side ids
@@ -6,6 +7,7 @@ export interface Player {
   team_side: 'home' | 'away';
   shirt_number: number | '';
   name: string;
+  position?: string;
   subbed: string;
   goal: string;
   rating: number | '';
@@ -57,6 +59,7 @@ export interface Report {
   players: Player[];
   reviews: PlayerReview[];
   video_url?: string;
+  tips_evaluation?: TipsEvaluation | null;
 }
 
 interface ReportState {
