@@ -47,10 +47,9 @@ export default function ScoutCodeOfConductCard() {
         </div>
         <div className="mwos-surface-intro-copy">
           <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-mid)]">Scout compliance</p>
-          <h2 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">Scout Code of Conduct</h2>
+          <h2 className="mt-2 text-xl font-black text-[var(--color-dark)] md:text-2xl">MWOS Scouts Code of Conduct</h2>
           <p className="mt-2 max-w-4xl text-sm font-semibold leading-7 text-[var(--color-mid)]">
-            This is the working conduct reference for MWOS scouts. Keep it close whenever you observe players, speak with officials,
-            or prepare follow-up after a match.
+            A quick summary of the approved MWOS scouting rules. Read the full document for the complete requirements and consequences.
           </p>
         </div>
       </div>
@@ -81,9 +80,9 @@ export default function ScoutCodeOfConductCard() {
 
       <div className="mt-5 flex flex-col gap-3 rounded-[24px] border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 p-4 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-black text-[var(--color-dark)]">Original signed reference</p>
+          <p className="text-sm font-black text-[var(--color-dark)]">Approved MWOS reference</p>
           <p className="mt-1 text-sm font-semibold leading-6 text-[var(--color-mid)]">
-            Open the original PDF if a scout needs the full wording, meeting copy, or printable reference.
+            Open the official six-page PDF for the full wording and printable reference.
           </p>
         </div>
         <a
