@@ -2599,7 +2599,32 @@ export async function fetchFootballSquad(teamId: string) {
   );
 }
 
-async function prepareOcrImage(file: File): Promise<File> {
+async function renderTipsPdfPage(file: File): Promise<File> {
+  const pdfjs = await import('pdfjs-dist');
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
+  const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  try {
+    if (pdf.numPages !== 1) throw new Error('Select a one-page PDF scan of the TIPS sheet.');
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 3 });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('This browser could not render the PDF scan.');
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    await page.render({ canvas, canvasContext: context, viewport }).promise;
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+    if (!blob) throw new Error('This browser could not convert the PDF scan into a photo.');
+    return new File([blob], file.name.replace(/\.pdf$/i, '.jpg'), { type: 'image/jpeg' });
+  } finally {
+    await pdf.cleanup();
+  }
+}
+
+async function prepareOcrImage(file: File, template?: 'tips-2027'): Promise<File> {
+  if (template && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name))) {
+    return prepareOcrImage(await renderTipsPdfPage(file));
+  }
   const supported = /^image\/(jpeg|png|webp|gif|bmp)$/i.test(file.type);
   const heic = /^image\/(heic|heif)$/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
   if (!supported && !heic) throw new Error('Use a JPEG, PNG, WEBP, GIF, BMP or HEIC photo of the sheet.');
@@ -2632,7 +2657,7 @@ async function prepareOcrImage(file: File): Promise<File> {
 }
 
 export async function extractHandwrittenReport(file: File, template?: 'tips-2027') {
-  const image = await prepareOcrImage(file);
+  const image = await prepareOcrImage(file, template);
   if (image.size > 3 * 1024 * 1024) {
     throw new Error('Image is too large. Use a photo under 3 MB.');
   }
