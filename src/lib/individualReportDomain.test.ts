@@ -9,6 +9,7 @@ describe('individual scouting', () => {
     expect(validateIndividualReport(report)).toBeNull();
     expect(report.home_team).toBe('');
     expect(report.away_team).toBe('');
+    expect(report.tips_evaluation?.legacyReviewEnabled).toBe(false);
   });
   it('rejects internal roster links', () => {
     const report = createIndividualReport('QA');

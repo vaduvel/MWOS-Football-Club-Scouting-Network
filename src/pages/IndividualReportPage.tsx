@@ -10,7 +10,7 @@ import { buildIndividualReportPdf } from '../lib/individualReportPdf';
 import TipsEvaluationSection from '../components/scouting/TipsEvaluationSection';
 import { INDIVIDUAL_OCR_FIELDS, INDIVIDUAL_OCR_SCORE_KEYS, parseIndividualOcrText, type IndividualOcrFieldKey, type IndividualOcrFields } from '../lib/individualOcrDomain';
 import { applyTipsOcrFields, parseTipsOcrText, TIPS_OCR_FIELDS, TIPS_OCR_DETAILS, type TipsOcrFields, type TipsOcrKey } from '../lib/tipsOcrDomain';
-import { createEmptyTipsEvaluation } from '../lib/tipsEvaluationDomain';
+import { createEmptyTipsEvaluation, usesLegacyIndividualReview } from '../lib/tipsEvaluationDomain';
 
 const PLAYER_NAME_REQUIRED_ERROR = 'Enter the player name before saving.';
 
@@ -123,7 +123,8 @@ export default function IndividualReportPage() {
     const tipsParsed = parseTipsOcrText(text);
     setScanText(text);
     setScanFields(parsed.fields);
-    setSelectedScanFields(Object.keys(parsed.fields) as IndividualOcrFieldKey[]);
+    const playerDetailKeys: IndividualOcrFieldKey[] = ['player_name', 'club', 'position', 'date', 'venue'];
+    setSelectedScanFields((Object.keys(parsed.fields) as IndividualOcrFieldKey[]).filter(key => !tipsParsed.recognized || playerDetailKeys.includes(key)));
     setTipsScanFields(tipsParsed.fields);
     setSelectedTipsScanFields(Object.keys(tipsParsed.fields) as TipsOcrKey[]);
     setTipsScanRecognized(tipsParsed.recognized);
@@ -133,7 +134,7 @@ export default function IndividualReportPage() {
   const applyTipsScanFields = () => {
     if (!report || !canEdit) return;
     try {
-      const next = applyTipsOcrFields(report.tips_evaluation || createEmptyTipsEvaluation(), tipsScanFields, selectedTipsScanFields);
+      const next = applyTipsOcrFields(report.tips_evaluation || { ...createEmptyTipsEvaluation(), legacyReviewEnabled: true }, tipsScanFields, selectedTipsScanFields);
       updateReportField('tips_evaluation', next);
       setScanError('');
       setScanApplied(true);
@@ -168,7 +169,10 @@ export default function IndividualReportPage() {
       const score = Number(scanFields[key]);
       if (Number.isInteger(score) && score >= 1 && score <= 5) reviewChanges[key as keyof typeof reviewChanges] = score as never;
     }
-    if (Object.keys(reviewChanges).length) updateReview(review.id, reviewChanges);
+    if (Object.keys(reviewChanges).length) {
+      updateReview(review.id, reviewChanges);
+      updateReportField('tips_evaluation', { ...(report.tips_evaluation || createEmptyTipsEvaluation()), legacyReviewEnabled: true });
+    }
     setScanApplied(true);
     setSaved(false);
   };
@@ -183,8 +187,8 @@ export default function IndividualReportPage() {
     <div className="mx-auto max-w-3xl space-y-4">
       <header className="rounded-2xl bg-white p-4 md:p-6">
         <Link to="/scouting" onClick={event => { if (dirty || saving || scanning) { event.preventDefault(); setLeaveOpen(true); } }} className="mwos-btn-secondary min-h-11">Back to scouting</Link>
-        <h1 className="mt-4 text-balance text-2xl font-black text-[var(--color-dark)]">Individual Player Report</h1>
-        <p className="mt-2 text-pretty text-sm">Add an external player, complete the evaluation and save. No match setup is required.</p>
+        <h1 className="mt-4 text-balance text-2xl font-black text-[var(--color-dark)]">TIPS Player Report</h1>
+        <p className="mt-2 text-pretty text-sm">Add an external player, complete the TIPS evaluation and save. The previous 1–5 form is available below if needed; no match setup is required.</p>
       </header>
       {draftNotice && <p role="status" className="rounded-2xl bg-white p-4">{draftNotice}</p>}
       {dirty && <p role="status">Unsaved changes — save to sync this report.</p>}
@@ -208,15 +212,8 @@ export default function IndividualReportPage() {
             <div className="rounded-xl border border-[var(--color-mid)]/20 p-3">
               <h3 className="font-bold">Review detected fields</h3>
               <p className="mb-3 text-sm">Selected values will replace their corresponding fields in this form. Nothing is saved until you press Save individual report.</p>
-              {Object.keys(scanFields).length === 0 ? <p role="status" className="text-sm">No fields from the existing 1-5 report were recognized. Check any TIPS proposals below, enter details manually, or append the transcription.</p> : <div className="space-y-3">
-                {INDIVIDUAL_OCR_FIELDS.filter(([key]) => scanFields[key] !== undefined).map(([key, label]) => <div key={key} className="grid gap-2 rounded-xl bg-[var(--color-light)] p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end">
-                  <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={selectedScanFields.includes(key)} onChange={event => setSelectedScanFields(current => event.target.checked ? [...current, key] : current.filter(item => item !== key))} />Apply {label}</label>
-                  <input aria-label={`OCR ${label}`} className="mwos-mobile-input" type={key === 'date' ? 'date' : INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 'number' : 'text'} min={INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 1 : undefined} max={INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 5 : undefined} value={scanFields[key] || ''} onChange={event => setScanFields(current => ({ ...current, [key]: event.target.value }))} />
-                </div>)}
-                <button type="button" className="mwos-btn-secondary min-h-11" disabled={!selectedScanFields.length} onClick={applyScanFields}>Apply selected fields to form</button>
-              </div>}
-              {tipsScanRecognized && <div className="mt-4 space-y-3 border-t border-[var(--color-mid)]/20 pt-4">
-                <h4 className="font-bold">TIPS proposals · separate 1-10 evaluation</h4>
+              {tipsScanRecognized && <div className="mb-4 space-y-3">
+                <h4 className="font-bold">TIPS proposals · main 1–10 evaluation</h4>
                 <p className="text-sm">These are possible values from labeled text, not confirmed readings. Check each one against the photo; the overall decision must be chosen by the Scout.</p>
                 {Object.keys(tipsScanFields).length === 0 ? <p role="status" className="text-sm">No TIPS values were confidently matched. Enter them manually below.</p> : <>
                   {TIPS_OCR_FIELDS.filter(([key]) => tipsScanFields[key] !== undefined).map(([key, label]) => <div key={key} className="grid gap-2 rounded-xl bg-[var(--color-light)] p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end">
@@ -226,13 +223,27 @@ export default function IndividualReportPage() {
                   <button type="button" className="mwos-btn-secondary min-h-11" disabled={!selectedTipsScanFields.length} onClick={applyTipsScanFields}>Apply selected TIPS fields to form</button>
                 </>}
               </div>}
+              <h4 className="border-t border-[var(--color-mid)]/20 pt-4 font-bold">Player details and previous 1–5 fields</h4>
+              {Object.keys(scanFields).length === 0 ? <p role="status" className="text-sm">No player details or previous 1–5 fields were recognized. Check any TIPS proposals above or enter details manually.</p> : <div className="space-y-3">
+                {INDIVIDUAL_OCR_FIELDS.filter(([key]) => scanFields[key] !== undefined).map(([key, label]) => <div key={key} className="grid gap-2 rounded-xl bg-[var(--color-light)] p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end">
+                  <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={selectedScanFields.includes(key)} onChange={event => setSelectedScanFields(current => event.target.checked ? [...current, key] : current.filter(item => item !== key))} />Apply {label}</label>
+                  <input aria-label={`OCR ${label}`} className="mwos-mobile-input" type={key === 'date' ? 'date' : INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 'number' : 'text'} min={INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 1 : undefined} max={INDIVIDUAL_OCR_SCORE_KEYS.includes(key) ? 5 : undefined} value={scanFields[key] || ''} onChange={event => setScanFields(current => ({ ...current, [key]: event.target.value }))} />
+                </div>)}
+                <button type="button" className="mwos-btn-secondary min-h-11" disabled={!selectedScanFields.length} onClick={applyScanFields}>Apply selected fields to form</button>
+              </div>}
             </div>
             {scanApplied && <p role="status" className="rounded-xl bg-green-50 p-3 text-sm">Fields copied into the form. Check them, then save the report.</p>}
-            <button type="button" className="mwos-btn-secondary min-h-11" onClick={() => {updateReview(review.id,{overview:[review.overview,scanText].filter(Boolean).join('\n\n')});setScanApplied(true);}}>Append full transcription to overview</button>
+            <button type="button" className="mwos-btn-secondary min-h-11" onClick={() => {const tips = report.tips_evaluation || { ...createEmptyTipsEvaluation(), legacyReviewEnabled: true }; updateReportField('tips_evaluation', {...tips, otherNotes:[tips.otherNotes, scanText].filter(Boolean).join('\n\n')});setScanApplied(true);}}>Append full transcription to TIPS notes</button>
           </div>}
         </details>}
-        <PlayerReviewsTab canEdit={canEdit} individual />
         <TipsEvaluationSection value={report.tips_evaluation} disabled={!canEdit || saving} onChange={next => updateReportField('tips_evaluation', next)} />
+        <details className="rounded-2xl bg-white p-4 md:p-6">
+          <summary className="min-h-11 cursor-pointer py-3 font-semibold">Previous 1–5 evaluation (optional)</summary>
+          <p className="mb-4 text-sm">This is the older scouting method. Its scores are not converted from TIPS or counted unless you choose to use it. If you activate it, review all eight starting values of 3/5 before saving.</p>
+          {usesLegacyIndividualReview(report.tips_evaluation)
+            ? <PlayerReviewsTab canEdit={canEdit} individual />
+            : <button type="button" disabled={!canEdit || saving} className="mwos-btn-secondary min-h-11" onClick={() => updateReportField('tips_evaluation', { ...(report.tips_evaluation || createEmptyTipsEvaluation()), legacyReviewEnabled: true })}>Use previous 1–5 evaluation</button>}
+        </details>
       </fieldset>
       <div id="individual-save-error" ref={errorRef} tabIndex={-1} role="alert" className={error ? 'rounded-2xl bg-red-50 p-4 text-red-800' : ''}>{error}</div>
       {saved && <p role="status" className="rounded-2xl bg-white p-4">Report saved.</p>}
@@ -240,7 +251,7 @@ export default function IndividualReportPage() {
       {!canEdit && <p>Read-only report.</p>}
       <section className="space-y-3 rounded-2xl bg-white p-4">
         <h2 className="text-lg font-bold">Export individual report</h2>
-        <p className="text-sm">Includes player details, notes, verdict and the eight existing evaluation scores. If completed, the separate TIPS evaluation is added on extra pages.</p>
+        <p className="text-sm">Exports the TIPS evaluation first. The previous 1–5 review is included separately only when used; historical reports remain unchanged.</p>
         <button type="button" disabled={exporting || saving || scanning} className="mwos-btn-secondary min-h-12 w-full" onClick={async () => {
           setExporting(true); setError('');
           try {

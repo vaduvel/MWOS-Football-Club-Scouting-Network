@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchPlayerHubData } from './data';
+import { createEmptyTipsEvaluation } from './tipsEvaluationDomain';
 
 const { from } = vi.hoisted(() => ({ from: vi.fn() }));
 
@@ -134,5 +135,39 @@ describe('Player Hub score aggregation', () => {
       trendPoints: [],
     });
     expect(overview.topReported).toEqual([]);
+  });
+
+  it('lists a TIPS-only player without treating untouched 1-5 placeholders as real scores', async () => {
+    const tips = createEmptyTipsEvaluation();
+    tips.attributes.first_touch.score = 8;
+    tips.overallAssessment = 'keep_monitoring';
+    seed({
+      reports: [{ ...report('individual-tips', '2026-09-21', 'individual'), tips_evaluation: tips }],
+      players: [player('tips-player', 'individual-tips', null)],
+      player_reviews: [review('tips-player', 'individual-tips', 3)],
+    });
+
+    const overview = await fetchPlayerHubData();
+
+    expect(overview.entries).toHaveLength(1);
+    expect(overview.entries[0]).toMatchObject({
+      reportCount: 1,
+      averageScore: 0,
+      latestScore: 0,
+      latestVerdict: 'Keep monitoring',
+      bestPotential: 'Not assessed',
+      metrics: { pace: 0, strength: 0 },
+      trendPoints: [],
+    });
+  });
+
+  it('does not list an empty new TIPS draft as scouting evidence', async () => {
+    seed({
+      reports: [{ ...report('individual-empty', '2026-09-21', 'individual'), tips_evaluation: createEmptyTipsEvaluation() }],
+      players: [player('empty-player', 'individual-empty', null)],
+      player_reviews: [review('empty-player', 'individual-empty', 3)],
+    });
+
+    expect((await fetchPlayerHubData()).entries).toHaveLength(0);
   });
 });

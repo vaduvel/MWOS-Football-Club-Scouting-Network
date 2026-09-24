@@ -1,5 +1,5 @@
 import type { Report } from '../store/report';
-import { hasTipsContent, TIPS_ASSESSMENTS, TIPS_SECTIONS } from './tipsEvaluationDomain';
+import { hasTipsContent, TIPS_ASSESSMENTS, TIPS_SECTIONS, usesLegacyIndividualReview } from './tipsEvaluationDomain';
 
 export async function buildIndividualReportPdf(report: Report) {
   const { default: jsPDF } = await import('jspdf');
@@ -16,24 +16,15 @@ export async function buildIndividualReportPdf(report: Report) {
     }
     y += 3;
   };
-  text('MWOS - INDIVIDUAL PLAYER REPORT', true);
+  const tips = report.tips_evaluation;
+  text((tips && hasTipsContent(tips)) || !usesLegacyIndividualReview(tips) ? 'MWOS - TIPS PLAYER REPORT' : 'MWOS - INDIVIDUAL PLAYER REPORT', true);
   text(report.players[0]?.name || 'Unnamed player', true);
   text(`Club: ${report.home_team || 'Not provided'}`);
   text(`Position(s): ${report.players[0]?.position || 'Not provided'}`);
   text(`Observed: ${report.date || 'Not provided'} | Location: ${report.venue || 'Not provided'}`);
   text(`Scout: ${report.scout_name || 'Not provided'}`);
-  for (const review of report.reviews) {
-    for (const [label, value] of [['Overview', review.overview], ['Strengths', review.strengths], ['Areas to improve', review.areas_to_improve], ['Verdict', review.recommendation_verdict], ['Potential', review.potential_level]]) {
-      text(label, true); text(value);
-    }
-    text('Evaluation (1-5)', true);
-    for (const [label, value] of [['Pace', review.pace], ['Strength', review.strength], ['Stamina', review.stamina], ['Agility', review.agility], ['Decision making', review.decision_making], ['Composure', review.composure], ['Work rate', review.work_rate], ['Positioning', review.positioning]]) text(`${label}: ${value}/5`);
-  }
-  const tips = report.tips_evaluation;
   if (tips && hasTipsContent(tips)) {
-    pdf.addPage(); y = 20;
-    text('MWOS - TIPS PLAYER EVALUATION (1-10)', true);
-    text(`Player: ${report.players[0]?.name || 'Unnamed player'} | Scout: ${report.scout_name || 'Not provided'}`);
+    text('TIPS PLAYER EVALUATION (1-10)', true);
     text(`Position(s): ${tips.positions || report.players[0]?.position || 'Not provided'} | Preferred foot: ${tips.preferredFoot || 'Not provided'}`);
     text(`Nationality: ${tips.nationality || 'Not provided'} | Current club: ${report.home_team || 'Not provided'}`);
     text(`Match observed: ${tips.matchObserved || 'Not provided'} | Report date: ${report.date || 'Not provided'}`);
@@ -50,7 +41,17 @@ export async function buildIndividualReportPdf(report: Report) {
     text('PHYSICALITY', true); text(tips.physicality);
     text('OVERALL ASSESSMENT', true);
     text(TIPS_ASSESSMENTS.find(option => option.value === tips.overallAssessment)?.label || 'Not selected');
-    text('TIPS scores are separate from the 1-5 individual evaluation.');
+  }
+  if (usesLegacyIndividualReview(tips)) {
+    if (tips && hasTipsContent(tips)) { pdf.addPage(); y = 20; }
+    text('PREVIOUS PLAYER EVALUATION (1-5)', true);
+    for (const review of report.reviews) {
+      for (const [label, value] of [['Overview', review.overview], ['Strengths', review.strengths], ['Areas to improve', review.areas_to_improve], ['Verdict', review.recommendation_verdict], ['Potential', review.potential_level]]) {
+        text(label, true); text(value);
+      }
+      text('Evaluation (1-5)', true);
+      for (const [label, value] of [['Pace', review.pace], ['Strength', review.strength], ['Stamina', review.stamina], ['Agility', review.agility], ['Decision making', review.decision_making], ['Composure', review.composure], ['Work rate', review.work_rate], ['Positioning', review.positioning]]) text(`${label}: ${value}/5`);
+    }
   }
   return pdf;
 }

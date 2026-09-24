@@ -9,9 +9,9 @@ interface Props {
 
 export default function TipsEvaluationSection({ value, onChange, disabled }: Props) {
   if (!value) return <section className="space-y-3 rounded-2xl bg-white p-4 md:p-6">
-    <h2 className="text-lg font-bold text-[var(--color-dark)]">TIPS evaluation (optional)</h2>
-    <p className="text-sm">Use the separate 1-10 TIPS methodology when needed. Existing 1-5 scores stay unchanged.</p>
-    <button type="button" disabled={disabled} className="mwos-btn-secondary min-h-11" onClick={() => onChange(createEmptyTipsEvaluation())}>Add TIPS evaluation</button>
+    <h2 className="text-lg font-bold text-[var(--color-dark)]">TIPS player evaluation</h2>
+    <p className="text-sm">Start the current 1–10 evaluation for this historical report. Its existing 1–5 review stays intact.</p>
+    <button type="button" disabled={disabled} className="mwos-btn-secondary min-h-11" onClick={() => onChange({ ...createEmptyTipsEvaluation(), legacyReviewEnabled: true })}>Start TIPS evaluation</button>
   </section>;
 
   const updateText = (key: keyof Pick<TipsEvaluation, 'positions' | 'preferredFoot' | 'nationality' | 'matchObserved' | 'competitionLevel' | 'otherNotes' | 'physicality'>, text: string) => onChange({ ...value, [key]: text });
@@ -21,8 +21,8 @@ export default function TipsEvaluationSection({ value, onChange, disabled }: Pro
 
   return <section className="space-y-5 rounded-2xl bg-white p-4 md:p-6" aria-labelledby="tips-heading">
     <div>
-      <h2 id="tips-heading" className="text-lg font-bold text-[var(--color-dark)]">TIPS evaluation (optional)</h2>
-      <p className="mt-1 text-sm">Technique, Intelligence, Personality and Speed use 1-10 scores. They are stored separately and never converted into the existing 1-5 evaluation.</p>
+      <h2 id="tips-heading" className="text-lg font-bold text-[var(--color-dark)]">TIPS player evaluation</h2>
+      <p className="mt-1 text-sm">Main scouting form · Technique, Intelligence, Personality and Speed use 1–10 scores. Enter only what you observed; the earlier 1–5 method is separate and optional.</p>
     </div>
     <div className="grid gap-3 sm:grid-cols-2">
       {([
