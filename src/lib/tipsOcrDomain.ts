@@ -8,11 +8,15 @@ export const TIPS_OCR_DETAILS = [
 ] as const;
 
 export type TipsOcrDetailKey = typeof TIPS_OCR_DETAILS[number][0];
-export type TipsOcrKey = TipsOcrDetailKey | TipsAttributeKey;
+export type TipsOcrNoteKey = `${TipsAttributeKey}_notes`;
+export type TipsOcrKey = TipsOcrDetailKey | TipsAttributeKey | TipsOcrNoteKey;
 export type TipsOcrFields = Partial<Record<TipsOcrKey, string>>;
 export const TIPS_OCR_FIELDS: ReadonlyArray<readonly [TipsOcrKey, string]> = [
   ...TIPS_OCR_DETAILS,
-  ...TIPS_SECTIONS.flatMap(section => section.attributes.map(([key, label]) => [key, `${section.title} · ${label} (1-10)`] as const)),
+  ...TIPS_SECTIONS.flatMap(section => section.attributes.flatMap(([key, label]) => [
+    [key, `${section.title} · ${label} score (1-10)`] as const,
+    [`${key}_notes` as TipsOcrNoteKey, `${section.title} · ${label} notes`] as const,
+  ])),
 ];
 
 const DETAIL_ALIASES: Record<TipsOcrDetailKey, string[]> = {
@@ -68,6 +72,8 @@ export function parseTipsOcrText(text: string) {
     const denominator = match[2] ? Number(match[2]) : 10;
     if (denominator === 10 && score >= 1 && score <= 10) fields[key] = String(score);
     else warnings.push(`${label} needs review: ${value}`);
+    const notes = value.replace(/^(\d{1,2})(?:\s*(?:\/|out of)\s*\d{1,2})?\s*(?:[-–;:]\s*|notes?\s*[:：]\s*)?/i, '').trim();
+    if (notes && notes !== value) fields[`${key}_notes`] = notes.slice(0, 3000);
   }
   return { fields, warnings, recognized: true };
 }
@@ -80,11 +86,15 @@ export function applyTipsOcrFields(current: TipsEvaluation, fields: TipsOcrField
     if (selectedKeys.has(key) && value) next[key] = value;
   }
   for (const section of TIPS_SECTIONS) for (const [key] of section.attributes) {
+    const notesKey: TipsOcrNoteKey = `${key}_notes`;
+    if (selectedKeys.has(notesKey) && fields[notesKey]?.trim()) {
+      next.attributes[key] = { ...next.attributes[key], notes: fields[notesKey]!.trim() };
+    }
     const value = fields[key];
     if (!selectedKeys.has(key) || !value) continue;
     const score = Number(value);
     if (!Number.isInteger(score) || score < 1 || score > 10) throw new Error('Review TIPS scores before applying. They must be whole numbers from 1 to 10.');
-    next.attributes[key] = { ...current.attributes[key], score };
+    next.attributes[key] = { ...next.attributes[key], score };
   }
   return next;
 }

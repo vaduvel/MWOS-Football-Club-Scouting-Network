@@ -283,6 +283,12 @@ export interface OcrReportResult {
   fileName: string;
   mimeType: string;
   lineCount: number;
+  tipsLayout?: {
+    recognized: boolean;
+    fields: Record<string, string>;
+    playerFields: Record<string, string>;
+    warnings: string[];
+  };
 }
 
 export interface AdminDashboardUser {
@@ -2593,16 +2599,45 @@ export async function fetchFootballSquad(teamId: string) {
   );
 }
 
-export async function extractHandwrittenReport(file: File) {
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Only image files are supported right now.');
+async function prepareOcrImage(file: File): Promise<File> {
+  const supported = /^image\/(jpeg|png|webp|gif|bmp)$/i.test(file.type);
+  const heic = /^image\/(heic|heif)$/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
+  if (!supported && !heic) throw new Error('Use a JPEG, PNG, WEBP, GIF, BMP or HEIC photo of the sheet.');
+  // Vercel limits the whole function request to 4.5 MB. Base64 adds ~33%.
+  const maxBytes = 3 * 1024 * 1024;
+  if (supported && file.size <= maxBytes) return file;
+  try {
+    const image = await createImageBitmap(file);
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Image conversion is unavailable.');
+    for (const longestSide of [2800, 2400, 2000]) {
+      const scale = Math.min(1, longestSide / Math.max(image.width, image.height));
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      for (const quality of [0.92, 0.82]) {
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+        if (blob && blob.size <= maxBytes) {
+          image.close();
+          return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+        }
+      }
+    }
+    image.close();
+  } catch {
+    if (heic) throw new Error('This HEIC photo could not be read in this browser. Export it as JPEG or take a new camera photo.');
+  }
+  throw new Error('The photo is too large for OCR. Use a clearer JPEG under 3 MB.');
+}
+
+export async function extractHandwrittenReport(file: File, template?: 'tips-2027') {
+  const image = await prepareOcrImage(file);
+  if (image.size > 3 * 1024 * 1024) {
+    throw new Error('Image is too large. Use a photo under 3 MB.');
   }
 
-  if (file.size > 7 * 1024 * 1024) {
-    throw new Error('Image is too large. Use a file under 7 MB.');
-  }
-
-  const content = await readFileAsBase64(file);
+  const content = await readFileAsBase64(image);
 
   return callFunctionRequest<OcrReportResult>('ocr-report', {
     method: 'POST',
@@ -2610,9 +2645,10 @@ export async function extractHandwrittenReport(file: File) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      fileName: file.name,
-      mimeType: file.type,
+      fileName: image.name,
+      mimeType: image.type,
       content,
+      ...(template ? { template } : {}),
     }),
   });
 }

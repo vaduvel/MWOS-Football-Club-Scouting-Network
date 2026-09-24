@@ -27,4 +27,12 @@ describe('reviewed TIPS OCR proposals', () => {
   it('rejects edited out-of-range scores before applying any values', () => {
     expect(() => applyTipsOcrFields(createEmptyTipsEvaluation(), { positions: 'QA', first_touch: '11' }, ['positions', 'first_touch'])).toThrow('1 to 10');
   });
+
+  it('applies reviewed handwritten notes without activating the old 1-5 scale', () => {
+    const current = createEmptyTipsEvaluation();
+    const next = applyTipsOcrFields(current, { first_touch: '8', first_touch_notes: 'Clean receiving touch' }, ['first_touch', 'first_touch_notes']);
+    expect(next.attributes.first_touch).toEqual({ score: 8, notes: 'Clean receiving touch' });
+    expect(next.legacyReviewEnabled).toBe(false);
+    expect(current.attributes.first_touch).toEqual({ score: '', notes: '' });
+  });
 });

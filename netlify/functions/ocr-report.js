@@ -1,6 +1,7 @@
 import { json, requireAuthenticatedUser } from './_shared.js';
+import { extractTipsLayout } from './_tips-ocr-layout.js';
 
-const MAX_IMAGE_BYTES = 7 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const OCR_FIELDS = [
   'competition',
   'date',
@@ -147,7 +148,7 @@ export async function handler(event) {
     return json(400, { error: 'Invalid JSON body.' });
   }
 
-  const { content, mimeType, fileName } = payload;
+  const { content, mimeType, fileName, template } = payload;
 
   if (!content || typeof content !== 'string') {
     return json(400, { error: 'Missing image content.' });
@@ -159,7 +160,7 @@ export async function handler(event) {
 
   const imageSize = Buffer.byteLength(content, 'base64');
   if (imageSize > MAX_IMAGE_BYTES) {
-    return json(400, { error: 'Image is too large. Use a file under 7 MB.' });
+    return json(400, { error: 'Image is too large. Use a file under 3 MB.' });
   }
 
   try {
@@ -199,6 +200,9 @@ export async function handler(event) {
     }
 
     const rawText = annotation?.fullTextAnnotation?.text || annotation?.textAnnotations?.[0]?.description || '';
+    const tipsLayout = template === 'tips-2027'
+      ? extractTipsLayout(annotation?.fullTextAnnotation)
+      : undefined;
 
     if (!rawText.trim()) {
       return json(200, {
@@ -207,6 +211,7 @@ export async function handler(event) {
         fileName: fileName || 'upload',
         mimeType,
         lineCount: 0,
+        ...(tipsLayout ? { tipsLayout } : {}),
       });
     }
 
@@ -216,6 +221,7 @@ export async function handler(event) {
       fileName: fileName || 'upload',
       mimeType,
       lineCount: rawText.split(/\n+/).filter((line) => line.trim().length > 0).length,
+      ...(tipsLayout ? { tipsLayout } : {}),
     });
   } catch (error) {
     return json(500, { error: error.message || 'Vision OCR failed.' });
