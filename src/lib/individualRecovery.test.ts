@@ -15,6 +15,7 @@ describe('individual recovery and export', () => {
   });
   it('exports an actual PDF and paginates long evaluations', async () => {
     const draft = createIndividualReport('QA'); draft.players[0].name = 'Export player';
+    draft.tips_evaluation!.legacyReviewEnabled = true;
     draft.reviews[0].overview = 'Long evaluation with repeated notes. '.repeat(300);
     const pdf = await buildIndividualReportPdf(draft);
     expect(pdf.getNumberOfPages()).toBeGreaterThan(2);

@@ -27,6 +27,8 @@ export type TipsAssessment = '' | 'not_for_mwos' | 'keep_monitoring' | 'recommen
 export interface TipsAttributeValue { score: number | ''; notes: string }
 export interface TipsEvaluation {
   version: 1;
+  /** Old 1–5 reviews remain available, but are opt-in for new TIPS reports. */
+  legacyReviewEnabled?: boolean;
   positions: string;
   preferredFoot: string;
   nationality: string;
@@ -49,7 +51,7 @@ export function createEmptyTipsEvaluation(): TipsEvaluation {
     TIPS_SECTIONS.flatMap(section => section.attributes.map(attribute => [attribute[0], { score: '' as const, notes: '' }])),
   ) as TipsEvaluation['attributes'];
   return {
-    version: 1, positions: '', preferredFoot: '', nationality: '', matchObserved: '',
+    version: 1, legacyReviewEnabled: false, positions: '', preferredFoot: '', nationality: '', matchObserved: '',
     competitionLevel: '', otherNotes: '', physicality: '', overallAssessment: '', attributes,
   };
 }
@@ -58,6 +60,8 @@ export function normalizeTipsEvaluation(value: unknown): TipsEvaluation | null {
   if (!value || typeof value !== 'object' || (value as { version?: unknown }).version !== 1) return null;
   const source = value as Partial<TipsEvaluation>;
   const normalized = createEmptyTipsEvaluation();
+  // Earlier saved reports have no flag and must retain their original 1–5 review.
+  normalized.legacyReviewEnabled = source.legacyReviewEnabled !== false;
   for (const key of ['positions', 'preferredFoot', 'nationality', 'matchObserved', 'competitionLevel', 'otherNotes', 'physicality'] as const) {
     normalized[key] = typeof source[key] === 'string' ? source[key].slice(0, 3000) : '';
   }
@@ -70,6 +74,10 @@ export function normalizeTipsEvaluation(value: unknown): TipsEvaluation | null {
     };
   }
   return normalized;
+}
+
+export function usesLegacyIndividualReview(tips: TipsEvaluation | null | undefined) {
+  return tips?.legacyReviewEnabled !== false;
 }
 
 export function hasTipsContent(tips: TipsEvaluation | null | undefined) {

@@ -59,7 +59,7 @@ export {
   type AppUser,
 } from './authData';
 import type { Player, PlayerReview, Report } from '../store/report';
-import { normalizeTipsEvaluation } from './tipsEvaluationDomain';
+import { hasTipsContent, normalizeTipsEvaluation, TIPS_ASSESSMENTS, usesLegacyIndividualReview } from './tipsEvaluationDomain';
 import type { AppSettings } from '../store/settings';
 import { createId } from './ids';
 import { assertSupabaseConfigured, supabase } from './supabase';
@@ -965,7 +965,7 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
     supabase
       .from('reports')
       .select(
-        'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at',
+        'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, tips_evaluation, created_at, updated_at',
       )
       .order('created_at', { ascending: false }),
     supabase
@@ -1524,12 +1524,14 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
       clubLabel,
     });
     const playerReviews = reviewsByPlayerId.get(player.id) || [];
+    const tips = report.report_type === 'individual' ? normalizeTipsEvaluation(report.tips_evaluation) : null;
+    const legacyReviewUsed = report.report_type !== 'individual' || usesLegacyIndividualReview(tips);
     // A squad-sheet mention is not scouting evidence. Keep those players in the
     // match report, but do not promote them into Player Hub until a review exists.
-    if (!hasPlayerReviewEvidence(playerReviews)) {
+    if (legacyReviewUsed ? !hasPlayerReviewEvidence(playerReviews) : !hasTipsContent(tips)) {
       return;
     }
-    const reviewScores = playerReviews
+    const reviewScores = (legacyReviewUsed ? playerReviews : [])
       .map((review) => calculateReviewAverage(review))
       .filter((value) => value > 0);
     const ratingValue = typeof player.rating === 'number' ? Number(player.rating) : 0;
@@ -1538,12 +1540,16 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     const occurrenceScore = roundOneDecimal(averageNumbers(reviewScores));
     const latestDate = toStringValue(report.date) || report.created_at;
     const fixture = buildFixtureLabel(report);
-    const bestReview = playerReviews.reduce<PlayerReviewRow | null>((current, review) => {
+    const bestReview = (legacyReviewUsed ? playerReviews : []).reduce<PlayerReviewRow | null>((current, review) => {
       if (!current) return review;
       return calculateReviewAverage(review) >= calculateReviewAverage(current) ? review : current;
     }, null);
-    const potentialLevel = toStringValue(bestReview?.potential_level) || 'Academy';
+    const potentialLevel = legacyReviewUsed ? toStringValue(bestReview?.potential_level) || 'Academy' : 'Not assessed';
     const potentialRank = getPotentialRank(potentialLevel);
+    const latestVerdict = legacyReviewUsed
+      ? toStringValue(bestReview?.recommendation_verdict)
+      : TIPS_ASSESSMENTS.find(option => option.value === tips?.overallAssessment)?.label || '';
+    const overview = legacyReviewUsed ? toStringValue(bestReview?.overview) : tips?.otherNotes || '';
     const currentEntry = playerMap.get(playerKey);
 
     if (!currentEntry) {
@@ -1563,8 +1569,8 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         latestReportDate: latestDate,
         latestFixture: fixture,
         latestCompetition: toStringValue(report.competition) || 'Friendly',
-        latestVerdict: toStringValue(bestReview?.recommendation_verdict),
-        overview: toStringValue(bestReview?.overview),
+        latestVerdict,
+        overview,
         strengths: toStringValue(bestReview?.strengths),
         improvementAreas: toStringValue(bestReview?.areas_to_improve),
         reportIds: new Set([report.id]),
@@ -1582,7 +1588,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
             fixture,
             score: occurrenceScore,
             potentialLevel,
-            verdict: toStringValue(bestReview?.recommendation_verdict),
+            verdict: latestVerdict,
           },
         ],
       });
@@ -1601,7 +1607,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         fixture,
         score: occurrenceScore,
         potentialLevel,
-        verdict: toStringValue(bestReview?.recommendation_verdict),
+        verdict: latestVerdict,
       });
 
       const existingTime = new Date(currentEntry.latestReportDate).getTime();
@@ -1612,8 +1618,8 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         currentEntry.latestReportDate = latestDate;
         currentEntry.latestFixture = fixture;
         currentEntry.latestCompetition = toStringValue(report.competition) || 'Friendly';
-        currentEntry.latestVerdict = toStringValue(bestReview?.recommendation_verdict) || currentEntry.latestVerdict;
-        currentEntry.overview = toStringValue(bestReview?.overview) || currentEntry.overview;
+        currentEntry.latestVerdict = latestVerdict || currentEntry.latestVerdict;
+        currentEntry.overview = overview || currentEntry.overview;
         currentEntry.strengths = toStringValue(bestReview?.strengths) || currentEntry.strengths;
         currentEntry.improvementAreas =
           toStringValue(bestReview?.areas_to_improve) || currentEntry.improvementAreas;
@@ -1624,8 +1630,8 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         currentEntry.bestPotential = potentialLevel;
       }
 
-      if (toStringValue(bestReview?.recommendation_verdict).length > currentEntry.latestVerdict.length) {
-        currentEntry.latestVerdict = toStringValue(bestReview?.recommendation_verdict);
+      if (latestVerdict.length > currentEntry.latestVerdict.length) {
+        currentEntry.latestVerdict = latestVerdict;
       }
     }
 
@@ -1634,7 +1640,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
       return;
     }
 
-    playerReviews.forEach((review) => {
+    (legacyReviewUsed ? playerReviews : []).forEach((review) => {
       PLAYER_ATTRIBUTE_FIELDS.forEach((field) => {
         const value = review[field];
         if (typeof value === 'number' && Number.isFinite(value)) {
