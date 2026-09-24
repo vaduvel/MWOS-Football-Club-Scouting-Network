@@ -185,10 +185,10 @@ export default function IndividualReportPage() {
 
   return <main className="min-h-dvh bg-[var(--color-light)] p-3 pb-12 md:p-6">
     <div className="mx-auto max-w-6xl space-y-4">
-      <header className="rounded-2xl bg-white p-4 md:p-6">
-        <Link to="/scouting" onClick={event => { if (dirty || saving || scanning) { event.preventDefault(); setLeaveOpen(true); } }} className="mwos-btn-secondary min-h-11">Back to scouting</Link>
-        <h1 className="mt-4 text-balance text-2xl font-black text-[var(--color-dark)]">TIPS Player Report</h1>
-        <p className="mt-2 text-pretty text-sm">Add an external player, complete the TIPS evaluation and save. The previous 1–5 form is available below if needed; no match setup is required.</p>
+      <header className="mwos-tips-hero mwos-tips-hero-page rounded-2xl p-4 text-white md:p-6">
+        <Link to="/scouting" onClick={event => { if (dirty || saving || scanning) { event.preventDefault(); setLeaveOpen(true); } }} className="mwos-btn-secondary inline-flex min-h-11 items-center rounded-lg px-3 py-2 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">Back to scouting</Link>
+        <h1 className="mt-4 text-balance text-2xl font-black text-white">TIPS Player Report</h1>
+        <p className="mt-2 max-w-md text-pretty text-sm text-white/95">Add an external player, complete the TIPS evaluation and save. The previous 1–5 form is available below if needed; no match setup is required.</p>
       </header>
       {draftNotice && <p role="status" className="rounded-2xl bg-white p-4">{draftNotice}</p>}
       {dirty && <p role="status">Unsaved changes — save to sync this report.</p>}

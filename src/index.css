@@ -106,6 +106,53 @@ textarea {
     linear-gradient(145deg, #1e1f56 0%, #312783 58%, #3e45a1 100%);
 }
 
+.mwos-tips-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: #080d2f;
+}
+
+.mwos-tips-hero::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: url('/branding/mwos-stadium-header.jpg') center 52% / cover no-repeat;
+  content: '';
+  opacity: var(--mwos-tips-image-opacity, 0.55);
+  pointer-events: none;
+}
+
+.mwos-tips-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.mwos-tips-hero-page {
+  --mwos-tips-image-opacity: 0.4;
+}
+
+.mwos-tips-hero-report {
+  --mwos-tips-image-opacity: 0.36;
+}
+
+@media (max-width: 1023px) {
+  .mwos-tips-hero::before {
+    background-position: left center;
+    background-size: 180% auto;
+  }
+}
+
+@media (max-width: 639px) {
+  .mwos-tips-hero-page {
+    --mwos-tips-image-opacity: 0.3;
+  }
+
+  .mwos-tips-hero-report {
+    --mwos-tips-image-opacity: 0.3;
+  }
+}
+
 .mwos-subtle-grid {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),

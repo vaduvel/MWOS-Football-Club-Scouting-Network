@@ -18,6 +18,7 @@ describe('TIPS evaluation entry surface', () => {
     expect(html).toContain('Stamina &amp; work rate score out of 10');
     expect(html).toContain('Overall assessment');
     expect(html).toContain('Professional Scouting Report');
+    expect(html).toContain('mwos-tips-hero-report');
     expect(html.match(/<table/g)).toHaveLength(4);
     expect(html.match(/score out of 10/g)).toHaveLength(30);
     expect(html).not.toContain('<summary');

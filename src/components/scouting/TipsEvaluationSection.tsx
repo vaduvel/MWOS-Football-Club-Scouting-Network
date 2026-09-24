@@ -34,13 +34,13 @@ export default function TipsEvaluationSection({ value, onChange, disabled }: Pro
   });
 
   return <section className="overflow-hidden rounded-xl border border-[var(--color-primary-border)] bg-white" aria-labelledby="tips-heading">
-    <header className="border-b-2 border-[var(--color-accent)] bg-[var(--color-primary-deep)] px-4 py-4 text-white sm:px-6">
+    <header className="mwos-tips-hero mwos-tips-hero-report border-b-2 border-[var(--color-accent)] px-4 py-4 text-white sm:px-6">
       <div className="flex items-center gap-3">
         <img src="/branding/mwos-fc-300-2.png" alt="" className="size-11 shrink-0 rounded-full bg-white object-contain p-0.5" />
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase text-white/80">Moors World of Sport Football Club</p>
+          <p className="text-xs font-bold uppercase text-white/95">Moors World of Sport Football Club</p>
           <h2 id="tips-heading" className="text-balance font-serif text-xl font-bold leading-tight sm:text-2xl">Professional Scouting Report</h2>
-          <p className="text-pretty text-xs italic text-white/75">Player Evaluation Profile · TIPS Methodology</p>
+          <p className="text-pretty text-xs italic text-white/90">Player Evaluation Profile · TIPS Methodology</p>
         </div>
       </div>
     </header>
