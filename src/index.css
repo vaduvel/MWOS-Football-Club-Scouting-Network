@@ -766,6 +766,17 @@ textarea {
   opacity: 0.6;
 }
 
+.mwos-tips-score {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.mwos-tips-score::-webkit-inner-spin-button,
+.mwos-tips-score::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .mwos-mobile-note {
   border-radius: 1rem;
   border: 1px solid rgba(142, 154, 175, 0.14);

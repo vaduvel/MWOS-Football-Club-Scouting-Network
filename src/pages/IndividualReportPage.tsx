@@ -184,7 +184,7 @@ export default function IndividualReportPage() {
   if (!player || !review) return <main className="p-6"><p role="alert">This report is missing its player or evaluation.</p><Link to="/scouting">Back to scouting</Link></main>;
 
   return <main className="min-h-dvh bg-[var(--color-light)] p-3 pb-12 md:p-6">
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="mx-auto max-w-6xl space-y-4">
       <header className="rounded-2xl bg-white p-4 md:p-6">
         <Link to="/scouting" onClick={event => { if (dirty || saving || scanning) { event.preventDefault(); setLeaveOpen(true); } }} className="mwos-btn-secondary min-h-11">Back to scouting</Link>
         <h1 className="mt-4 text-balance text-2xl font-black text-[var(--color-dark)]">TIPS Player Report</h1>
