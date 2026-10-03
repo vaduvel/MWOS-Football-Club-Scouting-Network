@@ -46,6 +46,7 @@ import {
 } from '../lib/playerHubDomain';
 import { useAuthStore } from '../store/auth';
 import { buildSquadAgeSummary } from '../lib/playerAgeDomain';
+import { TIPS_SECTIONS } from '../lib/tipsEvaluationDomain';
 
 const COMPARISON_FIELDS: Array<{ key: keyof PlayerHubEntry['metrics']; label: string }> = [
   { key: 'pace', label: 'Pace' },
@@ -119,20 +120,20 @@ function ComparisonMetricRow({
       <div className="flex items-center justify-between text-xs font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
         <span>{label}</span>
         <span>
-          {leftValue.toFixed(1)} / {rightValue.toFixed(1)}
+          {leftValue > 0 ? leftValue.toFixed(1) : '--'} / {rightValue > 0 ? rightValue.toFixed(1) : '--'}
         </span>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div className="h-2 overflow-hidden rounded-full bg-[var(--color-primary)]/10">
           <div
             className="h-full rounded-full bg-[var(--color-primary)]"
-            style={{ width: `${Math.max(8, (leftValue / 5) * 100)}%` }}
+            style={{ width: leftValue > 0 ? `${(leftValue / 5) * 100}%` : '0%' }}
           />
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-[var(--color-accent)]/10">
           <div
             className="ml-auto h-full rounded-full bg-[var(--color-accent)]"
-            style={{ width: `${Math.max(8, (rightValue / 5) * 100)}%` }}
+            style={{ width: rightValue > 0 ? `${(rightValue / 5) * 100}%` : '0%' }}
           />
         </div>
       </div>
@@ -1012,9 +1013,9 @@ export default function PlayersPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Score</p>
+                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Score /5</p>
                           <p className="mt-1 text-lg font-black text-[var(--color-primary)]">
-                            {entry.averageScore.toFixed(1)}
+                            {entry.averageScore > 0 ? entry.averageScore.toFixed(1) : '--'}
                           </p>
                         </div>
                       </div>
@@ -1234,8 +1235,8 @@ export default function PlayersPage() {
 
                     <div className="mt-5 flex items-end justify-between">
                       <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Average score</p>
-                        <p className="mt-1 text-3xl font-black text-[var(--color-dark)]">{entry.averageScore.toFixed(1)}</p>
+                        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--color-mid)]">Average score /5</p>
+                        <p className="mt-1 text-3xl font-black text-[var(--color-dark)]">{entry.averageScore > 0 ? entry.averageScore.toFixed(1) : '--'}</p>
                       </div>
                       <div className="rounded-2xl bg-white/70 px-3 py-2 text-right">
                         <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Potential</p>
@@ -1333,15 +1334,27 @@ export default function PlayersPage() {
                     </div>
                   </div>
 
-                  {COMPARISON_FIELDS.map((field) => (
-                    <div key={field.key}>
-                      <ComparisonMetricRow
-                        label={field.label}
-                        leftValue={leftPlayer.metrics[field.key]}
-                        rightValue={rightPlayer.metrics[field.key]}
-                      />
-                    </div>
-                  ))}
+                  {leftPlayer.latestScoringMethod === 'tips' && rightPlayer.latestScoringMethod === 'tips'
+                    ? TIPS_SECTIONS.map(section => (
+                      <div key={section.key}>
+                        <ComparisonMetricRow
+                          label={`${section.title} /5`}
+                          leftValue={leftPlayer.tipsMetrics[section.key]}
+                          rightValue={rightPlayer.tipsMetrics[section.key]}
+                        />
+                      </div>
+                    ))
+                    : leftPlayer.latestScoringMethod === 'legacy' && rightPlayer.latestScoringMethod === 'legacy'
+                      ? COMPARISON_FIELDS.map(field => (
+                        <div key={field.key}>
+                          <ComparisonMetricRow
+                            label={field.label}
+                            leftValue={leftPlayer.metrics[field.key]}
+                            rightValue={rightPlayer.metrics[field.key]}
+                          />
+                        </div>
+                      ))
+                      : <p className="rounded-2xl border border-[var(--color-mid)]/20 p-4 text-sm text-[var(--color-mid)]">These reports use different evaluation forms. Compare their overall /5 scores; attribute charts are not directly comparable.</p>}
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/50 p-4">
@@ -1414,8 +1427,8 @@ export default function PlayersPage() {
 
                           <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center">
                             <div className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 px-4 py-3 text-center">
-                              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Avg score</p>
-                              <p className="mt-1 text-2xl font-black text-[var(--color-dark)]">{entry.averageScore.toFixed(1)}</p>
+                              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Avg score /5</p>
+                              <p className="mt-1 text-2xl font-black text-[var(--color-dark)]">{entry.averageScore > 0 ? entry.averageScore.toFixed(1) : '--'}</p>
                             </div>
                             <div className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 px-4 py-3 text-center">
                               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">Reports</p>
@@ -1441,14 +1454,19 @@ export default function PlayersPage() {
                         </div>
 
                         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                          {COMPARISON_FIELDS.slice(0, 4).map((field) => (
-                            <div key={field.key} className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 p-3">
-                              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
-                                {field.label}
-                              </p>
-                              <p className="mt-2 text-xl font-black text-[var(--color-dark)]">{entry.metrics[field.key].toFixed(1)}</p>
-                            </div>
-                          ))}
+                          {entry.latestScoringMethod === 'tips'
+                            ? TIPS_SECTIONS.map(section => (
+                              <div key={section.key} className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 p-3">
+                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">{section.title} /5</p>
+                                <p className="mt-2 text-xl font-black text-[var(--color-dark)]">{entry.tipsMetricCounts[section.key] ? entry.tipsMetrics[section.key].toFixed(1) : '--'}</p>
+                              </div>
+                            ))
+                            : COMPARISON_FIELDS.slice(0, 4).map(field => (
+                              <div key={field.key} className="rounded-2xl border border-[var(--color-mid)]/12 bg-[var(--color-light)]/55 p-3">
+                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">{field.label} /5</p>
+                                <p className="mt-2 text-xl font-black text-[var(--color-dark)]">{entry.metrics[field.key] > 0 ? entry.metrics[field.key].toFixed(1) : '--'}</p>
+                              </div>
+                            ))}
                         </div>
 
                         <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_1fr]">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyTipsEvaluation, hasTipsContent, normalizeTipsEvaluation, TIPS_SECTIONS, usesLegacyIndividualReview } from './tipsEvaluationDomain';
+import { calculateTipsScoreSummary, createEmptyTipsEvaluation, hasTipsContent, normalizeTipsEvaluation, TIPS_SECTIONS, usesLegacyIndividualReview } from './tipsEvaluationDomain';
 
 describe('optional TIPS evaluation', () => {
   it('contains every attribute in the supplied 2027 TIPS form', () => {
@@ -27,5 +27,26 @@ describe('optional TIPS evaluation', () => {
     delete historical.legacyReviewEnabled;
     expect(usesLegacyIndividualReview(normalizeTipsEvaluation(historical))).toBe(true);
     expect(usesLegacyIndividualReview(null)).toBe(true);
+  });
+
+  it('calculates overall and four TIPS section means from scored attributes only', () => {
+    const tips = createEmptyTipsEvaluation();
+    for (const section of TIPS_SECTIONS) for (const [key] of section.attributes) tips.attributes[key].score = 9;
+    tips.attributes.first_touch.score = 10;
+    const summary = calculateTipsScoreSummary(tips);
+    expect(summary.ratedCount).toBe(30);
+    expect(summary.averageOutOfTen).toBeCloseTo(9.0333, 3);
+    expect(summary.sectionScores.technique).toBeCloseTo(9.125, 3);
+    expect(summary.sectionScores.intelligence).toBe(9);
+    expect(summary.sectionRatedCounts).toEqual({ technique: 8, intelligence: 8, personality: 7, speed: 7 });
+  });
+
+  it('does not invent a score or a chart category for unscored TIPS sections', () => {
+    const tips = createEmptyTipsEvaluation();
+    tips.attributes.first_touch.score = 2;
+    const summary = calculateTipsScoreSummary(tips);
+    expect(summary.averageOutOfTen).toBe(2);
+    expect(summary.sectionRatedCounts).toEqual({ technique: 1, intelligence: 0, personality: 0, speed: 0 });
+    expect(calculateTipsScoreSummary(createEmptyTipsEvaluation()).ratedCount).toBe(0);
   });
 });

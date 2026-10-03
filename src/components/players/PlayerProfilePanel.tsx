@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Activity, ArrowRight, BarChart3, Link2, Sparkles, Star, TrendingUp } from 'lucide-react';
 
 import type { PlayerHubEntry } from '../../lib/data';
+import { TIPS_SECTIONS } from '../../lib/tipsEvaluationDomain';
 import {
   buildRadarChartPoints,
   buildRadarChartPolygon,
@@ -75,10 +76,21 @@ export default function PlayerProfilePanel({
 
   const trendPath = buildTrendChartPath(entry.trendPoints, 280, 96);
   const trendStops = buildTrendChartStops(entry.trendPoints, 280, 96);
-  const radarMetrics = PROFILE_METRICS.map((metric) => ({
-    label: metric.label,
-    value: entry.metrics[metric.key],
-  }));
+  const tipsProfile = entry.latestScoringMethod === 'tips';
+  const profileMetrics = tipsProfile
+    ? TIPS_SECTIONS.map(section => ({
+      key: section.key,
+      label: section.title,
+      value: entry.tipsMetrics[section.key],
+      available: entry.tipsMetricCounts[section.key] > 0,
+    }))
+    : PROFILE_METRICS.map(metric => ({
+      key: metric.key,
+      label: metric.label,
+      value: entry.metrics[metric.key],
+      available: entry.metrics[metric.key] > 0,
+    }));
+  const radarMetrics = profileMetrics.filter(metric => metric.available).map(({ label, value }) => ({ label, value }));
 
   return (
     <section className="rounded-[28px] border border-[var(--color-mid)]/16 bg-white p-5 shadow-[0_16px_45px_rgba(49,39,131,0.06)]">
@@ -110,8 +122,8 @@ export default function PlayerProfilePanel({
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center">
-          <MetricPill label="Avg score" value={entry.averageScore.toFixed(1)} />
-          <MetricPill label="Latest" value={entry.latestScore > 0 ? entry.latestScore.toFixed(1) : '--'} />
+          <MetricPill label="Avg score /5" value={entry.averageScore > 0 ? entry.averageScore.toFixed(1) : '--'} />
+          <MetricPill label="Latest /5" value={entry.latestScore > 0 ? entry.latestScore.toFixed(1) : '--'} />
           <MetricPill label="Rating" value={entry.averageRating > 0 ? entry.averageRating.toFixed(1) : '--'} />
           {canManageWatchlist ? (
             <button
@@ -187,7 +199,8 @@ export default function PlayerProfilePanel({
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-mid)]">
                 Attribute mix
               </p>
-              <h3 className="mt-2 text-lg font-black text-[var(--color-dark)]">Scouting profile</h3>
+              <h3 className="mt-2 text-lg font-black text-[var(--color-dark)]">{tipsProfile ? 'TIPS profile' : 'Scouting profile'}</h3>
+              {tipsProfile ? <p className="mt-1 text-xs text-[var(--color-mid)]">TIPS scores converted from /10 to /5 for comparison.</p> : null}
             </div>
             <div className="flex size-10 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
               <BarChart3 size={18} />
@@ -195,23 +208,27 @@ export default function PlayerProfilePanel({
           </div>
 
           <div className="mt-4 grid gap-4 lg:grid-cols-[184px_1fr] lg:items-center">
-            <AttributeRadar metrics={radarMetrics} chartId={`player-radar-${entry.playerKey.replace(/[^a-z0-9]/gi, '-')}`} />
+            {radarMetrics.length >= 3 ? (
+              <AttributeRadar metrics={radarMetrics} chartId={`player-radar-${entry.playerKey.replace(/[^a-z0-9]/gi, '-')}`} />
+            ) : (
+              <p className="flex h-[180px] items-center text-sm text-[var(--color-mid)]">Rate at least three {tipsProfile ? 'TIPS sections' : 'attributes'} to show the profile chart.</p>
+            )}
 
             <div className="space-y-3">
-              {PROFILE_METRICS.map((metric) => (
+              {profileMetrics.map((metric) => (
                 <div key={metric.key} className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-mid)]">
                       {metric.label}
                     </p>
                     <p className="text-sm font-black text-[var(--color-dark)]">
-                      {entry.metrics[metric.key].toFixed(1)}
+                      {metric.available ? `${metric.value.toFixed(1)}/5` : '--'}
                     </p>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-[var(--color-primary)]/10">
                     <div
                       className="h-full rounded-full bg-[linear-gradient(90deg,var(--color-primary),var(--color-accent))]"
-                      style={{ width: `${Math.max(8, (entry.metrics[metric.key] / 5) * 100)}%` }}
+                      style={{ width: metric.available ? `${(metric.value / 5) * 100}%` : '0%' }}
                     />
                   </div>
                 </div>

@@ -23,6 +23,7 @@ export const TIPS_SECTIONS = [
 ] as const;
 
 export type TipsAttributeKey = typeof TIPS_SECTIONS[number]['attributes'][number][0];
+export type TipsSectionKey = typeof TIPS_SECTIONS[number]['key'];
 export type TipsAssessment = '' | 'not_for_mwos' | 'keep_monitoring' | 'recommended';
 export interface TipsAttributeValue { score: number | ''; notes: string }
 export interface TipsEvaluation {
@@ -84,4 +85,34 @@ export function hasTipsContent(tips: TipsEvaluation | null | undefined) {
   if (!tips) return false;
   if (tips.overallAssessment || tips.positions || tips.preferredFoot || tips.nationality || tips.matchObserved || tips.competitionLevel || tips.otherNotes || tips.physicality) return true;
   return TIPS_SECTIONS.some(section => section.attributes.some(attribute => tips.attributes[attribute[0]].score !== '' || tips.attributes[attribute[0]].notes.trim()));
+}
+
+export function calculateTipsScoreSummary(tips: TipsEvaluation | null | undefined) {
+  const sectionScores = {} as Record<TipsSectionKey, number>;
+  const sectionRatedCounts = {} as Record<TipsSectionKey, number>;
+  let total = 0;
+  let count = 0;
+
+  for (const section of TIPS_SECTIONS) {
+    let sectionTotal = 0;
+    let sectionCount = 0;
+    for (const [key] of section.attributes) {
+      const score = tips?.attributes[key]?.score;
+      if (typeof score !== 'number' || !Number.isInteger(score) || score < 1 || score > 10) continue;
+      total += score;
+      count += 1;
+      sectionTotal += score;
+      sectionCount += 1;
+    }
+    // A missing category is not a zero rating. The caller can hide its chart axis.
+    sectionScores[section.key] = sectionCount ? sectionTotal / sectionCount : 0;
+    sectionRatedCounts[section.key] = sectionCount;
+  }
+
+  return {
+    ratedCount: count,
+    averageOutOfTen: count ? total / count : 0,
+    sectionScores,
+    sectionRatedCounts,
+  };
 }

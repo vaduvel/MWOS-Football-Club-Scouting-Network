@@ -5,6 +5,7 @@ import {
   fetchStaffAccessEvents,
   fetchStaffInvitations,
   getCurrentAppUser,
+  getReportCompetitionLabel,
   canAccessTrainingModule,
   type AppRole,
   type AppTeam,
@@ -129,6 +130,7 @@ type ReportRow = {
   user_id: string;
   report_type: 'match' | 'individual' | null;
   competition: string | null;
+  tips_evaluation?: unknown;
   date: string | null;
   home_team: string | null;
   away_team: string | null;
@@ -321,7 +323,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
       .order('departure_time', { ascending: true, nullsFirst: false }),
     supabase
       .from('reports')
-      .select('id, user_id, report_type, competition, date, home_team, away_team, created_at, players(name)')
+      .select('id, user_id, report_type, competition, tips_evaluation, date, home_team, away_team, created_at, players(name)')
       .order('created_at', { ascending: false })
       .limit(12),
     canSeeStaffCoverage
@@ -458,7 +460,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
       fixture: report.report_type === 'individual'
         ? report.players?.[0]?.name?.trim() || 'Individual player report'
         : `${(report.home_team || 'Home').trim() || 'Home'} vs ${(report.away_team || 'Away').trim() || 'Away'}`,
-      competition: (report.competition || '').trim() || 'Scouting report',
+      competition: getReportCompetitionLabel(report),
       date: (report.date || '').trim() || report.created_at.slice(0, 10),
       ownerName: owner?.name || getDisplayName(owner?.email),
       createdAt: report.created_at,
