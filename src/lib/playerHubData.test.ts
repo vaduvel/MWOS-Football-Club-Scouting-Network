@@ -42,16 +42,18 @@ function review(playerId: string, reportId: string, score: number | null) {
 }
 
 function seed(tables: Record<string, unknown[]>) {
+  const selections = new Map<string, string>();
   from.mockImplementation((table: string) => {
     // Exercise the real fetch/aggregation boundary using the rows returned by
     // each query, while keeping this regression independent of production data.
     const query = Promise.resolve({ data: tables[table] || [], error: null });
     return Object.assign(query, {
-      select: () => query,
+      select: (columns: string) => { selections.set(table, columns); return query; },
       eq: () => query,
       order: () => query,
     });
   });
+  return selections;
 }
 
 beforeEach(() => from.mockReset());
@@ -149,13 +151,15 @@ describe('Player Hub score aggregation', () => {
     const tips = createEmptyTipsEvaluation();
     tips.attributes.first_touch.score = 8;
     tips.overallAssessment = 'keep_monitoring';
-    seed({
+    const selections = seed({
       reports: [{ ...report('individual-tips', '2026-09-21', 'individual'), tips_evaluation: tips }],
       players: [player('tips-player', 'individual-tips', null)],
       player_reviews: [review('tips-player', 'individual-tips', 3)],
     });
 
     const overview = await fetchPlayerHubData();
+
+    expect(selections.get('reports')).toContain('tips_evaluation');
 
     expect(overview.entries).toHaveLength(1);
     expect(overview.entries[0]).toMatchObject({

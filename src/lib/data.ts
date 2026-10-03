@@ -1456,7 +1456,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     supabase
       .from('reports')
       .select(
-        'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at',
+        'id, user_id, report_type, competition, tips_evaluation, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at',
       )
       .order('created_at', { ascending: false }),
     supabase
