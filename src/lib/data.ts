@@ -59,7 +59,7 @@ export {
   type AppUser,
 } from './authData';
 import type { Player, PlayerReview, Report } from '../store/report';
-import { hasTipsContent, normalizeTipsEvaluation, TIPS_ASSESSMENTS, usesLegacyIndividualReview } from './tipsEvaluationDomain';
+import { calculateTipsScoreSummary, hasTipsContent, normalizeTipsEvaluation, TIPS_ASSESSMENTS, TIPS_SECTIONS, usesLegacyIndividualReview, type TipsSectionKey } from './tipsEvaluationDomain';
 import type { AppSettings } from '../store/settings';
 import { createId } from './ids';
 import { assertSupabaseConfigured, supabase } from './supabase';
@@ -477,6 +477,9 @@ export interface PlayerHubEntry {
   trend: 'up' | 'steady' | 'down';
   trendDelta: number;
   metrics: PlayerMetricsAverages;
+  tipsMetrics: Record<TipsSectionKey, number>;
+  tipsMetricCounts: Record<TipsSectionKey, number>;
+  latestScoringMethod: 'tips' | 'legacy';
   trendPoints: PlayerTrendPoint[];
   isWatchlisted: boolean;
   watchlistId?: string;
@@ -733,6 +736,27 @@ function toStringValue(value: string | null | undefined) {
   return value ?? '';
 }
 
+export function getReportCompetitionLabel(report: {
+  report_type?: 'match' | 'individual' | null;
+  competition: string | null;
+  tips_evaluation?: unknown;
+}) {
+  if (report.report_type === 'individual') {
+    return getReportCompetitionValue(report) || 'Competition not provided';
+  }
+  return getReportCompetitionValue(report) || 'Friendly';
+}
+
+function getReportCompetitionValue(report: {
+  report_type?: 'match' | 'individual' | null;
+  competition: string | null;
+  tips_evaluation?: unknown;
+}) {
+  return (report.report_type === 'individual'
+    ? normalizeTipsEvaluation(report.tips_evaluation)?.competitionLevel.trim()
+    : '') || toStringValue(report.competition).trim();
+}
+
 function toNullableText(value: string) {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
@@ -916,7 +940,7 @@ export async function fetchReports() {
   const { data, error } = await supabase
     .from('reports')
     .select(
-      'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, created_at, updated_at, players(*)',
+      'id, user_id, report_type, competition, date, venue, kickoff, weather, pitch, home_team, home_score, away_team, away_score, scout_name, focus, general_notes, home_manager, away_manager, formation_home, formation_away, tips_evaluation, created_at, updated_at, players(*)',
     )
     .order('created_at', { ascending: false });
 
@@ -924,7 +948,10 @@ export async function fetchReports() {
     throw error;
   }
 
-  const mappedReports = (data as ReportRow[]).map((row) => mapReport(row));
+  const mappedReports = (data as ReportRow[]).map((row) => ({
+    ...mapReport(row),
+    competition: getReportCompetitionLabel(row),
+  }));
 
   if (!userHasAnyRole(authUser, ['admin', 'executive_director', 'technical_director', 'board_observer']) || mappedReports.length === 0) {
     return mappedReports;
@@ -1033,7 +1060,7 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
   const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
   const competitionsTracked = new Set(
     reports
-      .map((report) => toStringValue(report.competition).trim().toLowerCase())
+      .map((report) => getReportCompetitionValue(report).toLowerCase())
       .filter(Boolean),
   ).size;
 
@@ -1065,7 +1092,7 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
     return {
       id: report.id,
       report_type: report.report_type || 'match',
-      competition: toStringValue(report.competition) || 'Friendly',
+      competition: getReportCompetitionLabel(report),
       date: toStringValue(report.date),
       home_team: toStringValue(report.home_team) || 'Home',
       away_team: toStringValue(report.away_team) || 'Away',
@@ -1117,9 +1144,18 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
       return;
     }
 
-    const reviewAverage = calculateReviewAverage(review);
-    const potentialRank = getPotentialRank(review.potential_level);
-    const verdict = toStringValue(review.recommendation_verdict);
+    const tips = report.report_type === 'individual' ? normalizeTipsEvaluation(report.tips_evaluation) : null;
+    const legacyReviewUsed = report.report_type !== 'individual' || usesLegacyIndividualReview(tips);
+    const tipsScore = calculateTipsScoreSummary(tips);
+    const reviewAverage = legacyReviewUsed
+      ? calculateReviewAverage(review)
+      : tipsScore.ratedCount ? roundOneDecimal(tipsScore.averageOutOfTen / 2) : 0;
+    if (!reviewAverage) return;
+    const potentialLevel = legacyReviewUsed ? toStringValue(review.potential_level) || 'Academy' : 'Not assessed';
+    const potentialRank = getPotentialRank(potentialLevel);
+    const verdict = legacyReviewUsed
+      ? toStringValue(review.recommendation_verdict)
+      : TIPS_ASSESSMENTS.find(option => option.value === tips?.overallAssessment)?.label || '';
     const existing = topPlayersMap.get(playerId);
 
     if (!existing) {
@@ -1128,7 +1164,7 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
         report,
         totalScore: reviewAverage,
         mentions: 1,
-        bestPotential: toStringValue(review.potential_level) || 'Academy',
+        bestPotential: potentialLevel,
         bestPotentialRank: potentialRank,
         verdict,
       });
@@ -1140,7 +1176,7 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
 
     if (potentialRank > existing.bestPotentialRank) {
       existing.bestPotentialRank = potentialRank;
-      existing.bestPotential = toStringValue(review.potential_level) || existing.bestPotential;
+      existing.bestPotential = potentialLevel;
     }
 
     if (verdict.length > existing.verdict.length) {
@@ -1155,7 +1191,7 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
       shirt_number: typeof entry.player.shirt_number === 'number' ? entry.player.shirt_number : '',
       team_side: entry.player.team_side,
       report_id: entry.report.id,
-      fixture: `${toStringValue(entry.report.home_team) || 'Home'} vs ${toStringValue(entry.report.away_team) || 'Away'}`,
+      fixture: buildFixtureLabel(entry.report),
       report_date: toStringValue(entry.report.date),
       potential_level: entry.bestPotential,
       verdict: entry.verdict || 'Positive report entry',
@@ -1500,6 +1536,9 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
       bestPotentialRank: number;
       metricTotals: Record<(typeof PLAYER_ATTRIBUTE_FIELDS)[number], number>;
       metricCounts: Record<(typeof PLAYER_ATTRIBUTE_FIELDS)[number], number>;
+      tipsMetricTotals: Record<TipsSectionKey, number>;
+      tipsMetricCounts: Record<TipsSectionKey, number>;
+      latestScoringMethod: 'tips' | 'legacy';
       trendPoints: PlayerTrendPoint[];
     }
   >();
@@ -1532,6 +1571,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     const playerReviews = reviewsByPlayerId.get(player.id) || [];
     const tips = report.report_type === 'individual' ? normalizeTipsEvaluation(report.tips_evaluation) : null;
     const legacyReviewUsed = report.report_type !== 'individual' || usesLegacyIndividualReview(tips);
+    const tipsScore = calculateTipsScoreSummary(tips);
     // A squad-sheet mention is not scouting evidence. Keep those players in the
     // match report, but do not promote them into Player Hub until a review exists.
     if (legacyReviewUsed ? !hasPlayerReviewEvidence(playerReviews) : !hasTipsContent(tips)) {
@@ -1543,7 +1583,9 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     const ratingValue = typeof player.rating === 'number' ? Number(player.rating) : 0;
     // Scouting attributes use /5; the independent match rating uses /10.
     // Only review evidence belongs in the comparable score and trend series.
-    const occurrenceScore = roundOneDecimal(averageNumbers(reviewScores));
+    const occurrenceScore = legacyReviewUsed
+      ? roundOneDecimal(averageNumbers(reviewScores))
+      : tipsScore.ratedCount ? roundOneDecimal(tipsScore.averageOutOfTen / 2) : 0;
     const latestDate = toStringValue(report.date) || report.created_at;
     const fixture = buildFixtureLabel(report);
     const bestReview = (legacyReviewUsed ? playerReviews : []).reduce<PlayerReviewRow | null>((current, review) => {
@@ -1565,6 +1607,8 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
       const metricCounts = Object.fromEntries(
         PLAYER_ATTRIBUTE_FIELDS.map((field) => [field, 0]),
       ) as Record<(typeof PLAYER_ATTRIBUTE_FIELDS)[number], number>;
+      const tipsMetricTotals = Object.fromEntries(TIPS_SECTIONS.map(section => [section.key, 0])) as Record<TipsSectionKey, number>;
+      const tipsMetricCounts = Object.fromEntries(TIPS_SECTIONS.map(section => [section.key, 0])) as Record<TipsSectionKey, number>;
 
       playerMap.set(playerKey, {
         playerKey,
@@ -1574,7 +1618,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         latestPlayerId: player.id,
         latestReportDate: latestDate,
         latestFixture: fixture,
-        latestCompetition: toStringValue(report.competition) || 'Friendly',
+        latestCompetition: getReportCompetitionLabel(report),
         latestVerdict,
         overview,
         strengths: toStringValue(bestReview?.strengths),
@@ -1587,6 +1631,9 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         bestPotentialRank: potentialRank,
         metricTotals,
         metricCounts,
+        tipsMetricTotals,
+        tipsMetricCounts,
+        latestScoringMethod: legacyReviewUsed ? 'legacy' : 'tips',
         trendPoints: [
           {
             reportId: report.id,
@@ -1623,7 +1670,8 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         currentEntry.latestPlayerId = player.id;
         currentEntry.latestReportDate = latestDate;
         currentEntry.latestFixture = fixture;
-        currentEntry.latestCompetition = toStringValue(report.competition) || 'Friendly';
+        currentEntry.latestCompetition = getReportCompetitionLabel(report);
+        currentEntry.latestScoringMethod = legacyReviewUsed ? 'legacy' : 'tips';
         currentEntry.latestVerdict = latestVerdict || currentEntry.latestVerdict;
         currentEntry.overview = overview || currentEntry.overview;
         currentEntry.strengths = toStringValue(bestReview?.strengths) || currentEntry.strengths;
@@ -1655,6 +1703,13 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         }
       });
     });
+    if (!legacyReviewUsed) {
+      TIPS_SECTIONS.forEach(section => {
+        if (!tipsScore.sectionRatedCounts[section.key]) return;
+        targetEntry.tipsMetricTotals[section.key] += tipsScore.sectionScores[section.key] / 2;
+        targetEntry.tipsMetricCounts[section.key] += 1;
+      });
+    }
   });
 
   const entries = Array.from(playerMap.values())
@@ -1669,6 +1724,11 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         accumulator[field] = count > 0 ? roundOneDecimal(total / count) : 0;
         return accumulator;
       }, {} as PlayerMetricsAverages);
+      const tipsMetrics = TIPS_SECTIONS.reduce((accumulator, section) => {
+        const count = entry.tipsMetricCounts[section.key];
+        accumulator[section.key] = count > 0 ? roundOneDecimal(entry.tipsMetricTotals[section.key] / count) : 0;
+        return accumulator;
+      }, {} as Record<TipsSectionKey, number>);
       const legacyPlayerKey = buildPlayerKey(entry.name, entry.clubLabel);
       const watchlistRow = watchlistByKey.get(entry.playerKey) || watchlistByKey.get(legacyPlayerKey);
 
@@ -1695,6 +1755,9 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
         trend: trendState.trend,
         trendDelta: trendState.delta,
         metrics,
+        tipsMetrics,
+        tipsMetricCounts: entry.tipsMetricCounts,
+        latestScoringMethod: entry.latestScoringMethod,
         trendPoints: sortedTrendPoints.slice(-6),
         isWatchlisted: Boolean(watchlistRow),
         watchlistId: watchlistRow?.id,
@@ -1777,7 +1840,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
 
   const recentReports = reports.slice(0, 6).map((report) => ({
     id: report.id,
-    competition: toStringValue(report.competition) || 'Friendly',
+    competition: getReportCompetitionLabel(report),
     date: toStringValue(report.date) || report.created_at,
     fixture: buildFixtureLabel(report),
     venue: toStringValue(report.venue) || 'Unknown venue',

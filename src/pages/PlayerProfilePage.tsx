@@ -594,8 +594,8 @@ export default function PlayerProfilePage() {
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Avg</p>
-                              <p className="mt-1 text-lg font-black text-[var(--color-primary)]">{entry.averageScore.toFixed(1)}</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-mid)]">Avg /5</p>
+                              <p className="mt-1 text-lg font-black text-[var(--color-primary)]">{entry.averageScore > 0 ? entry.averageScore.toFixed(1) : '--'}</p>
                             </div>
                           </div>
                         </button>

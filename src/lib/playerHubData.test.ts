@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchPlayerHubData } from './data';
-import { createEmptyTipsEvaluation } from './tipsEvaluationDomain';
+import { fetchPlayerHubData, getReportCompetitionLabel } from './data';
+import { createEmptyTipsEvaluation, TIPS_SECTIONS } from './tipsEvaluationDomain';
 
 const { from } = vi.hoisted(() => ({ from: vi.fn() }));
 
@@ -57,6 +57,14 @@ function seed(tables: Record<string, unknown[]>) {
 beforeEach(() => from.mockReset());
 
 describe('Player Hub score aggregation', () => {
+  it('uses the TIPS division for individual reports without changing match competition labels', () => {
+    const tips = createEmptyTipsEvaluation();
+    tips.competitionLevel = 'Div 1';
+    expect(getReportCompetitionLabel({ report_type: 'individual', competition: null, tips_evaluation: tips })).toBe('Div 1');
+    expect(getReportCompetitionLabel({ report_type: 'individual', competition: null, tips_evaluation: createEmptyTipsEvaluation() })).toBe('Competition not provided');
+    expect(getReportCompetitionLabel({ report_type: 'match', competition: 'Cup' })).toBe('Cup');
+    expect(getReportCompetitionLabel({ report_type: 'match', competition: null })).toBe('Friendly');
+  });
   it.each([1, 7, 10])('keeps the eight-attribute score on /5 when match rating is %s/10', async (rating) => {
     seed({
       reports: [report('match-1', '2026-09-20')],
@@ -137,7 +145,7 @@ describe('Player Hub score aggregation', () => {
     expect(overview.topReported).toEqual([]);
   });
 
-  it('lists a TIPS-only player without treating untouched 1-5 placeholders as real scores', async () => {
+  it('scores a TIPS-only player from /10 evidence without using untouched 1-5 placeholders', async () => {
     const tips = createEmptyTipsEvaluation();
     tips.attributes.first_touch.score = 8;
     tips.overallAssessment = 'keep_monitoring';
@@ -152,13 +160,40 @@ describe('Player Hub score aggregation', () => {
     expect(overview.entries).toHaveLength(1);
     expect(overview.entries[0]).toMatchObject({
       reportCount: 1,
-      averageScore: 0,
-      latestScore: 0,
+      averageScore: 4,
+      latestScore: 4,
       latestVerdict: 'Keep monitoring',
       bestPotential: 'Not assessed',
+      latestScoringMethod: 'tips',
       metrics: { pace: 0, strength: 0 },
-      trendPoints: [],
+      tipsMetrics: { technique: 4, intelligence: 0, personality: 0, speed: 0 },
+      trendPoints: [{ reportId: 'individual-tips', score: 4 }],
     });
+  });
+
+  it('separates a strongly rated TIPS player from a weakly rated one and shows the entered division', async () => {
+    const high = createEmptyTipsEvaluation();
+    const low = createEmptyTipsEvaluation();
+    for (const section of TIPS_SECTIONS) for (const [key] of section.attributes) {
+      high.attributes[key].score = 9;
+      low.attributes[key].score = 3;
+    }
+    low.competitionLevel = 'Div 1';
+    seed({
+      reports: [
+        { ...report('high', '2026-10-02', 'individual'), tips_evaluation: high, competition: null },
+        { ...report('low', '2026-10-02', 'individual'), tips_evaluation: low, competition: null },
+      ],
+      players: [player('high-player', 'high', null, 'High player'), player('low-player', 'low', null, 'Low player')],
+      player_reviews: [review('high-player', 'high', 3), review('low-player', 'low', 3)],
+    });
+
+    const overview = await fetchPlayerHubData();
+    const highEntry = overview.entries.find(entry => entry.name === 'High player');
+    const lowEntry = overview.entries.find(entry => entry.name === 'Low player');
+    expect(highEntry).toMatchObject({ averageScore: 4.5, latestScore: 4.5, latestCompetition: 'Competition not provided', tipsMetrics: { technique: 4.5, intelligence: 4.5, personality: 4.5, speed: 4.5 } });
+    expect(lowEntry).toMatchObject({ averageScore: 1.5, latestScore: 1.5, latestCompetition: 'Div 1', tipsMetrics: { technique: 1.5, intelligence: 1.5, personality: 1.5, speed: 1.5 } });
+    expect(overview.recentReports.find(item => item.id === 'low')?.competition).toBe('Div 1');
   });
 
   it('does not list an empty new TIPS draft as scouting evidence', async () => {
