@@ -166,6 +166,7 @@ export interface OversightStaffingHealth {
 
 export interface OversightRecentReport {
   id: string;
+  reportType: 'match' | 'individual';
   fixture: string;
   competition: string;
   date: string;
@@ -457,6 +458,7 @@ export async function fetchOversightWorkspace(): Promise<OversightWorkspace> {
     const owner = profilesById.get(report.user_id);
     return {
       id: report.id,
+      reportType: report.report_type === 'individual' ? 'individual' : 'match',
       fixture: report.report_type === 'individual'
         ? report.players?.[0]?.name?.trim() || 'Individual player report'
         : `${(report.home_team || 'Home').trim() || 'Home'} vs ${(report.away_team || 'Away').trim() || 'Away'}`,

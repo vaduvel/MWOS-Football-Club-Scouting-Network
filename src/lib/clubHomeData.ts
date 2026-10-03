@@ -49,6 +49,7 @@ type ReportLiteRow = {
 
 export interface ClubHomeRecentReport {
   id: string;
+  reportType: 'match' | 'individual';
   fixture: string;
   competition: string;
   date: string;
@@ -130,6 +131,7 @@ async function fetchRecentReports(limit = 4) {
 
   const items = ((recentResponse.data || []) as ReportLiteRow[]).map((report) => ({
     id: report.id,
+    reportType: report.report_type === 'individual' ? 'individual' as const : 'match' as const,
     fixture: getFixtureLabel(report),
     competition: (report.competition || '').trim() || 'Friendly',
     date: (report.date || '').trim(),
@@ -232,6 +234,7 @@ export async function fetchClubHomeWorkspace(): Promise<ClubHomeWorkspace> {
     recentReports: leadership
       ? leadership.recentReports.slice(0, 4).map((report) => ({
           id: report.id,
+          reportType: report.reportType,
           fixture: report.fixture,
           competition: report.competition,
           date: report.date,

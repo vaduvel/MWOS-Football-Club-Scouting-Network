@@ -50,6 +50,17 @@ export async function verifyAccessBoundaries(db) {
   await db.query("insert into players(report_id,team_side,name) values ($1,'home','External QA')",[individual]);
   assert.equal((await db.query('select report_type from reports where id=$1',[individual])).rows[0].report_type,'individual');
   await db.exec('reset role');
+  const reportAlerts = (await db.query(`select recipient_user_id, link_path, email_enabled
+    from app_notifications where event_key=$1 order by recipient_user_id`, [`scouting_report_created:${individual}`])).rows;
+  assert.deepEqual(reportAlerts.map(row => row.recipient_user_id).sort(),
+    ['admin','executive_director','technical_director','board_observer'].map(role => ids[role]).sort(),
+    'new report alerts go only to leadership readers, never the author');
+  assert(reportAlerts.every(row => row.link_path === `/scouting/individual/${individual}` && row.email_enabled === false));
+  await asUser(ids.board_observer);
+  assert.equal((await db.query('select id from reports where id=$1',[individual])).rows.length, 1,
+    'Board Observer can read the report referenced by its alert');
+  await db.exec('reset role');
+  console.log('PASS new scouting report alerts and Board Observer read-only access');
   const plan = (await db.query(`insert into transport_plans(team_id,title,event_date,destination,driver_user_id,created_by,updated_by)
     values ($1,'QA transport',current_date,'QA venue',$2,$3,$3) returning id`, [a,ids.driver,ids.admin])).rows[0].id;
   for (const role of ['admin','technical_director','coach','team_manager','driver']) {

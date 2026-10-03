@@ -1,14 +1,15 @@
 import type { NotificationWorkspaceItem } from './notificationWorkspaceData';
 import type { TrainingNotificationType } from './trainingData';
 
-export type NotificationWorkspaceCategory = 'announcement' | 'training' | 'transport';
+export type NotificationWorkspaceCategory = 'announcement' | 'training' | 'transport' | 'scouting';
 export type NotificationWorkspaceFilter =
   | 'all'
   | 'unread'
   | 'announcements'
   | 'notifications'
   | 'training'
-  | 'transport';
+  | 'transport'
+  | 'scouting';
 
 export interface NotificationWorkspaceStats {
   total: number;
@@ -17,6 +18,7 @@ export interface NotificationWorkspaceStats {
   notifications: number;
   training: number;
   transport: number;
+  scouting: number;
   pinned: number;
   emailed: number;
 }
@@ -24,6 +26,10 @@ export interface NotificationWorkspaceStats {
 function getNotificationTypeCategory(type: TrainingNotificationType): NotificationWorkspaceCategory {
   if (type === 'transport_plan_updated') {
     return 'transport';
+  }
+
+  if (type === 'scouting_report_created') {
+    return 'scouting';
   }
 
   return 'training';
@@ -52,6 +58,8 @@ export function filterNotificationItems(
       return items.filter((item) => getNotificationCategory(item) === 'training');
     case 'transport':
       return items.filter((item) => getNotificationCategory(item) === 'transport');
+    case 'scouting':
+      return items.filter((item) => getNotificationCategory(item) === 'scouting');
     case 'all':
     default:
       return items;
@@ -76,6 +84,7 @@ export function buildNotificationWorkspaceStats(items: NotificationWorkspaceItem
       acc.notifications += 1;
       if (category === 'training') acc.training += 1;
       if (category === 'transport') acc.transport += 1;
+      if (category === 'scouting') acc.scouting += 1;
       if (item.kind === 'notification' && item.emailSentAt) acc.emailed += 1;
       return acc;
     },
@@ -86,6 +95,7 @@ export function buildNotificationWorkspaceStats(items: NotificationWorkspaceItem
       notifications: 0,
       training: 0,
       transport: 0,
+      scouting: 0,
       pinned: 0,
       emailed: 0,
     },
