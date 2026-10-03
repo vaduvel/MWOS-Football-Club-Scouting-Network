@@ -7,6 +7,7 @@ export const MODULE_ACCESS_ROLE_SLUGS = {
   matchDay: ['admin', 'executive_director', 'technical_director', 'board_observer', 'coach', 'team_manager'],
   transport: ['admin', 'executive_director', 'technical_director', 'coach', 'team_manager', 'driver'],
   scouting: ['admin', 'executive_director', 'technical_director', 'scout'],
+  scoutingReportRead: ['admin', 'executive_director', 'technical_director', 'board_observer', 'scout'],
   playerHub: ['admin', 'executive_director', 'technical_director', 'scout'],
   scoutingAuthoring: ['admin', 'scout'],
   oversight: ['admin', 'executive_director', 'technical_director', 'board_observer'],
@@ -66,6 +67,10 @@ export function canAccessTransportModule(user: RoleAccessUserShape | null | unde
 
 export function canAccessScoutingModule(user: RoleAccessUserShape | null | undefined) {
   return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.scouting);
+}
+
+export function canReadScoutingReports(user: RoleAccessUserShape | null | undefined) {
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.scoutingReportRead);
 }
 
 export function canAccessInternalRoster(user: RoleAccessUserShape | null | undefined) {

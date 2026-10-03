@@ -4,6 +4,7 @@ import {
   canAccessMatchDayModule,
   canAccessPlayerHub,
   canAccessScoutingModule,
+  canReadScoutingReports,
   canAccessTrainingModule,
   canAccessTransportModule,
   getDefaultModulePath,
@@ -83,6 +84,8 @@ describe('roleAccessDomain', () => {
     expect(canAccessTrainingModule(boardObserver)).toBe(false);
     expect(canAccessTransportModule(boardObserver)).toBe(false);
     expect(canAccessScoutingModule(boardObserver)).toBe(false);
+    expect(canReadScoutingReports(boardObserver)).toBe(true);
+    expect(canReadScoutingReports(coach)).toBe(false);
   });
 
   it('computes the primary role and default module path', () => {

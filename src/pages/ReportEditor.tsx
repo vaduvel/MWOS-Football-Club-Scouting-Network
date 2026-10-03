@@ -24,7 +24,7 @@ const FormationsTab = lazy(() => import('./tabs/FormationsTab'));
 const PlayerReviewsTab = lazy(() => import('./tabs/PlayerReviewsTab'));
 const ExportTab = lazy(() => import('./tabs/ExportTab'));
 const CommentsTab = lazy(() => import('./tabs/CommentsTab'));
-import { canCreateScoutingReports, fetchReport, saveReport, userHasRole } from '../lib/data';
+import { canAccessScoutingModule, canCreateScoutingReports, fetchReport, saveReport, userHasRole } from '../lib/data';
 import { createId } from '../lib/ids';
 import { emitDraftSync } from '../lib/pwaEvents';
 import { deleteReportDraft, readReportDraft, writeReportDraft } from '../lib/reportDraftStore';
@@ -166,6 +166,7 @@ export default function ReportEditor() {
   const isExecutiveDirector = userHasRole(user, 'executive_director');
   const isTechnicalDirector = userHasRole(user, 'technical_director');
   const canEditReport = canCreateScoutingReports(user);
+  const backPath = canAccessScoutingModule(user) ? '/scouting' : '/oversight';
   const isNewReport = !id || id === 'new';
   const canCreateInitialDraft = hasMeaningfulDraftContent(currentReport);
   const requestedTab = searchParams.get('tab');
@@ -463,7 +464,7 @@ export default function ReportEditor() {
           </p>
           <p className="mt-2 text-xs font-semibold text-[var(--color-mid)]">{loadError}</p>
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
-            <button type="button" onClick={() => navigate('/scouting')} className="mwos-btn mwos-btn-secondary">
+            <button type="button" onClick={() => navigate(backPath)} className="mwos-btn mwos-btn-secondary">
               <ArrowLeft size={16} /> Back to scouting
             </button>
             <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="mwos-btn mwos-btn-primary">
@@ -492,7 +493,7 @@ export default function ReportEditor() {
       <header className="mwos-ribbon-surface sticky top-0 z-50 shadow-sm">
         <div className="px-3 py-2.5 text-white md:hidden">
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => navigate('/scouting')} aria-label="Back to scouting" title="Back to scouting" className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10">
+            <button type="button" onClick={() => navigate(backPath)} aria-label="Back to reports" title="Back to reports" className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10">
               <ArrowLeft size={20} className="text-white" />
             </button>
 
@@ -557,7 +558,7 @@ export default function ReportEditor() {
 
         <div className="hidden items-center justify-between gap-4 px-6 py-4 text-white md:flex">
           <div className="flex items-center gap-4">
-            <button type="button" onClick={() => navigate('/scouting')} aria-label="Back to scouting" title="Back to scouting" className="rounded-full p-2 transition-colors hover:bg-white/10">
+            <button type="button" onClick={() => navigate(backPath)} aria-label="Back to reports" title="Back to reports" className="rounded-full p-2 transition-colors hover:bg-white/10">
               <ArrowLeft size={22} className="text-white" />
             </button>
             <img

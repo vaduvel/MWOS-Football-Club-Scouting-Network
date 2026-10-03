@@ -36,6 +36,7 @@ import {
 import {
   type StaffAccessEventRecord,
   canAccessScoutingModule,
+  canReadScoutingReports,
   canAccessTrainingModule,
   canAccessTransportModule,
   cancelStaffInvitation,
@@ -336,8 +337,9 @@ function ReportsFeed({ items, interactive = true }: { items: OversightRecentRepo
       <div className="space-y-3">
         {items.length > 0 ? (
           items.map((item) => (
-            <div
+            <Link
               key={item.id}
+              to={item.reportType === 'individual' ? `/scouting/individual/${item.id}` : `/scouting/report/${item.id}`}
               className={`mwos-subcard mwos-subcard-report ${interactive ? 'mwos-subcard-interactive' : ''} group flex items-start gap-3 transition ${
                 interactive ? 'hover:border-[var(--color-primary)]/22' : ''
               }`}
@@ -356,7 +358,7 @@ function ReportsFeed({ items, interactive = true }: { items: OversightRecentRepo
                   Read-only
                 </span>
               )}
-            </div>
+            </Link>
           ))
         ) : (
           <EmptyState tone="mwos-subcard-report" message="No recent scouting reports available yet." />
@@ -1030,7 +1032,7 @@ export default function OversightPage() {
                   onComplete={(planId) => setPendingAction({ kind: 'complete-transport', id: planId })}
                   onCancel={(planId) => setPendingAction({ kind: 'cancel-transport', id: planId })}
                 />
-                <ReportsFeed items={workspace.recentReports} interactive={canOpenScouting} />
+                <ReportsFeed items={workspace.recentReports} interactive={canReadScoutingReports(user)} />
                 {canManageAccess && workspace.canSeeInvitationFeed ? (
                   <InvitationFeedWithActions
                     items={workspace.pendingInvitations}

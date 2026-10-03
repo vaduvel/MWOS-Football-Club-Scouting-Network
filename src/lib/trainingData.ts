@@ -114,7 +114,8 @@ type AppNotificationRow = {
     | 'training_td_comment'
     | 'training_session_reminder'
     | 'training_schedule_changed'
-    | 'transport_plan_updated';
+    | 'transport_plan_updated'
+    | 'scouting_report_created';
   title: string;
   message: string;
   link_path: string | null;
@@ -150,7 +151,8 @@ export type TrainingNotificationType =
   | 'training_td_comment'
   | 'training_session_reminder'
   | 'training_schedule_changed'
-  | 'transport_plan_updated';
+  | 'transport_plan_updated'
+  | 'scouting_report_created';
 
 export interface TrainingPlanDay extends TrainingDayDraft {
   id?: string;
@@ -461,7 +463,7 @@ function mapNotification(row: AppNotificationRow): TrainingNotificationItem {
     title: row.title,
     message: row.message,
     linkPath: row.link_path || '/training',
-    teamName: joinedTeamName(row.teams) || 'MWOS Team',
+    teamName: row.type === 'scouting_report_created' ? 'Scouting' : joinedTeamName(row.teams) || 'MWOS Team',
     planId: row.training_plan_id,
     dayId: row.training_day_id,
     emailEnabled: row.email_enabled,

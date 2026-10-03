@@ -143,6 +143,10 @@ export function canAccessScoutingModule(user: Pick<AppUser, 'roles'> | null | un
   return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.scouting);
 }
 
+export function canReadScoutingReports(user: Pick<AppUser, 'roles'> | null | undefined) {
+  return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.scoutingReportRead);
+}
+
 export function canAccessPlayerHub(user: Pick<AppUser, 'roles'> | null | undefined) {
   return userHasAnyRole(user, MODULE_ACCESS_ROLE_SLUGS.playerHub);
 }

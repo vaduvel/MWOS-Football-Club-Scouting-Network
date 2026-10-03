@@ -22,6 +22,7 @@ import {
   canAccessMatchDayModule,
   canAccessPlayerHub,
   canAccessScoutingModule,
+  canReadScoutingReports,
   canAccessTrainingModule,
   canAccessTransportModule,
   getDefaultModulePath,
@@ -289,8 +290,9 @@ function NotificationsFeed({
       <div className="space-y-3">
         {items.length ? (
           items.map((item) => (
-            <div
+            <Link
               key={item.id}
+              to={interactive ? item.linkPath : '/notifications'}
               className={`mwos-subcard mwos-subcard-alert ${interactive ? 'mwos-subcard-interactive' : ''} group flex items-start gap-3 ${
                 interactive ? 'hover:border-[var(--color-primary)]/22' : ''
               }`}
@@ -316,7 +318,7 @@ function NotificationsFeed({
                   Read-only
                 </span>
               )}
-            </div>
+            </Link>
           ))
         ) : (
           <EmptyState tone="mwos-subcard-alert" message="No notifications yet. They will appear here as training, transport, and staff updates happen." />
@@ -438,8 +440,9 @@ function ReportsFeed({
       <div className="space-y-3">
         {items.length ? (
           items.map((item) => (
-            <div
+            <Link
               key={item.id}
+              to={item.reportType === 'individual' ? `/scouting/individual/${item.id}` : `/scouting/report/${item.id}`}
               className={`mwos-subcard mwos-subcard-report ${interactive ? 'mwos-subcard-interactive' : ''} group flex items-start gap-3 ${
                 interactive ? 'hover:border-[var(--color-primary)]/22' : ''
               }`}
@@ -458,7 +461,7 @@ function ReportsFeed({
                   Read-only
                 </span>
               )}
-            </div>
+            </Link>
           ))
         ) : (
           <EmptyState tone="mwos-subcard-report" message="No recent reports are visible from this account yet." />
@@ -813,7 +816,7 @@ export default function ClubHomePage() {
   const canOpenTraining = canAccessTrainingModule(user);
   const canOpenTransport = canAccessTransportModule(user);
   const canOpenScouting = canAccessScoutingModule(user);
-  const canOpenNotifications = canOpenTraining || canOpenTransport;
+  const canOpenNotifications = canOpenTraining || canOpenTransport || canReadScoutingReports(user);
 
   return (
     <div className="min-h-dvh bg-[var(--color-light)] md:flex">
@@ -906,7 +909,7 @@ export default function ClubHomePage() {
                       <section className="grid gap-4 xl:grid-cols-3">
                         <StaffingHealthFeed workspace={workspace} />
                         <StaffAccessActivityFeed items={workspace.recentStaffAccessEvents} />
-                        <ReportsFeed items={workspace.recentReports} interactive={canOpenScouting} />
+                        <ReportsFeed items={workspace.recentReports} interactive={canReadScoutingReports(user)} />
                       </section>
 
                       <ModuleGrid view={workspace.view} user={user} />
@@ -921,7 +924,7 @@ export default function ClubHomePage() {
                       </section>
 
                       <section className="grid gap-4 xl:grid-cols-2">
-                        <ReportsFeed items={workspace.recentReports} interactive={canOpenScouting} />
+                        <ReportsFeed items={workspace.recentReports} interactive={canReadScoutingReports(user)} />
                         <ModuleGrid view={workspace.view} user={user} />
                       </section>
                     </>
@@ -935,7 +938,7 @@ export default function ClubHomePage() {
                       </section>
 
                       <section className="grid gap-4 xl:grid-cols-2">
-                        <ReportsFeed items={workspace.recentReports} interactive={canOpenScouting} />
+                        <ReportsFeed items={workspace.recentReports} interactive={canReadScoutingReports(user)} />
                         <ModuleGrid view={workspace.view} user={user} />
                       </section>
                     </>

@@ -31,6 +31,7 @@ import {
   canAccessMatchDayModule,
   canAccessPlayerHub,
   canAccessScoutingModule,
+  canReadScoutingReports,
   canCreateScoutingReports,
   canAccessTrainingModule,
   canAccessTransportModule,
@@ -448,11 +449,11 @@ function AppContent() {
             <Route path="/lead" element={<Navigate to="/oversight" replace />} />
             <Route path="/oversight" element={<RoleRoute canAccess={canAccessOversightModule}><OversightPage /></RoleRoute>} />
             <Route path="/scouting/individual/new" element={<RoleRoute canAccess={canCreateScoutingReports}><IndividualReportPage /></RoleRoute>} />
-            <Route path="/scouting/individual/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><IndividualReportPage /></RoleRoute>} />
+            <Route path="/scouting/individual/:id" element={<RoleRoute canAccess={canReadScoutingReports}><IndividualReportPage /></RoleRoute>} />
             <Route path="/scouting/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
-            <Route path="/scouting/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
+            <Route path="/scouting/report/:id" element={<RoleRoute canAccess={canReadScoutingReports}><ReportEditor /></RoleRoute>} />
             <Route path="/report/new" element={<RoleRoute canAccess={canCreateScoutingReports}><ReportEditor /></RoleRoute>} />
-            <Route path="/report/:id" element={<RoleRoute canAccess={canAccessScoutingModule}><ReportEditor /></RoleRoute>} />
+            <Route path="/report/:id" element={<RoleRoute canAccess={canReadScoutingReports}><ReportEditor /></RoleRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to={token ? '/' : '/login'} replace />} />
           </Routes>

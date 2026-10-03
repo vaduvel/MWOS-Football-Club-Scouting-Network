@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import { useReportStore } from '../store/report';
-import { canCreateScoutingReports, extractHandwrittenReport, fetchReport, saveReport, type OcrReportResult } from '../lib/data';
+import { canAccessScoutingModule, canCreateScoutingReports, extractHandwrittenReport, fetchReport, saveReport, type OcrReportResult } from '../lib/data';
 import { createIndividualReport, recoverIndividualDraft, validateIndividualReport } from '../lib/individualReportDomain';
 import PlayerReviewsTab from './tabs/PlayerReviewsTab';
 import ConfirmActionModal from '../components/ConfirmActionModal';
@@ -40,6 +40,7 @@ export default function IndividualReportPage() {
   const [scanError, setScanError] = useState('');
   const errorRef = useRef<HTMLDivElement>(null);
   const canEdit = canCreateScoutingReports(user);
+  const backPath = canAccessScoutingModule(user) ? '/scouting' : '/oversight';
   const draftKey = `mwos:individual:v1:${user?.id}:${id || 'new'}`;
   const [readyKey, setReadyKey] = useState('');
   const [baseline, setBaseline] = useState('');
@@ -209,17 +210,17 @@ export default function IndividualReportPage() {
   };
 
   if (loading) return <main className="p-6" role="status">Loading individual report…</main>;
-  if (loadError || !report || report.report_type !== 'individual') return <main className="p-6"><p role="alert">{loadError || 'Report unavailable.'}</p><Link to="/scouting">Back to scouting</Link></main>;
+  if (loadError || !report || report.report_type !== 'individual') return <main className="p-6"><p role="alert">{loadError || 'Report unavailable.'}</p><Link to={backPath}>Back to reports</Link></main>;
   const player = report.players[0];
   const review = report.reviews[0];
-  if (!player || !review) return <main className="p-6"><p role="alert">This report is missing its player or evaluation.</p><Link to="/scouting">Back to scouting</Link></main>;
+  if (!player || !review) return <main className="p-6"><p role="alert">This report is missing its player or evaluation.</p><Link to={backPath}>Back to reports</Link></main>;
   const detectedScores = TIPS_SCORE_KEYS.filter(key => tipsScanFields[key] !== undefined).length;
   const detectedNotes = TIPS_SCORE_KEYS.filter(key => tipsScanFields[`${key}_notes`] !== undefined).length;
 
   return <main className="min-h-dvh bg-[var(--color-light)] p-3 pb-12 md:p-6">
     <div className="mx-auto max-w-6xl space-y-4">
       <header className="mwos-tips-hero mwos-tips-hero-page rounded-2xl p-4 text-white md:p-6">
-        <Link to="/scouting" onClick={event => { if (dirty || saving || scanning) { event.preventDefault(); setLeaveOpen(true); } }} className="mwos-btn-secondary inline-flex min-h-11 items-center rounded-lg px-3 py-2 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">Back to scouting</Link>
+        <Link to={backPath} onClick={event => { if (dirty || saving || scanning) { event.preventDefault(); setLeaveOpen(true); } }} className="mwos-btn-secondary inline-flex min-h-11 items-center rounded-lg px-3 py-2 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">Back to reports</Link>
         <h1 className="mt-4 text-balance text-2xl font-black text-white">TIPS Player Report</h1>
         <p className="mt-2 max-w-md text-pretty text-sm text-white/95">Add an external player, complete the TIPS evaluation and save. The previous 1–5 form is available below if needed; no match setup is required.</p>
       </header>
@@ -298,7 +299,7 @@ export default function IndividualReportPage() {
         }}>{exporting ? 'Generating PDF…' : 'Download individual PDF'}</button>
         {pdfUrl && <a className="mwos-btn-secondary min-h-11" href={pdfUrl} target="_blank" rel="noreferrer">Open generated PDF</a>}
       </section>
-      <ConfirmActionModal open={leaveOpen} tone="warning" cancelLabel="Stay and edit" title="Leave with unsaved changes?" description="Your changes have not been saved to the workspace. Stay and save, or leave and recover the draft in this browser session." confirmLabel="Leave with draft" onCancel={() => setLeaveOpen(false)} onConfirm={() => navigate('/scouting')} loading={saving || scanning} />
+      <ConfirmActionModal open={leaveOpen} tone="warning" cancelLabel="Stay and edit" title="Leave with unsaved changes?" description="Your changes have not been saved to the workspace. Stay and save, or leave and recover the draft in this browser session." confirmLabel="Leave with draft" onCancel={() => setLeaveOpen(false)} onConfirm={() => navigate(backPath)} loading={saving || scanning} />
     </div>
   </main>;
 }

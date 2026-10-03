@@ -17,6 +17,7 @@ import AppSidebar from '../components/AppSidebar';
 import {
   canAccessTrainingModule,
   canAccessTransportModule,
+  canReadScoutingReports,
 } from '../lib/data';
 import {
   archiveClubAnnouncement,
@@ -45,6 +46,7 @@ const EMPTY_STATS: NotificationWorkspaceStats = {
   notifications: 0,
   training: 0,
   transport: 0,
+  scouting: 0,
   pinned: 0,
   emailed: 0,
 };
@@ -285,7 +287,9 @@ function AlertCard({
               className={`mwos-pill ${
                 category === 'transport'
                   ? 'mwos-pill-transport'
-                  : 'mwos-pill-training'
+                  : category === 'scouting'
+                    ? 'mwos-pill-staff'
+                    : 'mwos-pill-training'
               }`}
             >
               {category}
@@ -320,7 +324,8 @@ export default function NotificationsPage() {
   const navigate = useNavigate();
   const canSeeTrainingAlerts = canAccessTrainingModule(user);
   const canSeeTransportAlerts = canAccessTransportModule(user);
-  const canSeeOperationalAlerts = canSeeTrainingAlerts || canSeeTransportAlerts;
+  const canSeeScoutingAlerts = canReadScoutingReports(user);
+  const canSeeOperationalAlerts = canSeeTrainingAlerts || canSeeTransportAlerts || canSeeScoutingAlerts;
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -350,7 +355,8 @@ export default function NotificationsPage() {
         const category = getNotificationCategory(item);
         if (category === 'announcement') return true;
         if (category === 'training') return canSeeTrainingAlerts;
-        return canSeeTransportAlerts;
+        if (category === 'transport') return canSeeTransportAlerts;
+        return canSeeScoutingAlerts;
       });
       setItems(roleVisibleItems);
       setStats(buildNotificationWorkspaceStats(roleVisibleItems));
@@ -379,7 +385,7 @@ export default function NotificationsPage() {
     () => getFilteredNotificationWorkspaceItems(items, filter),
     [items, filter],
   );
-  const canOpenNotificationTarget = canAccessTrainingModule(user) || canAccessTransportModule(user);
+  const canOpenNotificationTarget = canSeeOperationalAlerts;
 
   async function handleOpenNotification(item: NotificationWorkspaceItem) {
     if (item.kind !== 'notification') return;
@@ -739,6 +745,7 @@ export default function NotificationsPage() {
               {canSeeOperationalAlerts ? <FilterChip active={filter === 'notifications'} label="Operational" mobileLabel="Ops" count={stats.notifications} onClick={() => setFilter('notifications')} /> : null}
               {canSeeTrainingAlerts ? <FilterChip active={filter === 'training'} label="Training" mobileLabel="Train" count={stats.training} onClick={() => setFilter('training')} /> : null}
               {canSeeTransportAlerts ? <FilterChip active={filter === 'transport'} label="Transport" mobileLabel="Trips" count={stats.transport} onClick={() => setFilter('transport')} /> : null}
+              {canSeeScoutingAlerts ? <FilterChip active={filter === 'scouting'} label="Scouting" mobileLabel="Scout" count={stats.scouting} onClick={() => setFilter('scouting')} /> : null}
             </div>
           </section>
 

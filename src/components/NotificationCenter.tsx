@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   canAccessTrainingModule,
   canAccessTransportModule,
+  canReadScoutingReports,
 } from '../lib/data';
 import {
   fetchTrainingNotificationCenter,
@@ -77,7 +78,7 @@ export default function NotificationCenter() {
   const [error, setError] = useState('');
   const [items, setItems] = useState<TrainingNotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const canOpenNotificationTarget = canAccessTrainingModule(user) || canAccessTransportModule(user);
+  const canOpenNotificationTarget = canAccessTrainingModule(user) || canAccessTransportModule(user) || canReadScoutingReports(user);
 
   const refresh = async () => {
     setLoading(true);

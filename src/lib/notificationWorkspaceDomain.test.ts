@@ -70,6 +70,21 @@ const sampleItems: NotificationWorkspaceItem[] = [
     readAt: null,
     createdAt: '2026-05-13T08:20:00.000Z',
   },
+  {
+    kind: 'notification',
+    id: '4',
+    type: 'scouting_report_created',
+    title: 'New scouting report',
+    message: 'A new individual player report is ready to review.',
+    linkPath: '/scouting/individual/report-1',
+    teamName: 'Scouting',
+    planId: null,
+    dayId: null,
+    emailEnabled: false,
+    emailSentAt: null,
+    readAt: null,
+    createdAt: '2026-05-13T09:00:00.000Z',
+  },
 ];
 
 describe('getNotificationCategory', () => {
@@ -77,6 +92,7 @@ describe('getNotificationCategory', () => {
     expect(getNotificationCategory(sampleItems[0]!)).toBe('announcement');
     expect(getNotificationCategory(sampleItems[1]!)).toBe('training');
     expect(getNotificationCategory(sampleItems[2]!)).toBe('transport');
+    expect(getNotificationCategory(sampleItems[4]!)).toBe('scouting');
   });
 });
 
@@ -86,6 +102,7 @@ describe('filterNotificationItems', () => {
       'announcement-1',
       '1',
       '3',
+      '4',
     ]);
   });
 
@@ -100,23 +117,29 @@ describe('filterNotificationItems', () => {
       '1',
       '2',
       '3',
+      '4',
     ]);
   });
 
   it('returns only transport notifications for the transport filter', () => {
     expect(filterNotificationItems(sampleItems, 'transport').map((item) => item.id)).toEqual(['2']);
   });
+
+  it('returns only scouting notifications for the scouting filter', () => {
+    expect(filterNotificationItems(sampleItems, 'scouting').map((item) => item.id)).toEqual(['4']);
+  });
 });
 
 describe('buildNotificationWorkspaceStats', () => {
   it('counts unread, announcements, pinned, operational and emailed items', () => {
     expect(buildNotificationWorkspaceStats(sampleItems)).toEqual({
-      total: 4,
-      unread: 3,
+      total: 5,
+      unread: 4,
       announcements: 1,
-      notifications: 3,
+      notifications: 4,
       training: 2,
       transport: 1,
+      scouting: 1,
       pinned: 1,
       emailed: 2,
     });
