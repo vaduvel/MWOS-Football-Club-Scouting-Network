@@ -5,6 +5,7 @@ import {
   flattenInvitationRoles,
   flattenInvitationTeams,
   generateInviteActionLink,
+  getInvitationAuthLinkType,
   logStaffAccessEvent,
   sendResentInviteEmail,
 } from './_staff-invitations.js';
@@ -42,17 +43,19 @@ export async function handler(event) {
       return json(404, { error: 'Invitation not found.' });
     }
 
-    if (invitation.status !== 'pending') {
-      return json(400, { error: 'Only pending invitations can be resent.' });
+    if (!['pending', 'expired'].includes(invitation.status)) {
+      return json(400, { error: 'Only pending or expired invitations can be reactivated.' });
     }
 
     const roles = flattenInvitationRoles(invitation);
     const teams = flattenInvitationTeams(invitation);
+    const authLinkType = await getInvitationAuthLinkType(serviceSupabase, invitation);
     const { actionLink } = await generateInviteActionLink({
       email: invitation.email,
       fullName: invitation.full_name,
       invitationToken: invitation.invitation_token,
       publicAppUrl,
+      authLinkType,
     });
 
     const nowIso = new Date().toISOString();
@@ -90,7 +93,7 @@ export async function handler(event) {
 
     return json(200, {
       ok: true,
-      message: delivery.status === 'sent' ? 'Invitation resent.' : 'Fresh activation link prepared.',
+      message: delivery.status === 'sent' ? 'Invitation reactivated and sent.' : 'Fresh activation link prepared.',
       delivery,
       ...(delivery.status !== 'sent' ? { activationLink: actionLink } : {}),
     });

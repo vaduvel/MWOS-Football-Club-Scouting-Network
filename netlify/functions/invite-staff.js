@@ -3,10 +3,12 @@ import {
   attemptEmailDelivery,
   applyUserAccess,
   createInvitationRecord,
+  fetchExistingUserAccessState,
   fetchExistingUserByEmail,
   fetchRolesAndTeams,
   generateInviteActionLink,
   logStaffAccessEvent,
+  requiresInvitationActivation,
   sendExistingUserAccessEmail,
   sendInviteEmail,
 } from './_staff-invitations.js';
@@ -49,8 +51,11 @@ export async function handler(event) {
     const serviceSupabase = createServiceSupabaseClient();
     const { roles, teams } = await fetchRolesAndTeams(serviceSupabase, Array.from(new Set(roleSlugs)), Array.from(new Set(teamIds)));
     const existingUser = await fetchExistingUserByEmail(serviceSupabase, email);
+    const existingAccess = existingUser
+      ? await fetchExistingUserAccessState(serviceSupabase, existingUser.id, email)
+      : null;
 
-    if (existingUser) {
+    if (existingUser && !requiresInvitationActivation(existingAccess)) {
       await applyUserAccess(serviceSupabase, existingUser.id, roles, teams);
       const invitation = await createInvitationRecord(serviceSupabase, {
         email,
@@ -105,6 +110,7 @@ export async function handler(event) {
       email,
       fullName,
       inviterUserId: auth.user.id,
+      resolvedUserId: existingUser?.id || null,
       roles,
       teams,
     });
@@ -114,6 +120,7 @@ export async function handler(event) {
       fullName,
       invitationToken: invitation.invitation_token,
       publicAppUrl,
+      authLinkType: existingAccess?.emailConfirmed ? 'recovery' : 'invite',
     });
 
     if (authUserId) {
@@ -134,6 +141,19 @@ export async function handler(event) {
       roles,
       teams,
     });
+
+    // Old uncompleted links must not remain visible as an alternative path
+    // after a new invitation has been issued for the same account.
+    const { error: staleError } = await serviceSupabase
+      .from('staff_invitations')
+      .update({ status: 'expired' })
+      .eq('email_normalized', email)
+      .eq('status', 'pending')
+      .lt('expires_at', new Date().toISOString())
+      .neq('id', invitation.id);
+    if (staleError) {
+      console.warn('Could not retire older expired staff invitations.', staleError);
+    }
 
     const delivery =
       deliveryMode === 'email'

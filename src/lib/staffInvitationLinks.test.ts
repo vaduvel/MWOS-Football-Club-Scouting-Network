@@ -49,4 +49,15 @@ describe('staff invitation action links', () => {
       'https://xpswwuhdodzzdvrxypdj.supabase.co/auth/v1/verify?token=hash123&type=invite&redirect_to=https%3A%2F%2Fscout-report-builder.netlify.app%2Faccept-invite%3Finvitation%3Dtoken456',
     );
   });
+
+  it('uses a recovery verification link for a confirmed Auth account that still needs club activation', () => {
+    const result = buildSupabaseInviteActionLink({
+      hashedToken: 'recoveryhash',
+      redirectTo: 'https://mwos-hub.com/accept-invite?invitation=renewed',
+      type: 'recovery',
+    });
+
+    expect(new URL(result).searchParams.get('type')).toBe('recovery');
+    expect(new URL(result).searchParams.get('redirect_to')).toBe('https://mwos-hub.com/accept-invite?invitation=renewed');
+  });
 });
