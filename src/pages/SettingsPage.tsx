@@ -1435,6 +1435,17 @@ export default function SettingsPage() {
                                   <p className="mt-1 text-[11px] font-semibold text-[var(--color-mid)]">
                                     Updated {dateTimeFormatter.format(new Date(invitation.updatedAt))}
                                   </p>
+                                  {invitation.status === 'expired' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleResendInvite(invitation.id)}
+                                      disabled={invitationActionKey === `resend:${invitation.id}`}
+                                      className="mwos-btn mwos-btn-secondary mt-3 text-sm"
+                                    >
+                                      <RotateCcw size={16} />
+                                      {invitationActionKey === `resend:${invitation.id}` ? 'Working...' : 'Reactivate & Send'}
+                                    </button>
+                                  )}
                                 </div>
                               ))
                             )}

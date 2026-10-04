@@ -40,6 +40,37 @@ export async function fetchExistingUserByEmail(serviceSupabase, email) {
   return data || null;
 }
 
+export async function fetchExistingUserAccessState(serviceSupabase, userId, expectedEmail) {
+  const [rolesResponse, authResponse] = await Promise.all([
+    serviceSupabase.from('user_roles').select('role_id').eq('user_id', userId).limit(1),
+    serviceSupabase.auth.admin.getUserById(userId),
+  ]);
+
+  if (rolesResponse.error) throw rolesResponse.error;
+  if (authResponse.error) throw authResponse.error;
+  const authUser = authResponse.data?.user;
+  if (!authUser || normalizeEmail(authUser.email) !== normalizeEmail(expectedEmail)) {
+    throw new Error('The invitation email does not match the existing Auth account.');
+  }
+
+  return {
+    hasClubAccess: (rolesResponse.data || []).length > 0,
+    emailConfirmed: Boolean(authUser.email_confirmed_at),
+  };
+}
+
+export function requiresInvitationActivation(accessState) {
+  return !accessState?.hasClubAccess || !accessState?.emailConfirmed;
+}
+
+export async function getInvitationAuthLinkType(serviceSupabase, invitation) {
+  const userId = invitation.resolved_user_id ||
+    (await fetchExistingUserByEmail(serviceSupabase, invitation.email))?.id;
+  if (!userId) return 'invite';
+  const state = await fetchExistingUserAccessState(serviceSupabase, userId, invitation.email);
+  return state.emailConfirmed ? 'recovery' : 'invite';
+}
+
 export async function fetchRolesAndTeams(serviceSupabase, roleSlugs, teamIds) {
   const [rolesResponse, teamsResponse] = await Promise.all([
     roleSlugs.length > 0
@@ -430,15 +461,15 @@ export async function completeUserInvitations(serviceSupabase, {
   };
 }
 
-export function buildSupabaseInviteActionLink({ hashedToken, redirectTo }) {
+export function buildSupabaseInviteActionLink({ hashedToken, redirectTo, type = 'invite' }) {
   const supabaseUrl = getSupabaseUrl().replace(/\/$/, '');
-  if (!supabaseUrl || !hashedToken || !redirectTo) {
+  if (!supabaseUrl || !hashedToken || !redirectTo || !['invite', 'recovery'].includes(type)) {
     return '';
   }
 
   const query = new URLSearchParams({
     token: hashedToken,
-    type: 'invite',
+    type,
     redirect_to: redirectTo,
   });
 
@@ -558,18 +589,19 @@ export async function sendResentInviteEmail({ email, fullName, roles, teams, inv
   });
 }
 
-export async function generateInviteActionLink({ email, fullName, invitationToken, publicAppUrl }) {
+export async function generateInviteActionLink({ email, fullName, invitationToken, publicAppUrl, authLinkType = 'invite' }) {
   const serviceSupabase = createServiceSupabaseClient();
   const resolvedPublicAppUrl = publicAppUrl || getPublicAppUrl();
   const redirectTo = `${resolvedPublicAppUrl}/accept-invite?invitation=${encodeURIComponent(invitationToken)}`;
+  if (!['invite', 'recovery'].includes(authLinkType)) {
+    throw new Error('Unsupported invitation authentication link type.');
+  }
   const { data, error } = await serviceSupabase.auth.admin.generateLink({
-    type: 'invite',
+    type: authLinkType,
     email,
     options: {
       redirectTo,
-      data: {
-        name: fullName,
-      },
+      ...(authLinkType === 'invite' ? { data: { name: fullName } } : {}),
     },
   });
 
@@ -581,6 +613,7 @@ export async function generateInviteActionLink({ email, fullName, invitationToke
   const rebuiltActionLink = buildSupabaseInviteActionLink({
     hashedToken,
     redirectTo,
+    type: authLinkType,
   });
 
   return {
