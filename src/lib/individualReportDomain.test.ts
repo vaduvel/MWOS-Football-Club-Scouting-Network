@@ -16,6 +16,18 @@ describe('individual scouting', () => {
     report.players[0].name='QA External'; report.players[0].club_player_id='internal';
     expect(validateIndividualReport(report)).toContain('external');
   });
+  it('keeps birth date optional but rejects invalid and future dates', () => {
+    const report = createIndividualReport('QA Scout');
+    report.players[0].name = 'QA External';
+    expect(report.players[0].date_of_birth).toBe('');
+    expect(validateIndividualReport(report)).toBeNull();
+    report.players[0].date_of_birth = '2008-02-29';
+    expect(validateIndividualReport(report)).toBeNull();
+    report.players[0].date_of_birth = '2009-02-29';
+    expect(validateIndividualReport(report)).toContain('valid date of birth');
+    report.players[0].date_of_birth = '2099-01-01';
+    expect(validateIndividualReport(report)).toContain('not in the future');
+  });
   it('does not grant internal roster access for the Scout role', () => {
     expect(canAccessInternalRoster({roles:['scout']})).toBe(false);
     expect(canAccessInternalRoster({roles:['admin','scout']})).toBe(true);

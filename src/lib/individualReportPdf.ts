@@ -21,6 +21,7 @@ export async function buildIndividualReportPdf(report: Report) {
   text(report.players[0]?.name || 'Unnamed player', true);
   text(`Club: ${report.home_team || 'Not provided'}`);
   text(`Position(s): ${report.players[0]?.position || 'Not provided'}`);
+  text(`Date of birth: ${report.players[0]?.date_of_birth || 'Not provided'}`);
   text(`Observed: ${report.date || 'Not provided'} | Location: ${report.venue || 'Not provided'}`);
   text(`Scout: ${report.scout_name || 'Not provided'}`);
   if (tips && hasTipsContent(tips)) {

@@ -233,6 +233,7 @@ export default function IndividualReportPage() {
           <label className="block"><span className="mwos-form-label">Position(s) (optional)</span><input className="mwos-mobile-input" value={player.position || ''} onChange={e => updatePlayer(player.id,{position:e.target.value})} /></label>
           <label className="block"><span className="mwos-form-label">Observation date</span><input type="date" className="mwos-mobile-input" value={report.date} onChange={e => updateReportField('date',e.target.value)} /></label>
           <label className="block"><span className="mwos-form-label">Observation location (optional)</span><input className="mwos-mobile-input" value={report.venue} onChange={e => updateReportField('venue',e.target.value)} /></label>
+          <label className="block"><span className="mwos-form-label">Date of birth (optional)</span><input type="date" className="mwos-mobile-input" max={new Date().toISOString().slice(0, 10)} value={player.date_of_birth || ''} onChange={e => updatePlayer(player.id, {date_of_birth: e.target.value})} /></label>
         </section>
         {canEdit && <details className="rounded-2xl bg-white p-4">
           <summary className="min-h-11 cursor-pointer py-3 font-semibold">Scan the printed TIPS sheet (optional)</summary>

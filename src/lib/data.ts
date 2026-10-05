@@ -201,6 +201,7 @@ interface PlayerRow {
   shirt_number: number | null;
   name: string | null;
   position?: string | null;
+  date_of_birth?: string | null;
   subbed: string | null;
   goal: string | null;
   rating: number | null;
@@ -772,6 +773,7 @@ function mapPlayer(row: PlayerRow): Player {
     shirt_number: row.shirt_number ?? '',
     name: toStringValue(row.name),
     position: toStringValue(row.position),
+    date_of_birth: toStringValue(row.date_of_birth),
     subbed: toStringValue(row.subbed),
     goal: toStringValue(row.goal),
     rating: row.rating ?? '',
@@ -1006,7 +1008,7 @@ export async function fetchAdminDashboardOverview(): Promise<AdminDashboardOverv
     supabase
       .from('players')
       .select(
-        'id, report_id, club_player_id, team_side, shirt_number, name, position, subbed, goal, rating, position_x, position_y, sort_order',
+        'id, report_id, club_player_id, team_side, shirt_number, name, position, date_of_birth, subbed, goal, rating, position_x, position_y, sort_order',
       ),
     supabase
       .from('player_reviews')
@@ -1258,7 +1260,7 @@ export async function fetchReport(reportId: string) {
     supabase
       .from('players')
       .select(
-        'id, report_id, club_player_id, team_side, shirt_number, name, position, subbed, goal, rating, position_x, position_y, sort_order',
+        'id, report_id, club_player_id, team_side, shirt_number, name, position, date_of_birth, subbed, goal, rating, position_x, position_y, sort_order',
       )
       .eq('report_id', reportId)
       .order('sort_order', { ascending: true }),
@@ -1374,6 +1376,7 @@ export async function saveReport(report: Report) {
       shirt_number: toNullableFiniteNumber(player.shirt_number),
       name: toNullableText(player.name),
       position: toNullableText(player.position || ''),
+      date_of_birth: player.date_of_birth || null,
       subbed: toNullableText(player.subbed),
       goal: toNullableText(player.goal),
       rating: toNullableFiniteNumber(player.rating),
@@ -1464,7 +1467,7 @@ export async function fetchPlayerHubData(): Promise<PlayerHubOverview> {
     supabase
       .from('players')
       .select(
-        'id, report_id, club_player_id, team_side, shirt_number, name, position, subbed, goal, rating, position_x, position_y, sort_order',
+        'id, report_id, club_player_id, team_side, shirt_number, name, position, date_of_birth, subbed, goal, rating, position_x, position_y, sort_order',
       )
       .order('created_at', { ascending: false }),
     supabase
