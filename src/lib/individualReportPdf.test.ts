@@ -37,6 +37,13 @@ describe('individual PDF with TIPS as the primary evaluation', () => {
     expect(await firstPageText(withPrevious)).toContain('TIPS PLAYER EVALUATION (1-10)');
   });
 
+  it('includes the scouted player birth date in the exported report', async () => {
+    const report = createIndividualReport('QA Scout');
+    report.players[0].name = 'QA Player';
+    report.players[0].date_of_birth = '2008-02-29';
+    expect(await firstPageText(await buildIndividualReportPdf(report))).toContain('Date of birth: 2008-02-29');
+  });
+
   it('keeps historical 1-5 reports exportable', async () => {
     const report = createIndividualReport('QA Scout');
     report.players[0].name = 'QA Historical';

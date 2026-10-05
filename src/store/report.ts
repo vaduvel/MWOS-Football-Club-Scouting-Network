@@ -8,6 +8,7 @@ export interface Player {
   shirt_number: number | '';
   name: string;
   position?: string;
+  date_of_birth?: string;
   subbed: string;
   goal: string;
   rating: number | '';
